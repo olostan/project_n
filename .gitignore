@@ -1,0 +1,122 @@
+# ==============================================================================
+# Project N: Multimodal Neurodivergent Intent Translation Pipeline
+# Production .gitignore for Apple Silicon MLX, Local Python, Flutter & Media
+# ==============================================================================
+
+# --- Python Environment & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+
+# --- Apple Silicon, Metal & MLX Cache ---
+*.metal
+*.metallib
+.mlx_cache/
+mlx_temp/
+
+# --- Model Weights, Checkpoints & Serialization Formats ---
+# Models must be stored in local non-versioned storage or fetched via local scripts
+models/checkpoints/
+models/weights/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.mlmodel
+*.mlpackage
+lora_weights/
+adapters/
+mae_checkpoints/
+
+# --- Raw Media, Audio Spectrograms & Video Buffers ---
+# Sensory raw data is strictly confidential and high-volume local data
+data/
+raw_video/
+raw_audio/
+processed_clips/
+video_buffers/
+audio_buffers/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.flac
+*.aac
+*.m4a
+*.mel
+*.npy
+*.npz
+
+# --- Local Vector Database & Storage Engines ---
+chroma_db/
+*.chroma
+*.parquet
+*.sqlite
+*.sqlite3
+*.db
+local_storage/
+replay_buffer/
+
+# --- FastAPI, Uvicorn & Local Daemon Logs ---
+*.log
+logs/
+server/logs/
+*.pid
+
+# --- macOS System Metadata ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Flutter / Dart Build & Dependency Artifacts ---
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/build/
+app/.pub-cache/
+app/.pub/
+app/*.lock
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/app.framework
+app/android/.gradle/
+app/android/captures/
+app/android/gradlew
+app/android/gradlew.bat
+app/android/local.properties
+app/android/app/build/
+
+# --- IDEs & Developer Tooling ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cursor/
