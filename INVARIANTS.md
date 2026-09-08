@@ -1,102 +1,116 @@
-# Project N: Strict Architectural & System Invariants
+# Project N: Architectural & System Invariants
 
 ---
 
 ## Preamble
-This document establishes the inviolable system, mathematical, memory, privacy, and architectural invariants governing **Project N**. Every human contributor, automated script, and autonomous AI coding agent (e.g., Antigravity, Cursor, Claude Code) operating on this codebase is legally and technically bound by these rules.
+This document establishes the system, architectural, mathematical, security, and governance boundaries governing **Project N**. Every contributor, automated script, and autonomous AI coding agent (e.g., Antigravity, Cursor, Claude Code) operating on this codebase is strictly bound by these rules.
 
-A violation of an invariant constitutes an immediate regression and build failure. Automated test harnesses and pull-request filters must assert these invariants prior to merging or executing code.
-
----
-
-## Invariant 1: Privacy & Offline Execution Invariant
-
-### Formal Rule
-**Zero external network telemetry. All model weights, inference pipelines, embeddings, audio tracks, video clips, metadata, and generated outputs MUST process strictly offline on local hardware.**
-
-### Specifications
-1. **Forbidden APIs & SDKs:** Inclusion or invocation of remote cloud AI APIs (including OpenAI, Anthropic, Google Cloud Vertex/Gemini, AWS Bedrock, HuggingFace Inference API, or any remote telemetry collector) is strictly banned across all production and test modules.
-2. **Local Loopback Isolation:** The FastAPI daemon and mobile companion services must bind strictly to local network interfaces (`127.0.0.1` or LAN `192.168.x.x` / `project-n.local` via mDNS). No outbound WAN traffic may be initiated by any backend process.
-3. **Sensitive Media Protection:** Nolan's raw video recordings and audio tracks are sensitive pediatric health records. They must reside in local encrypted directories and never be serialized into unencrypted shared volumes or public Git commits.
-4. **Offline Assertions:** The automated test suite must execute inside a network-sandboxed environment (e.g., `pytest` run with blocked socket connections except localhost).
+Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`), this document makes an explicit distinction between:
+1. **True Non-Negotiable Invariants (§1):** Hard system, safety, privacy, and architectural constraints that must never be violated.
+2. **Tunable Empirical Defaults (§2):** Research and training hyperparameters that are explicitly configurable and subject to experimental ablation.
 
 ---
 
-## Invariant 2: Hardware Memory Cap (36.0 GB Hard Invariant)
+## 1. True Non-Negotiable Invariants
 
-### Formal Rule
-**Peak VRAM / Unified Memory consumption must NEVER exceed 36.0 GB on 48GB Unified Memory Apple Silicon hardware. Zero page swapping to the host SSD is permitted during training or inference.**
+### Invariant 1: Privacy, Offline Execution & Encryption Vault
+**Zero external network telemetry. All media, features, embeddings, and clinical records MUST process strictly offline on local hardware.**
+- **No Cloud AI APIs:** Inclusion or invocation of remote cloud AI APIs (OpenAI, Anthropic, Google Cloud Vertex/Gemini, AWS Bedrock, HuggingFace Inference API, or any remote telemetry collector) is strictly prohibited across all modules.
+- **Two-Key Vault Posture:** 
+  - Media, features, and metadata are encrypted at rest using per-clip random AES-256-GCM Data Encryption Keys (DEKs).
+  - Background ingestion and processing while the Mac screen is locked are executed via a signed per-user LaunchAgent helper using Apple's Data Protection Keychain (`SecItem` with `kSecUseDataProtectionKeychain=true`).
+  - Sensitive operations (revealing raw video, exporting data, viewing timelines, altering retention, pairing new devices) require explicit Touch ID / user-presence authentication via a separate private key.
+- **Transport Security:** Companion apps communicate with the Mac helper over mutual TLS (mTLS) with per-request signatures and nonces over local Wi-Fi. mDNS discovery or LAN IP address presence alone is never treated as authentication.
+- **Child Assent & Dissent:** The capture system must respect behavioral dissent (e.g., turning away or covering the camera immediately terminates recording). Camera-free private zones (bathrooms, bedrooms) are enforced in software. Untagged footage is automatically purged after a configurable retention window.
+- **De-Identification:** In public and committed code/documentation, the child is strictly de-identified (referred to as Child N). No identifiable personal health information (PHI) is committed to Git.
 
-### Specifications
-1. **Peak Operational Baseline:** The operational baseline during active inference must remain $\le 28.0\text{ GB}$, ensuring at least $8.0\text{ GB}$ of headroom below the $36.0\text{ GB}$ ceiling and preserving $\ge 8.0\text{ GB}$ for macOS host processes (WindowServer, CoreAudio, system daemons).
-2. **Zero Swapping Assertion:** Memory allocation must not cause swap activity. Swap usage before and after execution must be checked via `sysctl vm.swapusage`. If `swapins` or `swapouts` increase during a forward pass or nightly training cycle, the process must immediately abort.
-3. **MLX Graph Garbage Collection:** Long-running loops must strategically trigger `mx.eval()` and garbage collection to release dead intermediate nodes from the Metal unified memory computation graph.
-4. **Out-of-Memory (OOM) Protection:** All batch sizes, context window lengths, and tensor allocations must be parameterized and clamped within safe upper bounds.
+### Invariant 2: Measured Hardware Memory Ceiling
+**Peak unified memory allocation must NEVER cause page swapping to SSD and must remain bounded by a measured ceiling on the target hardware.**
+- On 48 GB Unified Memory systems, peak operational allocation must remain strictly $\le 36.0\text{ GB}$, with an operational baseline $\le 28.0\text{ GB}$, preserving $\ge 8.0\text{ GB}$ for macOS system stability.
+- Memory budgets must reflect measured benchmark envelopes (active Metal allocations, dynamic cache, context window, and model weights) rather than unverified static assertions.
+
+### Invariant 3: Base LLM Weight Freezing
+**Base Large Language Model weights ($\mathbf{W}_0$) must remain 100% frozen in memory. Weight updates are strictly confined to lightweight connectors, adapters, or metric heads.**
+- In Apple MLX, base model freezing must be enacted via `model.freeze()` (never no-op attribute mutations like `param.trainable = False`).
+- Base LLM weights are loaded in quantized format directly into Metal unified memory. De-quantization into FP16/FP32 for base weight fine-tuning is prohibited.
+
+### Invariant 4: Sensory Bypass & Inductive Bias
+**Phonemic speech-to-text transcriptions (e.g., Whisper text tokens, CTC phoneme decoding) and text-only intermediate captioning bottlenecks are strictly prohibited in the primary sensory decoding path.**
+- **Acoustic Front End:** The system must preserve raw acoustic dynamics. Explicit pitch tracking (F0), voice quality metrics (jitter, shimmer, HNR, spectral tilt), harmonic filterbanks (CQT/ERB), and broadband log-mel representations are permitted and required. Pitch tracking is an acoustic measurement, not an ASR phoneme decoder.
+- **Pretrained Encoders as Experimental Arms:** Pretrained acoustic representations (e.g., BEATs, AudioMAE, or frozen intermediate encoder layers) and pretrained vision backbones may be evaluated as competing experimental arms against custom-trained encoders. The ban applies to *phonemic transcription and text-only intermediate bottlenecks*, not to pretrained acoustic representations.
+- **Kinematic Extraction:** Pixel differencing alone must not be relied upon due to camera motion vulnerability. Pose/keypoint landmarks (e.g., MediaPipe Holistic, BlazePose) form the primary motion substrate, complemented by optical flow and context.
+
+### Invariant 5: No Autonomous Model Deployment (Gated Promotion)
+**No model checkpoint or adapter may be deployed to caregiver-facing inference automatically or via unverified overnight gradient updates.**
+- Continuous adaptation requires an explicit promotion gate:
+  1. Candidate models are trained on accumulated, verified records.
+  2. Candidates are evaluated against time-separated and context-stratified holdout sets plus a locked "never-train" safety set.
+  3. Predeclared criteria must be satisfied: improved calibration error, coverage, and per-class precision/recall, with **zero safety regressions**.
+  4. Explicit caregiver (and clinical team) review and sign-off are required prior to promoting candidate weights to production.
+  5. Full rollback capability, model lineage, and parameter versioning are maintained.
+
+### Invariant 6: Output Truthfulness, Non-Diagnostic Framing & Four-Layer Separation
+**The system is a caregiver- and child-controlled communication-support tool, NOT a diagnostic device or intent translator. It must never present an inferred state, pain assessment, or intent as fact.**
+- **Four-Layer Traceability:** Every system output must be explicitly partitioned into four visually distinct layers:
+  - **Layer 1 (L1 - Measured Observation):** Directly measured acoustic, kinematic, and physiological features (e.g., vocalization duration, F0 mean/variance, motion periodicity).
+  - **Layer 2 (L2 - Comparable History):** Historical episodes from Child N's verified records exhibiting similar metric embeddings and their recorded outcomes.
+  - **Layer 3 (L3 - Context & Antecedents):** Caregiver-provided notes regarding transitions, environment, timing, and caregiver-observed antecedents.
+  - **Layer 4 (L4 - Evidence Library):** Versioned, cited excerpts from published literature, documenting author, year, study population, and evidence level.
+- **Abstention as a First-Class State:** If nearest-neighbor distance in metric space exceeds a calibrated threshold or if signal quality is compromised, the system must **abstain** ("unrecognized pattern") and suggest observational or AAC-based exploratory options.
+- **Forbidden Terminology:** Outputs and documentation must not use deterministic terms such as "child state diagnosis", "translating into intent", or "caregiver treatment protocols".
+
+### Invariant 7: Medical Rule-Out & Red-Flag Escalation
+**Distress and potential pain must be assessed using a validated instrument and must NEVER be silently mapped to sensory seeking or behavioral intent.**
+- Pain and somatic distress evaluation utilizes the validated Non-Communicating Children's Pain Checklist – Revised (**NCCPC-R**) schema across vocal, emotional, facial, body language, protective, and physiological subscales.
+- When distress indicators or their rate of change exceed clinical thresholds, the system must trigger a **Medical Escalation Card** advising caregiver medical review. Sensory or behavioral interpretations are suppressed during red-flag states.
+
+### Invariant 8: The AAC Bridge & Child Authorship
+**The child is the primary author of his communication. Inferred possibilities must route through augmentative and alternative communication (AAC) channels rather than delivering unverified conclusions to adults.**
+- Generated possibilities are structured as candidate options pre-populated on an AAC choice board or speech-generating device for the child to select, confirm, or reject.
+- Child-confirmed responses (via AAC selection, physical reach, or explicit gesture) outrank all adult or caregiver hypotheses in the data record.
+
+### Invariant 9: Lineage, Versioning & Evaluation Set Immutability
+**Training data, retrieval indices, and evaluation benchmarks must be strictly segregated.**
+- Every stored embedding must record the exact encoder checkpoint ID that generated it. When encoders are updated, retrieval indices must be re-embedded from a versioned corpus snapshot to prevent silent embedding drift.
+- A locked, immutable benchmark evaluation set and safety set must remain isolated from mutable daily training buffers.
+
+### Invariant 10: Apple MLX Native Framework Purity
+**Core tensor transformations, forward passes, and training loops must execute natively on Apple MLX (`mlx.core`, `mlx.nn`).**
+- Use `mlx.core` and `mlx.nn`. Metal Performance Shaders attention must be called via `mx.fast.scaled_dot_product_attention`.
+- Memory tracking must use `mx.get_active_memory()` and `mx.get_peak_memory()`. Model freezing must use `model.freeze()`.
+- Standard CPU-bound demuxing libraries (`numpy`, `scipy`, `soundfile`, `librosa`) are permitted for ingest and DSP feature preparation prior to MLX array conversion.
 
 ---
 
-## Invariant 3: Foundational LLM Weight Freezing Invariant
+## 2. Tunable Empirical Defaults (Configurable Hyperparameters)
 
-### Formal Rule
-**The foundational Large Language Model weights ($\mathbf{W}_0$) must remain 100% frozen in memory. Weight updates are strictly confined to the Perceiver Resampler projection matrices and Low-Rank Adapters ($\Delta \mathbf{W} = \frac{\alpha}{r} \mathbf{B} \mathbf{A}$).**
+The following parameters are empirical design defaults subject to systematic ablation and optimization, not rigid invariants:
 
-### Specifications
-1. **Frozen State:** In the MLX parameter hierarchy, all parameters belonging to the base LLM (`model.layers.*`) must have their `trainable` flags set to `False`.
-2. **Quantization Integrity:** The base LLM must be loaded in 4-bit quantized format directly into Metal unified memory. De-quantization of $\mathbf{W}_0$ into FP16/FP32 for fine-tuning is prohibited.
-3. **Trainable Parameter Budget:** Trainable parameters during nightly adaptation must never exceed:
-   - Perceiver Resampler (`NDProjector`): $64 \times 4096$ latent queries + cross-attention + FFN ($\approx 68\text{M}$ parameters).
-   - Clinical Domain LoRA ($r=64, \alpha=128$): Adapter projections ($\approx 85\text{M}$ parameters).
-   - Total Trainable Footprint: $\le 160\text{M}$ parameters ($\approx 320\text{ MB}$ in FP16), keeping AdamW states strictly within the $8.0\text{ GB}$ training budget.
-
----
-
-## Invariant 4: Inductive Bias Invariant (Sensory Bypass)
-
-### Formal Rule
-**Standard phonemic speech-to-text engines (e.g., Whisper, Wav2Vec2) and standard spatial vision classification heads must NEVER be placed in the primary sensory extraction loop. Raw time-frequency Mel-spectrograms and Temporal-L1 kinematic differentials are mandatory.**
-
-### Specifications
-1. **The ASR Ban:** No component may convert raw vocalizations into intermediate phonemes, words, or text transcripts before presenting the signal to the multimodal projector. Standard ASR obliterates micro-pitch, harmonic resonance, and tonal hums.
-2. **The Spatial Pooling Ban:** Video inputs must not be pre-processed using spatial pooling that discards high-frequency motor stims. Temporal differential masking ($\mathbf{\Delta}_t = \|\mathbf{Z}_t - \mathbf{Z}_{t-1}\|_1$) with threshold filtering ($\tau$) is mandatory to isolate rapid motor dynamics from static background pixels.
-3. **Direct Latent Ingestion:** The 64 compressed sensory tokens ($\mathbf{Z}_{sensory}$) produced by the Perceiver Resampler must be injected directly into the LLM prefix conditioning space. Text-only intermediate descriptions ("Child is moving hands and humming") are prohibited as sensory proxies.
+| Parameter | Baseline Default | Ablation / Search Range | Notes |
+| :--- | :--- | :--- | :--- |
+| **Replay Buffer Ratio** | 80% historical / 20% novel | 50/50 to 90/10, or full-history re-fit | Replaced nightly SGD with periodic full re-fit of metric heads. |
+| **Masking Ratio** | 75% uniform | 50% to 85% | Pre-training ablation parameter for self-supervised encoders. |
+| **Resampler Latent Count** | 64 query tokens | 16, 32, 64, 128 tokens | Evaluated against cross-modal retrieval fidelity and memory. |
+| **LoRA Rank & Scale** | $r=64, \alpha=128$ | $r \in [16, 32, 64], \alpha = 2r$ | Confined strictly to output rendering and schema alignment. |
+| **Metric Embedding Dimension** | 128 dimensions | 64 to 256 dimensions | Compact metric space for prototype/k-NN retrieval. |
+| **Triplet / Contrastive Margin** | $\alpha_{margin} = 0.25$ | 0.1 to 0.5 | Evaluated with supervised contrastive / prototypical loss. |
+| **Capture Frame Rate & Res** | 30 fps @ 720p | 15 fps to 30 fps, 720p/1080p | 15–30 fps provides optimal Nyquist coverage for motor stims. |
+| **Audio STFT Window & Hop** | $N=2048$, $H=160$ (48 kHz) | $N \in [1024, 2048], H \in [160, 240]$ | Accompanied by 10 ms hop F0/voice quality tracking. |
+| **Abstention Distance Cutoff** | 95th percentile holdout | Calibrated per-class threshold | Governs coverage vs error rate trade-off. |
 
 ---
 
-## Invariant 5: Replay Buffer Invariant (The 80/20 Rule)
-
-### Formal Rule
-**Every nightly training batch MUST adhere strictly to the 80/20 rule: exactly 80% historical replay vectors and 20% novel daily vectors. Training on unbuffered novel data alone is strictly prohibited.**
-
-### Specifications
-1. **Batch Allocation Ratio:** For every optimization batch of size $B = 10$:
-   - Exactly 8 samples ($80\%$) must be drawn from the historical ChromaDB intent collection (`nd_communicative_intents`), incorporating both random historical exemplars and hard-mined negative anchors.
-   - Exactly 2 samples ($20\%$) must be drawn from the newly collected, parent-tagged recordings of the current 24-hour cycle.
-2. **Catastrophic Forgetting Prevention:** Violating the 80/20 ratio causes catastrophic forgetting, warping previously calibrated latent clusters. If fewer than 2 novel samples exist on a given day, replay continues with $100\%$ historical self-reinforcement. If novel samples exceed the daily limit, they must be partitioned into multiple 80/20 batches.
-3. **Contrastive Triplet Consistency:** Contrastive Triplet Loss ($\mathcal{L}_{triplet}$) must enforce positive and negative pairings across both historical and novel instances using the cosine distance metric:
-   $$\mathcal{L}_{triplet} = \max\left(d(\mathbf{a}, \mathbf{p}) - d(\mathbf{a}, \mathbf{n}) + 0.25, \; 0\right)$$
-
----
-
-## Invariant 6: Apple MLX Native Framework Invariant
-
-### Formal Rule
-**Core tensor operations, forward passes, sensory encoders, Resampler modules, and training loops MUST target Apple MLX (`mlx.core`, `mlx.nn`). PyTorch and CUDA runtime dependencies are forbidden in the primary execution path.**
-
-### Specifications
-1. **Framework Purity:** Production files under `extraction/`, `models/`, `training/`, and `server/` must import `mlx.core as mx` and `mlx.nn as nn`. PyTorch (`torch`), Torchvision (`torchvision`), or CUDA-specific primitives are banned from the primary execution pipeline.
-2. **Metal Acceleration:** All attention blocks must invoke `mx.fast.scaled_dot_product_attention` to leverage Apple Silicon Metal Performance Shaders (MPS).
-3. **Lazy Evaluation Discipline:** Agents and developers must prevent unbounded graph growth by applying `mx.eval()` at deterministic synchronization boundaries (loss evaluations, log steps, and batch transitions).
-4. **Data Interchange Exception:** Standard CPU-bound ingestion tools (`numpy`, `scipy`, `soundfile`, `librosa`, `av`, `ffmpeg`) are permitted for initial audio/video file demuxing prior to converting arrays into `mx.array`.
-
----
-
-## Enforcement and Verification Table
+## 3. Enforcement & Verification Summary
 
 | Invariant ID | Target Subsystem | Automated Verification Command | Action on Failure |
 | :--- | :--- | :--- | :--- |
-| **INV-1** | Network / Telemetry | `pytest tests/test_offline_sandbox.py` | Immediate process abort; reject PR |
-| **INV-2** | Memory / Hardware | `python tests/verify_memory_ceiling.py --max_gb 36.0` | Abort forward pass; release GPU cache |
-| **INV-3** | Weight Freezing | `python tests/verify_frozen_weights.py` | Refuse gradient update step |
-| **INV-4** | Inductive Bias | `pytest tests/test_sensory_pipeline.py` | Reject intermediate text descriptions |
-| **INV-5** | Replay Buffer | `python -m training.replay_buffer --verify_ratio 0.8` | Halt nightly training loop |
-| **INV-6** | MLX Native | `grep -rn "import torch" extraction/ models/ training/` | Fail lint check; forbid commit |
+| **INV-1** | Network Sandbox | `pytest tests/test_offline_sandbox.py` | Immediate process abort; reject PR |
+| **INV-2** | Memory Ceiling | `python tests/verify_memory_ceiling.py --max_gb 36.0` | Abort execution; release Metal cache |
+| **INV-3** | Weight Freezing | `python tests/verify_frozen_weights.py` | Refuse candidate promotion |
+| **INV-4** | Sensory Bypass | `pytest tests/test_sensory_pipeline.py` | Reject phonemic/text bottlenecks |
+| **INV-5** | Model Promotion | `python -m training.evaluate_candidate --strict` | Block deployment if safety regresses |
+| **INV-6** | Output Traceability | `pytest tests/test_output_schema.py` | Reject unformatted or diagnostic text |
+| **INV-7** | Medical Rule-Out | `pytest tests/test_nccpc_escalation.py` | Enforce medical referral on red flags |
+| **INV-8** | AAC Authorship | `pytest tests/test_aac_routing.py` | Ensure candidate choices route to child |
+| **INV-9** | Version Lineage | `python -m rag.verify_lineage` | Prevent querying across encoder versions |
+| **INV-10**| MLX Purity | `grep -rn "import torch" extraction/ models/ training/` | Fail lint check; forbid commit |

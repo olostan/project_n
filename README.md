@@ -1,121 +1,130 @@
-# Project N: Multimodal Intent Translation for Non-Verbal Autism
+# Project N: Multimodal Communication Support & Behavioral Insight Pipeline
 
 [![Platform: Apple Silicon](https://img.shields.io/badge/Platform-Apple%20Silicon%20(M5%20Pro)-black?style=flat-square&logo=apple)](https://developer.apple.com/metal/)
 [![Engine: Apple MLX](https://img.shields.io/badge/Engine-Apple%20MLX%200.22+-blue?style=flat-square)](https://github.com/ml-explore/mlx)
 [![Memory: 48GB Unified RAM](https://img.shields.io/badge/Memory-48GB%20Unified%20RAM%20(36GB%20Cap)-green?style=flat-square)]()
-[![Privacy: 100% Offline Local-First](https://img.shields.io/badge/Privacy-100%25%20Offline%20Local--First-red?style=flat-square)]()
-[![License: Proprietary / Research Core](https://img.shields.io/badge/License-Research%20Core-purple?style=flat-square)]()
+[![Privacy: 100% Offline Two-Key Vault](https://img.shields.io/badge/Privacy-100%25%20Offline%20Two--Key%20Vault-red?style=flat-square)]()
+[![Safety: AAC Bridge & NCCPC-R](https://img.shields.io/badge/Safety-AAC%20Bridge%20%26%20NCCPC--R-purple?style=flat-square)]()
 
 ---
 
-## 1. Mission Statement
+## 1. Mission Statement & Product Contract
 
-Project N democratizes non-verbal intent translation through local-first, privacy-preserving multimodal intelligence tailored to individualized neurodivergent communication. 
+**Project N is a 100% offline, caregiver- and child-controlled communication-support and behavioral insight assistant** engineered for minimally speaking neurodivergent children (exemplified by Child N, a 7-year-old minimally speaking child).
 
-Commercial and open-weight foundation models suffer from an inherent neurotypical inductive bias. Standard automatic speech recognition (ASR) pipelines discard raw acoustic resonance, tonal hums, and guttural vocalizations as "untranscribable noise," while standard vision transformers (ViTs) spatially pool away high-frequency repetitive motor stims (such as rapid wrist rotation, finger-flicking, or postural shifts). For a Level 3 non-verbal autistic individual—specifically exemplified by Nolan, a 7-year-old minimally speaking child—this idiosyncratic sensory "noise" forms the entire substrate of expressive communication.
+### What Project N Is
+- **An Evidence-Grounded Assistant:** It observes multi-modal recordings, references Child N's personal history of verified episodes, queries a local clinical evidence library, and surfaces calibrated possibilities alongside ways to confirm or reject them.
+- **Child-Authored via AAC:** Possibilities are routed directly into Augmentative and Alternative Communication (AAC) speech-generating devices or choice boards as pre-populated options for the child to select, confirm, or reject.
+- **Separated into Four Clear Evidence Layers:** Every output is strictly delineated into four distinct layers:
+  1. **Layer 1 (L1 - Measured Observation):** Directly measured acoustic, kinematic, and physiological dynamics.
+  2. **Layer 2 (L2 - Comparable History):** Prior caregiver-confirmed episodes with matching metric signatures and their recorded resolution outcomes.
+  3. **Layer 3 (L3 - Context & Antecedents):** Caregiver-recorded environmental context, timing, meals, and transitions.
+  4. **Layer 4 (L4 - Cited Evidence Library):** Versioned, cited academic excerpts documenting author, date, study population, and evidence quality.
 
-Project N provides a zero-cloud, strictly offline architecture executing locally on Apple Silicon (M5 Pro, 48GB Unified Memory). By pairing custom raw sensory encoders with a Perceiver Resampler bottleneck, domain-specific clinical grounding, and nightly self-stabilizing contrastive replay loops, Project N decodes subtle somatic and vocal expressions into clear, actionable intent for parents and caregivers.
+### What Project N Is NOT
+- It is **NOT** a diagnostic system. It never asserts internal states, autonomic conditions, or medical diagnoses as facts.
+- It is **NOT** an autonomous "intent translator." It does not produce unconstrained narrative translations of internal child consciousness.
+- It does **NOT** replace medical review. Somatic distress is evaluated via the validated Non-Communicating Children's Pain Checklist – Revised (**NCCPC-R**), with red flags triggering immediate escalation cards.
 
 ---
 
-## 2. End-to-End System Architecture
+## 2. Inverted Target Architecture (Retrieval-First, Rendering-Only)
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   CLIENT INTERFACE                                     │
+│                              LOCAL MULTIMODAL CAPTURE                                 │
 │                                                                                        │
-│   Flutter Mobile Client (iOS / Android / macOS Local Target)                           │
-│   ├─ Capture Engine: 30s–120s High-Framerate Video (1080p @ 60fps) + 48kHz WAV Audio   │
-│   └─ Micro-Feedback: Voice Notes, Antecedent Tags, Intent Corrections, Affect Sliders   │
+│   Companion Client (Flutter iOS / Android / Local Sensor Bridge)                       │
+│   ├─ Video & Audio: 30 fps @ 720p/1080p, 48kHz WAV audio                               │
+│   ├─ Wearable Physiology: Electrodermal Activity (EDA), Heart Rate Variability (HRV),   │
+│   │  and 3-axis Accelerometry (providing objective autonomic correlates)              │
+│   └─ Dissent Protocol: Turning away or covering camera immediately halts capture        │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
-                                            │ Local LAN Wi-Fi / mDNS HTTP REST
+                                            │ Local LAN mTLS + Signed Requests & Nonce
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        LOCAL INGESTION & FASTAPI DAEMON (MACOS)                        │
+│                      TWO-KEY ENCRYPTION VAULT & PER-USER HELPER                        │
 │                                                                                        │
-│   FastAPI Service (Uvicorn / Asynchronous Buffer / Metal Acceleration)                 │
-│   ├─ Ingestion Pipeline: Multipart clip validation, zero-copy buffer handoff          │
-│   └─ FFmpeg Stream Demuxing: High-precision audio extraction & frame diff preprocessing│
+│   Apple macOS Signed LaunchAgent (User Context / Data Protection Keychain)             │
+│   ├─ Processing Key: Per-clip AES-256-GCM DEK for automatic processing while locked    │
+│   └─ Touch ID Review Key: Required to view raw media, inspect timelines, or export     │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │
-                      ┌─────────────────────┴─────────────────────┐
-                      │                                           │
-                      ▼                                           ▼
-┌───────────────────────────────────────────┐ ┌──────────────────────────────────────────┐
-│          ACOUSTIC SENSORY PATH            │ │          KINEMATIC SENSORY PATH          │
-│                                           │ │                                          │
-│   ND-AST (Spectrogram Transformer)        │ │   TD-ViT (Temporal Difference ViT)       │
-│   ├─ Raw Audio (44.1kHz / 48kHz WAV)      │ │   ├─ Video Stream (60fps Decoded Frames) │
-│   ├─ STFT: n_fft=2048, hop=160 (~3.6ms)   │ │   ├─ Temporal-L1 Diff: Δt = ||zt-zt-1||1 │
-│   ├─ Mel Filterbank: 128 Filter Bands     │ │   ├─ Threshold Filter: Drops Static Bkgd │
-│   ├─ Aliasing-aware Patch Embedding (AaPE)│ │   ├─ Isolates Stims (3Hz-8Hz Motor Stims)│
-│   └─ Output: X_audio ∈ R^(B x 2048 x 768) │ │   └─ Output: X_kinematic ∈ R^(B x 1500 x │
-│                                           │ │                                     1024)│
-└─────────────────────┬─────────────────────┘ └────────────────────┬─────────────────────┘
-                      │                                            │
-                      └─────────────────────┬──────────────────────┘
-                                            │ Concat: [X_audio, X_kinematic] (~3548 tokens)
-                                            ▼
+                      ┌─────────────────────┼─────────────────────┐
+                      │                     │                     │
+                      ▼                     ▼                     ▼
+┌───────────────────────────┐ ┌───────────────────────────┐ ┌───────────────────────────┐
+│     ACOUSTIC PIPELINE     │ │    KINEMATIC PIPELINE     │ │   PHYSIOLOGICAL PIPELINE    │
+│                           │ │                           │ │                           │
+│ ├─ Explicit Pitch Track:  │ │ ├─ Body-Relative Pose:    │ │ ├─ Electrodermal (EDA):   │
+│ │  F0, Jitter, Shimmer,   │ │    MediaPipe Holistic /   │ │    Tonic / phasic skin    │
+│ │  HNR (~10ms hop)        │ │    BlazePose landmarks    │ │    conductance response   │
+│ ├─ Harmonic Filterbank:   │ │ ├─ Dense Optical Flow:    │ │ ├─ Cardiorespiratory:     │
+│ │  CQT / ERB filterbank   │ │    RAFT motion vectors    │ │    HRV / pulse intervals  │
+│ └─ Texture: 128 Log-Mel   │ │ └─ Context: Object & room │ │ └─ Accelerometry: Body    │
+│    bands (broadband)      │ │    (TD-ViT as ablation)   │ │    motion & posture       │
+└─────────────┬─────────────┘ └─────────────┬─────────────┘ └─────────────┬─────────────┘
+              │                             │                             │
+              └──────────────────────┬──────┴─────────────────────────────┘
+                                     ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                 DIMENSIONAL BOTTLENECK: PERCEIVER RESAMPLER                            │
+│                   ENCODER BINDING & METRIC EMBEDDING HEAD (MLX)                        │
 │                                                                                        │
-│   Apple MLX NDProjector (Cross-Attention Compression Engine)                           │
-│   ├─ Latent Queries: M = 64 Learnable Vectors (D = 4096)                               │
-│   ├─ Multi-Head Cross-Attention (scaled_dot_product_attention on Apple Metal M5 Pro)   │
-│   └─ Output Bottleneck: Z_sensory ∈ R^(B x 64 x 4096)                                  │
-└───────────────────────────────────────────┬────────────────────────────────────────────┘
-                                            │ Prefix Conditioning Vector Injection
-                                            ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                 CLINICAL REASONING & INFERENCE CORE (MLX 14B BASE)                     │
-│                                                                                        │
-│   4-bit Quantized Foundation LLM (Qwen2.5-Omni / Qwen2.5-14B-Instruct)                │
-│   ├─ Base Weights (W0): 100% Frozen in Metal Unified Memory (4-bit, ~9.0 GB)           │
-│   ├─ Clinical Domain LoRA: Low-Rank Adapter (r=64, α=128, ~400 MB trainable)           │
-│   │   └─ Ingests: Sensory Integration, Antecedent-Behavior-Consequence (ABC) Frameworks│
-│   ├─ Dynamic Retrieval-Augmented Generation (ChromaDB Vector Store)                    │
-│   │   ├─ Collection 1: nd_communicative_intents (Child's Historical Vector Lexicon)    │
-│   │   └─ Collection 2: clinical_literature (Ayres, Greenspan, Functional Analysis)    │
-│   └─ Context Generation: Child State Diagnosis, Intent Hypothesis & Caregiver Guidance │
+│   Multimodal Binding & Metric Projection                                               │
+│   ├─ Audio-Visual Temporal Correspondence (CAV-MAE / AVC cross-modal binding)         │
+│   ├─ Attention-Pooled & L2-Normalized Metric Representation (d = 128)                  │
+│   └─ Metric Loss: Supervised Prototypical / Contrastive Loss over verified episodes    │
 └───────────────────────────────────────────┬────────────────────────────────────────────┘
                                             │
                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│               CONTINUOUS ADAPTATION & NIGHTLY LEARNING PIPELINE                        │
+│                  RETRIEVAL, CALIBRATED MATCHING & ABSTENTION ENGINE                    │
 │                                                                                        │
-│   Nightly Self-Stabilizing Triplet Loss Optimization                                  │
-│   ├─ Anchor / Positive / Negative Triplet Formulation with Cosine Distance Metric     │
-│   ├─ Replay Buffer Invariant: 80% Historical Replay Anchors / 20% Novel Daily Samples  │
-│   └─ Target Updates: Confined exclusively to LoRA weights (ΔW) and Perceiver Queries   │
+│   Local In-Memory Vector & Episode Store (ChromaDB / SQLite)                           │
+│   ├─ Historical Match: k-NN / Prototype retrieval over confirmed Child N episodes      │
+│   ├─ Calibrated Multi-Label Probabilities & Prediction Sets                            │
+│   ├─ ABSTENTION RULE: If d(nearest) > threshold, output "Unrecognized Pattern"        │
+│   └─ RED-FLAG CHECK: If NCCPC-R distress threshold exceeded, output MEDICAL ESCALATION│
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │ Structured Result Object (L1, L2, L3, L4)
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                       CHILD-AUTHORED AAC BRIDGE & OUTPUT RENDERING                     │
+│                                                                                        │
+│   Primary Channel: AAC Bridge (Speech-Generating Device / Choice Board)               │
+│   └─ Pre-populates candidate options for Child N to select, confirm, or reject         │
+│                                                                                        │
+│   Caregiver Interface: Schema-Constrained Renderer (Qwen2.5-14B-Instruct)              │
+│   ├─ LLM is used ONLY for formatting structured result into four visually distinct     │
+│   │  evidence layers (L1-L4). Model weights are 100% frozen via model.freeze().        │
+│   └─ Strict Invariant: Prohibited from inventing labels, causes, or diagnoses.         │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Hardware Prerequisites & Memory Footprint
+## 3. Hardware Prerequisites & Measured Memory Profile
 
-Project N is engineered specifically for Apple Silicon hardware, leveraging Apple MLX for unified memory computation and native Metal Shading Language (MSL) acceleration.
+Project N runs locally on Apple Silicon (tested on M5 Pro 48GB unified memory) without network dependencies.
 
-### Tested Configuration
-- **Hardware Target:** Apple Silicon M5 Pro (or M2/M3/M4 Max/Pro equivalents).
-- **Unified Memory:** 48 GB Unified RAM.
-- **Operating Memory Ceiling:** Maximum allocated VRAM $\le 36.0\text{ GB}$.
-- **Operational Peak Baseline:** $\le 28.0\text{ GB}$ (guaranteeing $\ge 8.0\text{ GB}$ remaining for macOS, WindowServer, audio routing, and OS services).
-- **Zero-Swapping Invariant:** Hard threshold forbidding dynamic disk swapping during forward passes or nightly gradient steps.
+### Hardware Envelope
+- **Processor:** Apple Silicon M-series (M2/M3/M4/M5 Pro/Max).
+- **Physical Memory:** 48 GB Unified RAM (parameterized for 64GB/128GB workstations).
+- **Hard Memory Ceiling:** $\le 36.0\text{ GB}$ (zero disk swapping permitted).
+- **Operational Peak Baseline:** $\le 28.0\text{ GB}$ (leaving $\ge 8.0\text{ GB}$ for macOS system services).
 
-### Memory Allocation Matrix
-| Subsystem Component | VRAM Footprint | Allocation & Optimization Rationale |
+### Measured Operational Allocations
+Because the LLM is decoupled from the continuous inference path and reserved for schema-constrained rendering, memory utilization is lean and predictable:
+
+| Subsystem Component | VRAM Footprint | Allocation & Lifecycle Strategy |
 | :--- | :--- | :--- |
-| **Quantized Base LLM** (Qwen2.5 14B 4-bit) | `9.0 GB` | 4-bit Group-128 quantization via MLX format (~0.5 GB / billion parameters). |
-| **Dynamic Context & KV Cache** | `10.0 GB` | MLX lazy evaluation graph, 8k sequence window, Metal page recycling. |
-| **Training States & Replay Buffer** | `8.0 GB` | AdamW optimizer states restricted to LoRA and Resampler parameters ($r=64$). |
-| **Clinical Domain LoRA Adapter** | `0.4 GB` | Target modules: `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`. |
-| **Local Text Embedder** (`nomic-embed-text-v1.5`) | `0.2 GB` | Offline text embedding engine running under MLX runtime (<150 MB static). |
-| **ChromaDB Vector Store (In-Memory)** | `0.4 GB` | Persistent SQLite + HNSW index caching child-specific intent topologies. |
-| **System Headroom (macOS + Desktop)** | `8.0+ GB` | Preserved for host operating system stability and interactive UI responsiveness. |
-| **Total Operational Consumption** | **~28.0 GB** | **Leaves 8.0 GB safe headroom below the 36.0 GB ceiling.** |
-
-*Note: For systems upgraded to 64GB or 128GB Unified Memory, base model architecture expands to 32B parameters (`Qwen2.5-32B-Instruct` 4-bit, allocating 19.5 GB static weights) via the `--model_size 32b` flag.*
+| **Quantized Base LLM** (`Qwen2.5-14B-Instruct` 4-bit) | `~9.0 GB` | Loaded in 4-bit packed Metal arrays; weights 100% frozen via `model.freeze()`. |
+| **Dynamic KV Cache** (GQA 8 KV heads @ 8k tokens) | `~1.6 GB` | Grouped Query Attention scales linearly; footprint is ~1.6 GB for full 8,192 context. |
+| **Sensory Encoders & Metric Head** (MLX) | `~2.2 GB` | Pitch tracker, CQT, pose backbone, and 128-dim metric projection head. |
+| **Episodic Store & ChromaDB** (Local SQLite/HNSW) | `~0.4 GB` | Versioned embeddings of verified episodes and clinical evidence excerpts. |
+| **Candidate Evaluation & Refit Buffer** | `~4.0 GB` | Periodic full re-fit of metric heads and prototype centers (non-continuous). |
+| **Operating System & WindowServer** | `8.0+ GB` | Preserved for macOS host stability, displays, and audio routing daemons. |
+| **Total Operational Consumption** | **~17.2 GB** | **Substantially below the 28.0 GB baseline and 36.0 GB ceiling.** |
 
 ---
 
@@ -123,33 +132,37 @@ Project N is engineered specifically for Apple Silicon hardware, leveraging Appl
 
 ```text
 project_n/
-├── app/                  # Flutter mobile capture, telemetry & caregiver review interface
-│   ├── android/          # Android platform runner configuration
-│   ├── ios/              # iOS platform runner configuration
-│   └── lib/              # Flutter UI: Live recording, clip tagging & intent timeline
-├── docs/                 # Clinical references, formal architecture docs & safety logs
-├── extraction/           # ND-AST and TD-ViT sensory extraction layers (MLX native)
-│   ├── audio_ast.py      # Neurodivergent Audio Spectrogram Transformer (AaPE)
-│   └── vision_td.py      # Temporal Difference Vision Transformer (L1 differential)
-├── models/               # Model definitions, projector, LoRA, and LLM orchestration
-│   ├── lora.py           # MLX LoRA injection module (r=64, alpha=128)
-│   ├── projector.py      # Perceiver Resampler cross-attention bottleneck (64 tokens)
-│   └── qwen_loader.py    # Quantized 14B/32B base model loader and KV manager
-├── rag/                  # Clinical document ingestion, chunking, and ChromaDB vector engine
-│   ├── client.py         # Persistent ChromaDB client and local embedding wrapper
-│   └── store.py          # Collections: nd_communicative_intents & clinical_literature
-├── server/               # FastAPI local inference and ingestion service
-│   ├── api.py            # Local REST endpoints for video upload, review, and inference
-│   └── config.py         # Hardware thresholds, memory monitor, and path configurations
-├── training/             # 48-Hour unsupervised baseline MAE & nightly Triplet Loss loop
-│   ├── mae_pretrain.py   # Self-supervised 75% masked autoencoder pipeline
-│   ├── replay_buffer.py  # 80/20 historical replay vs. novel sample generator
-│   └── triplet_loss.py   # Cosine distance contrastive training step
-├── AGENTS.md             # Autonomous AI engineer directives and documentation protocols
-├── DESIGN.md             # Deep architectural, neurobiological, and mathematical design
-├── INVARIANTS.md         # Non-negotiable system, privacy, memory, and model invariants
-├── SPECS.md              # Exhaustive technical specifications and implementation roadmap
-└── README.md             # Project vision, architecture overview, and onboarding guide
+├── app/                  # Companion mobile application (Flutter iOS/Android)
+│   ├── lib/              # Capture UI, dissent controls, AAC bridge interface
+│   └── test/             # App unit and widget tests
+├── docs/                 # Architecture, clinical governance, and review documents
+│   ├── REVIEW_REFINEMENTS.md  # Comprehensive multi-reviewer scientific audit
+│   └── evaluation_protocol.md # Preregistered N-of-1 study and validation protocol
+├── extraction/           # Modular sensory extraction engines
+│   ├── acoustic.py       # Pitch tracking (F0, jitter, shimmer, HNR) + CQT + Log-Mel
+│   ├── kinematic.py      # MediaPipe/BlazePose body-relative landmarks + optical flow
+│   └── physiology.py     # Wearable EDA, HRV, and accelerometry feature extractors
+├── models/               # Metric learning, episodic retrieval, and rendering
+│   ├── metric_head.py    # 128-dim attention-pooled projection & prototypical head
+│   ├── resampler.py      # Audio-visual temporal correspondence encoder
+│   ├── qwen_loader.py    # Quantized Qwen2.5-14B-Instruct loader (frozen W0)
+│   └── renderer.py       # Schema-constrained four-layer (L1-L4) plain text formatter
+├── rag/                  # Clinical evidence library & versioned retrieval store
+│   ├── evidence_store.py # Versioned academic literature chunks with scope metadata
+│   └── intent_store.py   # Caregiver-confirmed episodes with encoder version lineage
+├── server/               # Local backend daemon & two-key encrypted storage
+│   ├── api.py            # Local REST endpoints (mTLS authenticated)
+│   ├── config.py         # Hardware thresholds, paths, and tunable hyperparameters
+│   └── vault.py          # Two-key keychain integration (Data Protection Keychain)
+├── training/             # Metric training, episodic re-fitting & model promotion
+│   ├── pretrain_av.py    # Self-supervised audio-visual binding pre-training
+│   ├── refit_metric.py   # Periodic full re-fit of prototype metric representations
+│   └── promotion_gate.py # Multi-metric validation and safety regression tests
+├── AGENTS.md             # Autonomous AI engineer directives and conventions
+├── DESIGN.md             # Theoretical, neurobiological, and epistemic design
+├── INVARIANTS.md         # True non-negotiable invariants vs tunable defaults
+├── SPECS.md              # Technical specifications, schemas, and MLX pseudo-code
+└── README.md             # Project overview, architecture, and onboarding guide
 ```
 
 ---
@@ -157,13 +170,12 @@ project_n/
 ## 5. Quickstart Guide
 
 ### Prerequisites
-- macOS 15.0+ (Sequoia or later) on Apple Silicon (M-series Pro/Max/Ultra).
-- Xcode Command Line Tools installed: `xcode-select --install`.
-- Python 3.11 or Python 3.12 (managed via `pyenv` or `conda`).
-- FFmpeg compiled with Apple Metal VideoToolbox support: `brew install ffmpeg`.
-- Flutter 3.24+ (if working on the mobile companion app).
+- Apple Silicon Mac running macOS 15.0+ (Sequoia or later).
+- Python 3.11 or 3.12 (`python3 --version`).
+- Native Apple MLX framework (`pip install mlx>=0.22.0`).
+- FFmpeg with VideoToolbox support (`brew install ffmpeg`).
 
-### Step 1: Clone and Set Up Virtual Environment
+### Step 1: Environment Setup
 ```bash
 git clone https://github.com/olostan/project_n.git
 cd project_n
@@ -171,60 +183,47 @@ cd project_n
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
+pip install mlx>=0.22.0 numpy scipy soundfile chromadb fastapi uvicorn pydantic mediapipe
 ```
 
-### Step 2: Install MLX and Core Dependencies
-```bash
-pip install mlx>=0.22.0
-pip install numpy scipy chromadb fastapi uvicorn pydantic soundfile librosa torchvision
-```
-
-### Step 3: Run Baseline Extraction and Hardware Verification Test
-Verify that Apple Silicon GPU acceleration via Metal Performance Shaders is active and sensory extractors instantiate within memory constraints:
-
+### Step 2: Verify Apple MLX Acceleration and Memory Queries
 ```bash
 python -c "
 import mlx.core as mx
-import mlx.nn as nn
 print('MLX Default Device:', mx.default_device())
-a = mx.ones((1000, 1000))
-b = mx.ones((1000, 1000))
-c = mx.matmul(a, b)
-mx.eval(c)
-print('Metal Sanity Check Passed. C[0,0] =', c[0,0].item())
+print('Active Memory (GB):', mx.get_active_memory() / 1e9)
+print('Peak Memory (GB):  ', mx.get_peak_memory() / 1e9)
 "
 ```
 
-### Step 4: Initialize the Local ChromaDB Vector Store
+### Step 3: Initialize the Encrypted Vault and Vector Stores
 ```bash
 python -c "
 import chromadb
-from chromadb.config import Settings
 client = chromadb.PersistentClient(path='./chroma_db')
-intents = client.get_or_create_collection(
-    name='nd_communicative_intents',
-    metadata={'hnsw:space': 'cosine'}
-)
-literature = client.get_or_create_collection(
-    name='clinical_literature',
-    metadata={'hnsw:space': 'cosine'}
-)
-print('Initialized Local Chroma Collections. Count:', client.list_collections())
+intents = client.get_or_create_collection('nd_confirmed_episodes', metadata={'hnsw:space': 'cosine'})
+evidence = client.get_or_create_collection('clinical_evidence', metadata={'hnsw:space': 'cosine'})
+print('Initialized Collections:', client.list_collections())
 "
 ```
 
-### Step 5: Launch Local Ingestion & Inference Daemon
+### Step 4: Run the Multi-Modal Verification Test
 ```bash
-uvicorn server.api:app --host 127.0.0.1 --port 8080 --reload
+python -c "
+from models.metric_head import MetricProjectionHead
+import mlx.core as mx
+head = MetricProjectionHead(d_audio=768, d_pose=512, d_physio=64, d_metric=128)
+z = head(mx.zeros((1, 200, 768)), mx.zeros((1, 150, 512)), mx.zeros((1, 50, 64)))
+print('Metric Vector Output Shape:', z.shape)
+assert z.shape == (1, 128), 'Shape mismatch!'
+"
 ```
-The server will bind to `127.0.0.1:8080`, exposing the local ingest endpoints for the Flutter client and running inference exclusively over local Metal-accelerated MLX pipelines.
 
 ---
 
-## 6. Development Workflow & Agent Guidelines
+## 6. Safety, Epistemics & Governance
 
-All modifications to this repository are governed by strict operational rules:
-1. Review [`INVARIANTS.md`](file:///Users/olostan/code/project_n/INVARIANTS.md) before introducing any architectural or dependency modifications. Zero cloud leaks or standard phonemic ASR integrations are tolerated.
-2. Ensure automated agents follow the protocol detailed in [`AGENTS.md`](file:///Users/olostan/code/project_n/AGENTS.md).
-3. Detailed mathematical definitions, tensor shapes, and MLX pseudo-code reside in [`SPECS.md`](file:///Users/olostan/code/project_n/SPECS.md).
-4. Full biological grounding, sensory encoder bypass philosophy, and continuous adaptation logic are documented in [`DESIGN.md`](file:///Users/olostan/code/project_n/DESIGN.md).
+1. **Child Authorship First:** Possibilities are routed to Child N via an AAC bridge. His confirmed selections or behavioral gestures outrank all adult interpretations.
+2. **Medical Precedence:** Pain or acute distress evaluated under NCCPC-R triggers medical review escalations, superseding any behavioral interpretation.
+3. **Calibrated Abstention:** If a sensory pattern is novel or ambiguous ($d > \text{threshold}$), the system explicitly responds with *"Unrecognized pattern"* and offers observational or AAC-based exploration.
+4. **No Autonomous Deployment:** New models are promoted strictly through the gated pipeline defined in [`INVARIANTS.md`](file:///Users/olostan/code/project_n/INVARIANTS.md) and [`docs/REVIEW_REFINEMENTS.md`](file:///Users/olostan/code/project_n/docs/REVIEW_REFINEMENTS.md).

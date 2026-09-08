@@ -1,323 +1,217 @@
-# Project N: Architectural & Neurobiological Design Document
-## Theoretical Formulations, Sensory Encoder Bypass Philosophy, and Continuous Adaptation Architecture
+# Project N: Architectural, Neurobiological & Epistemic Design Document
+## Multimodal Communication Support, Epistemic Validity, and Retrieval-First Architecture
 
 ---
 
 ## 1. Biological and Neurological Foundations
 
-### 1.1 Neurobiology of Level 3 Non-Verbal Autism Spectrum Disorder
-Level 3 Autism Spectrum Disorder (ASD), as delineated by the Diagnostic and Statistical Manual of Mental Disorders (DSM-5), represents individuals requiring "very substantial support." For non-verbal or minimally speaking children—exemplified by Nolan, a 7-year-old Level 3 autistic child—expressive language is characterized by an absence of functional spoken words, severe apraxia of speech (CAS), or an inability to coordinate the complex oromotor musculature required for phonemic articulation.
+### 1.1 Neurobiology & Communication in Minimally Speaking Individuals
+Autism Spectrum Disorder (ASD) represents a heterogeneous spectrum of neurodevelopmental profiles. For non-verbal or minimally speaking children—specifically conceptualized around Child N, a 7-year-old minimally speaking child—expressive spoken language is limited. Childhood apraxia of speech (CAS), atypical oral-motor coordination, or motor-planning challenges frequently co-occur, dissociating cognitive capacity from phonetic articulation.
 
-Crucially, the absence of verbal speech does not indicate the absence of language, cognition, or communicative intent. The neurological landscape of Level 3 ASD involves:
-- **Atypical Synaptic Pruning:** Hyper-connectivity within local sensory cortical microcircuits (hyper-reactivity) paired with hypo-connectivity across long-range associative pathways (e.g., fronto-striatal and fronto-temporal tracts).
-- **Altered Cerebellar Circuitry:** Morphological variations in Purkinje cells within the cerebellum impair predictive motor sequencing, dynamic sensorimotor feedforward control, and temporal synchrony.
-- **Autonomic Nervous System (ANS) Dysregulation:** Baseline vagal tone is frequently suppressed, resulting in sympathetic nervous system hyper-arousal. The child constantly navigates fluctuating states of physiological equilibrium, moving rapidly between baseline regulation, sensory seeking, hyper-arousal, and impending sensory meltdown.
+Crucially, **the absence of verbal speech does not indicate the absence of language, cognition, agency, or communicative intent**. The scientific grounding for Project N rests on several foundational principles:
+- **Heterogeneous Connectivity Profiles:** Classical models proposed local hyper-connectivity coupled with long-range hypo-connectivity. Contemporary neuroimaging indicates that functional and structural connectivity alterations are highly heterogeneous; long-range underconnectivity is reasonably supported, while local microcircuit hyper-reactivity varies widely across individuals. Project N rejects one-size-fits-all neurological assumptions, adopting an individualized (N-of-1) measurement posture.
+- **Sensorimotor & Cerebellar Coordination:** Group-level post-mortem and imaging studies show morphological variations in cerebellar Purkinje cells, which contribute to predictive motor sequencing and sensorimotor integration. However, attributing specific internal cerebellar mechanics to an individual child from a video clip is an unlicensed causal jump. Project N treats motor differences as observable kinematic patterns rather than direct indicators of neural circuit failure.
+- **Autonomic Regulation & Objective Physiological States:** Autonomic nervous system (ANS) tone—including sympathetic arousal and vagal modulation—fluctuates in response to sensory demands. However, respiratory sinus arrhythmia (RSA) and vagal tone findings in autism are complex and non-uniform. Inferring autonomic hyper-arousal solely from surface movement or acoustic volume is circular; an objective assessment requires direct physiological sensing (electrodermal activity, heart rate variability, and accelerometry).
 
-### 1.2 Sensory Processing Differences & Regulatory Stimming
-Sensory processing in Level 3 ASD diverges sharply from neurotypical profiles across vestibular, proprioceptive, auditory, and tactile axes:
-1. **Proprioceptive & Vestibular Seeking:** The brain receives attenuated feedback from muscle spindles and joint receptors. To orient the body in physical space and ground neurological equilibrium, the child exhibits stereotypic motor behaviors ("stims")—such as rapid wrist rotation (3 Hz to 6 Hz), repetitive finger-flicking within the peripheral visual field, vertical jumping, or rhythmic head movements.
-2. **Sensory Overload & Auditory Hyper-Reactivity:** The auditory thalamocortical pathway fails to habituate to repetitive background sensory stimuli (aberrant sensory gating). A fluorescent light hum, HVAC cycling, or sudden high-frequency auditory spikes register not as ambient background noise, but as acute somatic distress.
-3. **Self-Regulatory Mechanics:** Motor stimming and continuous tonal vocalizations are not purposeless pathology. They serve as active physiological closed-loop compensation mechanisms designed to downregulate sympathetic hyper-arousal or upregulate under-stimulated sensory pathways.
+### 1.2 Sensory Processing Differences & Stimming Functions
+Sensory processing in autistic individuals frequently diverges across auditory, proprioceptive, vestibular, and tactile domains:
+1. **Proprioceptive & Vestibular Seeking:** Atypical sensory threshold gating can lead individuals to seek intense vestibular or proprioceptive input to achieve somatic equilibrium (e.g., rhythmic rocking, vertical jumping, or rapid hand/wrist stimming).
+2. **Auditory Hyper-Reactivity & Gating Differences:** Thalamocortical gating differences can reduce acoustic habituation. Ambient noises (such as mechanical hums or overlapping voices) can register as acute somatic distress rather than ignorable background sound.
+3. **Stimming as Active Self-Regulation & Predictability Seeking:**
+   Motor stimming (e.g., 3 Hz to 6 Hz wrist rotation, finger-flicking) and tonal vocalizations are not purposeless pathology to be suppressed. Contemporary cognitive neuroscience—notably the **HIPPEA framework** (High Inflexible Precision of Prediction Errors in Autism; Van de Cruys et al., 2014)—conceptualizes stereotypic movements as strategies to generate highly predictable sensory feedback in an uncertain or overwhelming environment. Stims fulfill plural, context-dependent roles: down-regulating hyper-arousal, up-regulating under-stimulated sensory pathways, expressing joy, or communicating engagement.
 
-### 1.3 The Communicative Substrate of Idiosyncratic Vocalizations
-In the absence of phonemic speech, acoustic communication operates via raw paralinguistic and somatic sound generation:
-- **Continuous Tonal Hums:** Sustained phonations where fundamental frequency ($F_0$), harmonic spacing, and jitter/shimmer index internal homeostatic states. A stable, low-variance $F_0$ typically reflects self-soothing or deep proprioceptive focus.
-- **Micro-Pitch and Formant Dynamics:** Shifts in glottal pulse velocity and subglottal pressure induce subtle pitch variations ($\pm 15$ to $50\text{ Hz}$) that standard speech parsers dismiss as pitch instability. In an individual child, these micro-pitch trajectories reliably delineate discomfort, cognitive curiosity, or boundary protests.
-- **Guttural Resonance & Non-Laryngeal Phonation:** Pharyngeal friction, clicks, glottal stops, and explosive aspirates convey urgency and affective valence. Because these vocalizations bypass traditional articulatory targets (lips, tongue-tip, alveolar ridge), their information density is concentrated in the spectral envelope, harmonic decay rates, and temporal envelopes.
-
----
-
-## 2. The "Rosetta Stone" Fallacy & Neurotypical Inductive Bias
-
-### 2.1 The Failure of Commercial Foundation Encoders
-Standard multimodal foundation models (e.g., Whisper, Audio Spectrogram Transformer / AST, CLIP, SigLIP, LLaVA, Qwen-VL) rely on strong inductive biases optimized for neurotypical communication:
-
-```text
-Standard Foundation Pipeline (Information Annihilation):
-Raw Expressive Vocalization ──► [Whisper ASR: Discrete Phonemes] ──► "[Silence]" / "[Unintelligible]"
-High-Frequency 4Hz Stimming ──► [Standard ViT: Spatial Pooling]  ──► "Child sitting on carpet"
-```
-
-1. **Acoustic Phonemic Discretization (The Whisper Failure):**
-   Automatic Speech Recognition (ASR) systems are trained on thousands of hours of spoken human languages where the loss function penalizes acoustic variance that does not map to discrete linguistic tokens (phonemes, subwords). Whisper's encoder discards:
-   - Non-lexical harmonic resonances.
-   - Sustained vowel-like hums without consonant transitions.
-   - Pitch contour variations in unvoiced or glottal sounds.
-   The resulting transcription is either a blank token, an erroneous phonetic hallucination, or a generic label like `"[Music]"` or `"[Laughter]"`.
-2. **Visual Spatial & Temporal Pooling (The Standard ViT Failure):**
-   Commercial Vision Transformers downsample spatial patches ($16 \times 16$ or $14 \times 14$) and pool across temporal frames (e.g., 1 frame per second). A rapid, 4 Hz wrist-flick or finger-tremor occurring over 250 milliseconds spans only 1 or 2 downsampled frames and is spatially blended into the static background pixels of the room. The ViT outputs semantic tokens representing the static scene ("living room", "child sitting"), completely obliterating the communicative motor signal.
-
-### 2.2 The Fallacy of Text-Only Intermediate Captioning
-A common failure mode in multimodal translation is two-stage pipeline design: Stage 1 creates textual descriptions ("Child is humming at 180Hz and rotating left hand"), and Stage 2 prompts an LLM with these strings. 
-
-This intermediary text bottleneck introduces catastrophic semantic loss:
-- A textual description cannot convey the phase coherence, spectral centroid drift, or rhythmic micro-variations of a stim.
-- Textual descriptors force continuous, non-linear neurodivergent expressions into arbitrary categorical buckets created by neurotypical observers.
-- Direct latent sensory-to-LLM conditioning is essential. The LLM must attend directly to continuous sensory latents rather than discrete lexical approximations.
+### 1.3 Paralinguistic Structure of Idiosyncratic Vocalizations
+In the absence of phonemic speech, communicative and affective states are conveyed through non-verbal acoustic signals:
+- **Continuous Tonal Hums & Pitch Dynamics:** Sustained vocalizations contain measurable fundamental frequency ($F_0$), harmonic spacing, jitter, and shimmer. Within an individual child, shifts in pitch trajectory and vocal effort correlate with internal homeostatic state and communicative intent.
+- **Harmonic Decay & Voice Quality:** Micro-pitch variations, harmonic-to-noise ratio (HNR), and spectral tilt carry affective valence. However, as established in the scientific audit (`docs/REVIEW_REFINEMENTS.md`), standard filterbanks cannot resolve fine micro-pitch without specialized acoustic tracking.
 
 ---
 
-## 3. Latent Space Geometry & Sensory Encoder Bypass
+## 2. The "Rosetta Stone" Fallacy, Epistemics & Grounding
 
-Project N eliminates neurotypical encoders from the primary sensory loop. Instead, it deploys two specialized, raw sensory extraction engines:
+### 2.1 The Emotion-Inference Critique & Epistemic Traps
+A core risk in automated affective computing is the assumption that facial movements or vocal acoustic properties map uniformly to internal emotional states. As established by Barrett et al. (2019), emotional expressions are profoundly context-dependent; observer agreement does not establish ground truth.
 
-```text
-RAW ACOUSTIC PATHWAY:
-Audio (48kHz WAV) ──► STFT (n_fft=2048, H=160) ──► 128 Mel Bands ──► AaPE Embedding ──► X_audio ∈ R^(B x 2048 x 768)
+Project N avoids two critical epistemic traps:
+1. **The Facilitated Communication (FC) / RPM Authorship Trap:**
+   Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
+2. **The Truth Criterion (Actionable Resolution & Child Authorship):**
+   Project N establishes an objective, falsifiable ground truth:
+   - **Primary Truth Criterion:** The child's direct response via Augmentative and Alternative Communication (AAC) or explicit physical choices outranks all adult interpretations.
+   - **Secondary Truth Criterion:** Documenting whether an offered support (e.g., offering water, deep pressure, or a quiet break) successfully resolved the observed distress episode within an observed temporal window.
 
-RAW KINEMATIC PATHWAY:
-Video (60fps Frames) ──► Temporal-L1 Diff Mask (Δt) ──► Spatial Patch ──► TD-ViT ──────► X_kinematic ∈ R^(B x 1500 x 1024)
-```
-
-### 3.1 ND-AST: Neurodivergent Audio Spectrogram Transformer
-
-To preserve micro-pitch modulations, sub-harmonic overtones, and continuous acoustic resonance, the acoustic pathway operates over high-resolution time-frequency representations:
-
-#### 3.1.1 Time-Frequency Transform
-Given a raw discrete audio signal $s \in \mathbb{R}^T$ sampled at $f_s = 44,100\text{ Hz}$ (or $48,000\text{ Hz}$):
-1. **Short-Time Fourier Transform (STFT):**
-   $$S(m, k) = \sum_{n=0}^{N-1} s(n + mH) \cdot w(n) e^{-j \frac{2\pi}{N} k n}$$
-   where $N = n_{fft} = 2048$ (providing frequency resolution $\Delta f \approx 21.5\text{ Hz}$), $H = 160$ (hop length yielding temporal resolution $\Delta t \approx 3.63\text{ ms}$), and $w(n)$ is a Hann window function:
-   $$w(n) = 0.5 \left(1 - \cos\left(\frac{2\pi n}{N-1}\right)\right)$$
-2. **Mel-Frequency Filterbank:**
-   The complex spectrogram is converted to power spectral density and projected across $F = 128$ triangular Mel filters covering $20\text{ Hz}$ to $22,050\text{ Hz}$:
-   $$\mathbf{M}(m, f) = \ln\left( \sum_{k} |S(m, k)|^2 \cdot \Phi_{mel}(f, k) + \epsilon \right)$$
-   where $\Phi_{mel}$ represents the Mel weighting matrix and $\epsilon = 10^{-6}$ prevents numerical instability.
-
-#### 3.1.2 Aliasing-aware Patch Embedding (AaPE)
-Standard AST systems use large 2D patch strides ($16 \times 16$) that induce frequency aliasing across narrow harmonic bands. In ND-AST, the patch embedding operates with a small stride in frequency and an overlapping temporal window:
-- Patch size: $P_t = 16$ time steps ($\approx 58\text{ ms}$), $P_f = 8$ frequency bins ($\approx 172\text{ Hz}$).
-- Stride: $S_t = 8$ time steps ($50\%$ temporal overlap), $S_f = 4$ frequency bins ($50\%$ spectral overlap).
-- Projection: Each flattened patch $\mathbf{p} \in \mathbb{R}^{P_t \cdot P_f}$ is projected via a 2D convolution into embedding dimension $d_a = 768$.
-- Sinusoidal 2D Positional Embeddings $\mathbf{E}_{pos}^{(a)}$ are added, producing the final acoustic sensory sequence:
-  $$\mathbf{X}_{audio} \in \mathbb{R}^{B \times L_a \times 768} \quad \text{where } L_a = 2048$$
-
-### 3.2 TD-ViT: Temporal Difference Vision Transformer
-
-Standard vision backbones are dominated by static spatial tokens (background furniture, lighting, room boundaries). To extract Nolan's motor stimming without interference from static scenery, TD-ViT applies temporal differential masking.
-
-#### 3.2.1 Temporal-L1 Difference Masking
-Given consecutive decoded video frames $\mathbf{Z}_t, \mathbf{Z}_{t-1} \in \mathbb{R}^{H \times W \times C}$ captured at $60\text{ fps}$:
-1. **Pixel-Level Differential:**
-   $$\mathbf{\Delta}_t(i, j) = \frac{1}{C} \sum_{c=1}^C \left| \mathbf{Z}_t(i, j, c) - \mathbf{Z}_{t-1}(i, j, c) \right|$$
-2. **Patch Motion Energy Calculation:**
-   The frame is partitioned into non-overlapping patches $p_{k, t}$ of dimension $16 \times 16$. The kinetic energy $\mathcal{E}(p_{k, t})$ of patch $k$ is the spatial integral over its differential mask:
-   $$\mathcal{E}(p_{k, t}) = \frac{1}{256} \sum_{(i,j) \in p_{k,t}} \mathbf{\Delta}_t(i, j)$$
-3. **Threshold Filtering:**
-   A learned or calibrated kinetic threshold $\tau$ separates active movement from static background:
-   $$\mathcal{M}(p_{k, t}) = \begin{cases} 
-   p_{k, t} & \text{if } \mathcal{E}(p_{k, t}) \ge \tau \\ 
-   \mathbf{0} & \text{if } \mathcal{E}(p_{k, t}) < \tau 
-   \end{cases}$$
-   Patches with energy below $\tau$ are dynamically dropped from the computation graph, reducing sequence length while retaining the precise trajectory of hands, face, fingers, and torso.
-
-#### 3.2.2 Kinematic Feature Projection
-The surviving motion-active patches are linearly projected into $d_v = 1024$ and augmented with 3D Spatio-Temporal Positional Encodings (temporal index + spatial $x, y$ coordinates). After processing through 12 Transformer encoder layers with dynamic attention masking, the resulting kinematic representation is:
-$$\mathbf{X}_{kinematic} \in \mathbb{R}^{B \times L_v \times 1024} \quad \text{where } L_v = 1500$$
+### 2.2 Failure of Commercial Foundation Encoders & Unconstrained LLMs
+Standard foundation models impose severe neurotypical inductive biases:
+- **Phonemic Discretization (The Whisper Failure):** ASR models are trained to map acoustic energy into discrete phonemic and lexical tokens. Whisper's decoder discards non-lexical harmonic resonances, vowel hums, and pitch contours as "untranscribable noise." However, intermediate encoder representations (layers 6–12) retain rich paralinguistic and prosodic information. The failure lives in the phonemic text head and CTC loss, not necessarily in the acoustic encoder layers.
+- **Spatial Pooling (The Standard ViT Failure):** Standard vision transformers pool pixels spatially across frames, obliterating 3 Hz–6 Hz hand or finger stims into generic background scenery tokens.
+- **The Unaligned Prefix Fallacy (`F-01`):** Projecting continuous sensory vectors directly into a frozen LLM prefix without extensive end-to-end multimodal alignment training (which requires hundreds of thousands of paired examples) yields random vectors from the LLM's perspective. The LLM will generate fluent, confident, but **input-independent** clinical prose. Project N therefore removes the LLM from the primary inference path.
 
 ---
 
-## 4. The Dimensional Bottleneck: Perceiver Resampler
+## 3. Latent Space Geometry & Sensory Extraction Architecture
 
-### 4.1 Token Saturation & KV Cache Explosion
-Concatenating the raw acoustic and visual token streams yields:
-$$L_{total} = L_a + L_v = 2048 + 1500 = 3548 \text{ tokens per 5-second window}$$
-
-Feeding 3,548 continuous tokens into a 14B parameter LLM for every inference window causes:
-1. **Memory Exhaustion:** Dynamic Key-Value (KV) cache allocation scales quadratically with sequence length, instantly breaching our $36.0\text{ GB}$ VRAM limit.
-2. **Attention Dilution:** The attention weights across 3,500+ unconstrained sensory tokens become diffuse, degrading the LLM's capacity to synthesize coherent clinical deductions.
-3. **Inference Latency:** Autoregressive decoding over thousands of sensory prefix tokens slows generation below interactive speeds on local hardware.
+Project N deploys a modular, multi-pathway sensory extraction architecture combining acoustics, kinematics, and direct physiology.
 
 ```text
-[X_audio (2048)] ──┐
-                   ├─► Concatenated Sequence (3548 tokens) ─┐
-[X_kinematic (1500)]┘                                       │
-                                                            ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    PERCEIVER RESAMPLER (ND PROJECTOR)                           │
-│                                                                                 │
-│   Learnable Latent Queries: Q_latent ∈ R^(64 x 4096)                            │
-│   Cross-Attention: Queries attend to Concatenated Sensory Tokens (3548 x 4096)  │
-│   FFN Block + Residual Connections (LayerNorm, GELU)                            │
-└───────────────────────────────────────┬─────────────────────────────────────────┘
-                                        │
-                                        ▼
-               Compressed Sensory Prefix: Z_sensory ∈ R^(B x 64 x 4096)
-                                        │
-                                        ▼
-               Injected Directly into LLM Prefix Attention Space
+RAW ACOUSTIC STREAM (48 kHz)
+├─ Dedicated Pitch Track ────► F0, Jitter, Shimmer, HNR (~10ms hop) ──────┐
+├─ Harmonic Filterbank   ────► Constant-Q Transform (CQT) / ERB Filters   ├─► Acoustic Latent (X_a)
+└─ Broadband Texture     ────► 128 Log-Mel Spectrogram Bands              │
+                                                                           │
+KINEMATIC STREAM (30 fps)                                                  │
+├─ Body-Relative Pose   ────► MediaPipe Holistic / BlazePose Landmarks   ├─► Kinematic Latent (X_k)
+├─ Dense Optical Flow   ────► RAFT Motion Vector Field                     │
+└─ Visual Context       ────► Low-Rate Context / TD-ViT (Ablation Arm)    │
+                                                                           │
+PHYSIOLOGICAL STREAM (Wearable)                                            │
+├─ Electrodermal (EDA)  ────► Tonic SCL & Phasic SCR Conductance           ├─► Physiological Latent (X_p)
+├─ Cardiorespiratory    ────► Inter-Beat Intervals & Heart Rate Var (HRV)  │
+└─ Accelerometry        ────► 3-Axis Somatic Motion & Tremor Energy        │
+                                                                           ▼
+                                                Multimodal Temporal Binding (CAV-MAE Style)
+                                                                           ▼
+                                                Attention-Pooled Metric Vector: z ∈ R^128
 ```
 
-### 4.2 Perceiver Resampler Mathematical Architecture
-To create an information bottleneck, Project N implements a custom MLX Perceiver Resampler (`NDProjector`).
+### 3.1 Acoustic Front End (Resolving the Micro-Pitch Limit)
+In a 7-year-old child, fundamental phonation frequencies range from $150\text{ Hz}$ to $400\text{ Hz}$. At a $48\text{ kHz}$ sampling rate, a 128-band log-mel filterbank produces bands of approximately $27\text{ Hz}$ width near $300\text{ Hz}$, rendering $\pm 15\text{ Hz}$ micro-pitch shifts sub-bin and unresolvable.
 
-Let $\mathbf{X}_{sensory} \in \mathbb{R}^{B \times 3548 \times 4096}$ be the concatenated, dimension-aligned acoustic and kinematic sensory sequence:
-$$\mathbf{X}_{sensory} = \left[ \mathbf{W}_a \mathbf{X}_{audio} \;\|\; \mathbf{W}_v \mathbf{X}_{kinematic} \right]$$
-where $\mathbf{W}_a \in \mathbb{R}^{768 \times 4096}$ and $\mathbf{W}_v \in \mathbb{R}^{1024 \times 4096}$ are linear projection matrices.
+Project N resolves this with a tripartite acoustic engine:
+1. **Dedicated Voice Quality & Pitch Tracking:**
+   Computes fundamental frequency ($F_0$), local jitter (pitch perturbation), local shimmer (amplitude perturbation), Harmonics-to-Noise Ratio (HNR), and Cepstral Peak Prominence (CPP) using autocorrelation and periodicity tracking (via pYIN or CREPE) at a fine $\sim 10\text{ ms}$ hop interval. This provides $\sim 1\text{ Hz}$ frequency resolution.
+2. **Constant-Q Transform (CQT) / ERB Filterbank:**
+   Applies geometrically spaced frequency bins where filter bandwidth is proportional to center frequency ($\Delta f / f = Q$). This ensures high spectral resolution in the low-frequency fundamental and formant regions.
+3. **Broadband Log-Mel Filterbank:**
+   Maintains a 128-band log-mel spectrogram across $20\text{ Hz}$ to $24,000\text{ Hz}$ for capturing broad spectral envelope and vocal tract resonance.
+   - STFT parameters: $N = 2048$ (giving $23.44\text{ Hz}$ linear bin spacing at $48\text{ kHz}$), hop length $H = 160$ ($3.333\text{ ms}$), with a periodic Hann window:
+     $$w(n) = 0.5 \left(1 - \cos\left(\frac{2\pi n}{N}\right)\right), \quad n = 0, \dots, N-1$$
 
-1. **Latent Query Matrix:** We instantiate $M = 64$ learnable query embeddings $\mathbf{Q}_{latent} \in \mathbb{R}^{M \times 4096}$, initialized from a truncated normal distribution $\mathcal{N}(0, 0.02)$.
-2. **Cross-Attention Mechanism:**
-   $$\mathbf{Q} = \mathbf{Q}_{latent} \mathbf{W}_Q, \quad \mathbf{K} = \mathbf{X}_{sensory} \mathbf{W}_K, \quad \mathbf{V} = \mathbf{X}_{sensory} \mathbf{W}_V$$
-   where $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V \in \mathbb{R}^{4096 \times 4096}$.
-   The scaled dot-product cross-attention computes:
-   $$\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\left( \frac{\mathbf{Q} \mathbf{K}^T}{\sqrt{d_k}} \right) \mathbf{V}$$
-   accelerated via Metal Performance Shaders (`mx.fast.scaled_dot_product_attention`).
-3. **Feed-Forward Block & Layer Normalization:**
-   $$\mathbf{Z}^{(1)} = \text{LayerNorm}\left( \mathbf{Q}_{latent} + \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) \right)$$
-   $$\mathbf{Z}_{sensory} = \text{LayerNorm}\left( \mathbf{Z}^{(1)} + \text{FFN}(\mathbf{Z}^{(1)}) \right)$$
-   where $\text{FFN}(\mathbf{u}) = \text{GELU}(\mathbf{u} \mathbf{W}_1 + \mathbf{b}_1) \mathbf{W}_2 + \mathbf{b}_2$ with intermediate dimension $d_{ff} = 16384$.
+### 3.2 Kinematic Front End (Pose Over Raw Differencing)
+Raw-pixel temporal differencing ($\mathbf{\Delta}_t = \|\mathbf{Z}_t - \mathbf{Z}_{t-1}\|_1$) is highly sensitive to handheld camera shake, auto-exposure adjustments, mains flicker, and room shadows.
 
-The output $\mathbf{Z}_{sensory} \in \mathbb{R}^{B \times 64 \times 4096}$ compresses the sensory stream by a factor of $55.4\times$ while capturing the essential multi-modal correlations.
+Project N establishes a robust kinematic hierarchy:
+1. **Body-Relative Pose & Keypoints (Primary):**
+   Tracks 33 body landmarks, 21 hand landmarks per hand, and facial contour landmarks using MediaPipe Holistic or BlazePose. Because landmark coordinates are normalized relative to the torso and head centers, they are fundamentally invariant to camera translation, zoom, and background motion.
+2. **Dense Optical Flow (Secondary):**
+   Computes motion vector fields via RAFT to capture rapid continuous movements (e.g., clothing flutter, peripheral limb trajectories) independent of luminance shifts.
+3. **Frame Rate Specification:** Captured at $30\text{ fps}$ (or sampled at $15\text{ fps}$) at $720\text{p}$, which fully satisfies the Nyquist criterion for $3\text{ Hz}$ to $8\text{ Hz}$ motor stims while avoiding the pose-noise overfitting observed at $60\text{ fps}$.
+
+### 3.3 Physiological Front End (Direct Autonomic Correlation)
+To ground internal arousal without circular inference from video, Project N integrates wearable telemetry (e.g., Empatica EmbracePlus, or Apple Watch sensor streaming):
+1. **Electrodermal Activity (EDA):** Separates skin conductance into tonic baseline level (SCL) and rapid phasic responses (SCR), indexing sympathetic nervous system arousal.
+2. **Heart Rate Variability (HRV):** Extracts Root Mean Square of Successive Differences (RMSSD) and High-Frequency (HF) power bands reflecting vagal/parasympathetic modulation.
+3. **3-Axis Accelerometry:** Provides continuous wrist/body motion energy, maintaining context when the child moves outside the camera field of view.
 
 ---
 
-## 5. The 48-Hour Unsupervised Baseline Initialization Protocol
+## 4. Target Architecture: Retrieval-First, Rendering-Only
 
-Before any caregiver annotations or intent labels are introduced, the system must establish an unsupervised baseline representation of Nolan's motor and acoustic repertoire.
+Project N inverts traditional multimodal generation. The Large Language Model is removed from the primary classification loop and restricted to schema-constrained rendering.
 
 ```text
-50 Hours of Unannotated Baseline Video ──► Patch Segmentation & Feature Projection
-                                                    │
-                                                    ▼
-                                    75% Uniform Masking Strategy
-                                    ├─ Masked Patches ──► Latent Null Token
-                                    └─ Visible 25%    ──► ND-AST & TD-ViT Encoders
-                                                    │
-                                                    ▼
-                                    Perceiver Resampler Compression (64 Latents)
-                                                    │
-                                                    ▼
-                                    Lightweight MLX MAE Decoder
-                                                    │
-                                                    ▼
-                       MSE Reconstruction: L_MAE = ||X_recon - X_target||2
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                L1: MEASURED OBSERVATION                                │
+│   Acoustic metrics, pose trajectories, physiological levels, capture quality score      │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                       CROSS-MODAL BINDING & METRIC SPACE (MLX)                         │
+│   Multimodal Resampler trained on Audio-Visual Temporal Correspondence (CAV-MAE)       │
+│   Attention Pooling + L2 Normalization -> 128-dimensional metric vector (z ∈ R^128)    │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   L2: RETRIEVAL & CALIBRATED MATCHING (ChromaDB / SQLite)              │
+│   k-NN / Prototype retrieval over historical confirmed episodes of Child N             │
+│   Calibrated multi-label probabilities & prediction sets                               │
+│   ABSTENTION: If d(nearest) > tau_abstain, emit "Unrecognized Pattern"                 │
+│   RED FLAG: If NCCPC-R distress threshold exceeded, emit "Medical Escalation"          │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+              ┌─────────────────────────────┴─────────────────────────────┐
+              ▼                                                           ▼
+┌───────────────────────────────────────────┐ ┌──────────────────────────────────────────┐
+│          CHILD-AUTHORED AAC BRIDGE        │ │        CAREGIVER INTERFACE RENDERER      │
+│                                           │ │                                          │
+│   Pre-populates candidate options on      │ │   Schema-Constrained LLM (Qwen2.5-14B)   │
+│   speech-generating device or AAC choice  │ │   100% Frozen Base Weights (W0)          │
+│   board for Child N to select or reject.  │ │   Formats L1-L4 into four distinct       │
+│   Child selection outranks adult labels.  │ │   visual evidence layers. No added facts.│
+└───────────────────────────────────────────┘ └──────────────────────────────────────────┘
 ```
 
-### 5.1 The 50-Hour Raw Intake Protocol
-The family captures approximately 50 hours of raw, unconstrained daily activity across 7 days:
-- Baseline home environment (playroom, kitchen, outdoor backyard).
-- Multiple lighting conditions, room acoustics, and emotional states (calm, tired, hungry, engaged).
-- Zero requirement for caregiver tagging or interpretation during this phase.
+### 4.1 Metric Space & Prototypical Learning
+The high-dimensional sensory representations are mapped into a compact, 128-dimensional metric space:
+$$\mathbf{z} = \text{L2\_Normalize}\left( \text{AttentionPool}(\mathbf{X}_{sensory}) \mathbf{W}_{proj} \right) \in \mathbb{R}^{128}$$
 
-### 5.2 Masked Autoencoding (MAE) Formulation
-We apply a high masking ratio ($75\%$) across both time-frequency acoustic patches and kinematic motion patches:
-1. **Random Patch Masking:**
-   Let $\mathcal{P} = \{p_1, p_2, \dots, p_N\}$ be the full set of sensory patches. A uniform random permutation partitions $\mathcal{P}$ into:
-   - Visible patches $\mathcal{P}_{vis}$ ($25\%$).
-   - Masked patches $\mathcal{P}_{mask}$ ($75\%$).
-2. **Encoder Encoding:** Only $\mathcal{P}_{vis}$ tokens pass through the ND-AST and TD-ViT transformer blocks.
-3. **Latent Infilling:** The output representations of $\mathcal{P}_{vis}$ are concatenated with learnable mask tokens $\mathbf{e}_{mask} \in \mathbb{R}^{4096}$ at the masked positions, restoring the full sequence layout.
-4. **Resampler Bottlenecking:** The combined sequence is processed through the Perceiver Resampler to produce the 64 latent representations $\mathbf{Z}_{sensory}$.
-5. **Reconstruction Objective:** A lightweight 4-layer Transformer decoder projects the 64 latents back to the original sensory patch space to reconstruct the masked acoustic spectrogram bins and kinematic differential pixels:
-   $$\mathcal{L}_{MAE} = \frac{1}{|\mathcal{P}_{mask}|} \sum_{i \in \mathcal{P}_{mask}} \left\| \hat{p}_i - p_i \right\|_2^2$$
+Using a 128-dimensional metric space (rather than 4096 dimensions) prevents geometric collapse when operating with hundreds of labeled historical examples rather than hundreds of thousands. Matching is performed using cosine similarity or Euclidean distance over class prototype centers $\mathbf{c}_k$:
+$$\mathbf{c}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{z}_i$$
 
-### 5.3 Outcome of Baseline Initialization
-This 48-hour unsupervised training process (executed across two overnight sessions on the M5 Pro) yields:
-- An acoustic encoder tuned to Nolan's individual vocal resonances, formants, and harmonic structures.
-- A kinematic encoder tuned to Nolan's physical motor velocity, stim trajectories, and spatial range.
-- A 64-token Perceiver Resampler that condenses his baseline behaviors into an organized behavioral topology.
+### 4.2 Calibrated Abstention
+If the distance between the query vector $\mathbf{z}$ and the nearest historical prototype exceeds a calibrated threshold $\tau_{abstain}$:
+$$d(\mathbf{z}, \mathbf{c}_{nearest}) > \tau_{abstain}$$
+the system **abstains from classification**. It outputs:
+```text
+Unrecognized Pattern. Insufficient historical similarity to classify.
+Recommended Action: Observe environmental context or present AAC open choice board.
+```
 
 ---
 
-## 6. Clinical Grounding Strategy
+## 5. Unsupervised Pretraining & Evaluation Protocol
 
-A generic LLM prompted with continuous sensory tokens tends to hallucinate neurotypical conversational interpretations (e.g., assuming a loud vocalization indicates willful defiance or standard verbal conversation). Project N enforces clinical grounding through a two-tier mechanism:
+### 5.1 Pretraining via Audio-Visual Temporal Correspondence
+Rather than forcing a 64-token bottleneck to reconstruct thousands of raw image patches under 75% masking (which causes severe underfitting on a single-child dataset), pretraining uses **Audio-Visual Temporal Correspondence** (CAV-MAE / AVC style):
+- **Objective:** Contrastive pairing determining whether an acoustic segment and a kinematic segment co-occurred synchronously in time versus asynchronously from different time windows.
+- **Advantage:** Requires zero manual annotations, learns individualized sensorimotor binding, and runs efficiently on local Apple Silicon hardware.
 
-```text
-                               ┌────────────────────────────────────────────────────────┐
-                               │                    CLINICAL LENS                       │
-                               └──────────────────────────┬─────────────────────────────┘
-                                                          │
-                    ┌─────────────────────────────────────┴─────────────────────────────────────┐
-                    ▼                                                                           ▼
-┌───────────────────────────────────────────────┐               ┌───────────────────────────────────────────────┐
-│        TIER 1: OFFLINE DOMAIN LoRA            │               │      TIER 2: INFERENCE CLINICAL RAG           │
-│                                               │               │                                               │
-│   Target: Qwen2.5-14B Attention & MLPs        │               │   Engine: ChromaDB Persistent Vector Store    │
-│   Rank r=64, Alpha=128, FP16 Metal Tensors    │               │   Embedder: nomic-embed-text-v1.5 (Local)     │
-│   Ingests:                                    │               │   Ingests:                                    │
-│   ├─ Ayres Sensory Integration (ASI) Theory   │               │   ├─ Antecedent-Behavior-Consequence (ABC) logs│
-│   ├─ DIR/Floortime Developmental Frameworks   │               │   ├─ Speech-Language Pathology (SLP) evaluations│
-│   └─ Functional Behavior Assessment (FBA)     │               │   └─ Nolan's Individualized Education Program │
-│                                               │               │                                               │
-│   Role: Restructures LLM cognitive priors to  │               │   Role: Injects immediate, relevant clinical  │
-│   reason through sensory homeostasis.         │               │   precedents into the active prompt window.   │
-└───────────────────────────────────────────────┘               └───────────────────────────────────────────────┘
-```
-
-### 6.1 Tier 1: Domain-Specific Clinical LoRA
-We fine-tune low-rank adapter matrices ($\mathbf{A}, \mathbf{B}$) on the base LLM weights ($\mathbf{W}_0$):
-$$\mathbf{W} = \mathbf{W}_0 + \Delta \mathbf{W} = \mathbf{W}_0 + \frac{\alpha}{r} \mathbf{B} \mathbf{A}$$
-where $\mathbf{W}_0 \in \mathbb{R}^{d_{in} \times d_{out}}$ is frozen in 4-bit quantization, $\mathbf{B} \in \mathbb{R}^{d_{in} \times r}$, $\mathbf{A} \in \mathbb{R}^{r \times d_{out}}$, rank $r = 64$, and scaling factor $\alpha = 128$.
-
-The LoRA training corpus consists of curated clinical literature:
-- Classical and modern texts on Ayres Sensory Integration (ASI).
-- Functional Behavior Assessment (FBA) protocols detailing antecedent-behavior-consequence patterns.
-- Pediatric occupational therapy literature on proprioceptive, vestibular, and sensory regulation.
-- Clinical case studies on Childhood Apraxia of Speech and Level 3 non-verbal communication.
-
-This permanently shifts the model's inductive reasoning: the LLM treats high-energy vocalizations not as conversational turns, but as potential indicators of sensory overload, vestibular seeking, or autonomic dysregulation.
-
-### 6.2 Tier 2: Dynamic Clinical RAG (ChromaDB)
-At inference time, the model queries a local ChromaDB instance running on the M5 Pro:
-- Collection `clinical_literature`: Stores chunked, semantically indexed excerpts from Nolan's occupational therapy (OT) evaluations, speech-language pathology (SLP) assessments, and individualized functional behavioral goals.
-- Embedding Model: `nomic-embed-text-v1.5` executing locally, projecting text queries into a 768-dimensional metric space.
-- Retrieved Context: The top-$k$ ($k=3$) relevant clinical chunks are injected into the LLM system prompt alongside the sensory prefix tokens, ensuring every translation is grounded in Nolan's clinical history.
+### 5.2 Preregistered N-of-1 Evaluation Protocol
+To prevent data leakage and benchmark gaming, Project N enforces an N-of-1 evaluation protocol:
+1. **Time-Separated Splits:** Data is partitioned by **day** or by independent episode with an enforced temporal buffer. Adjacent 5-second windows from the same recording are never split across train and test sets.
+2. **Baselines Required with Every Benchmark:**
+   - *Metadata-Only Baseline:* Logistic regression on time of day, meal timing, and caregiver antecedent tags.
+   - *Shuffled Labels Baseline:* Empirical null distribution verification.
+   - *Nearest Historical Episode Baseline:* Raw feature 1-NN lookup.
+   - *No-LLM Baseline:* Direct output of retrieved structured records without narrative formatting.
+3. **Reported Metrics:** Per-class precision, recall, Macro-F1, calibration error (ECE), and abstention coverage.
 
 ---
 
-## 7. Continuous Adaptation & Preventing Catastrophic Forgetting
+## 6. Clinical Grounding, Interoception & The AAC Bridge
 
-A non-verbal child's communicative repertoire evolves continuously. As Nolan develops new motor stims or adapts his vocalizations, the system must learn novel associations without overwriting historical understandings.
+### 6.1 Clinical Framework Integration
+Project N balances multiple clinical and developmental lenses, recognizing each as an interpretative perspective rather than absolute causal truth:
+- **Functional Behavior Assessment (FBA):** Analyzes antecedents and behavioral functions across tangible, escape, attention, and sensory reinforcement categories.
+- **Predictive Processing (HIPPEA):** Frames repetitive movements as active strategies to minimize sensory prediction error and restore environmental predictability.
+- **Interoception:** Evaluates internal bodily signals (hunger, thirst, fatigue, temperature, digestive discomfort) as primary drivers of behavioral state.
+- **Ayres Sensory Integration (ASI):** Referenced as one therapeutic lens among several, documented with study population and evidence quality metadata.
 
-```text
-                              CAREGIVER INTERACTION (FLUTTER APP)
-                                               │
-                                               ▼
-                              Daily Video Clip + Caregiver Tag:
-                          "Deep proprioceptive squeeze requested"
-                                               │
-                                               ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                      NIGHTLY CONTRASTIVE TRIPLET LEARNING                               │
-│                                                                                         │
-│   Batch Composition: 80% Historical Replay Vectors  +  20% Novel Daily Vectors          │
-│                                                                                         │
-│   Triplet Selection:                                                                    │
-│   ├─ Anchor (a): Today's 64-token Sensory Latent Vector (Z_sensory)                     │
-│   ├─ Positive (p): Historical Vector with matching intent ("proprioceptive seeking")    │
-│   └─ Negative (n): Historical Vector with divergent intent ("auditory overload")        │
-│                                                                                         │
-│   Loss: L_triplet = max( d(a, p) - d(a, n) + α, 0 ) where d(u,v) = 1 - cos(u, v)        │
-│                                                                                         │
-│   Gradient Descent: Updates ONLY Resampler Latents and LoRA Adapter Matrices            │
-│   Base 14B Weights (W0): 100% Frozen in Metal Unified Memory                            │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
+### 6.2 The AAC Bridge: Centering Child Authorship
+The most critical defect of prior approaches is excluding the child from the communication loop. Project N integrates directly with Augmentative and Alternative Communication (AAC):
+- High-probability possibilities are automatically transferred over local Bluetooth/Wi-Fi to Child N's AAC device as candidate icons on an adaptive choice board.
+- When Child N taps an option (e.g., "water", "quiet break", "deep pressure") or explicitly rejects all options, this selection is logged as **the authoritative ground truth**, superseding all adult hypotheses.
 
-### 7.1 Parent-in-the-Loop Micro-Annotation
-Caregivers interact with a lightweight Flutter companion app:
-1. **Instant Clip Review:** The app alerts parents when a distinctive, unclassified sensory pattern is observed.
-2. **One-Tap Micro-Tagging:** The caregiver provides context via quick-select buttons or a brief voice note:
-   - Primary Affect: `[Regulated | Seeking | Overwhelmed | In Pain]`
-   - Functional Intent: `[Water/Drink | Deep Pressure | Sensory Break | Protest | Connection]`
-   - Environmental Antecedent: `[Post-school fatigue | Loud sibling | Transitioning rooms]`
-3. **Ingestion:** Metadata and raw audio-video segments are transmitted over local Wi-Fi to the Mac M5 Pro FastAPI daemon and queued for nightly consolidation.
+### 6.3 Validated Distress & Medical Rule-Out (NCCPC-R)
+Somatic distress and pain must never be confused with behavioral or sensory preferences. Project N incorporates the **Non-Communicating Children's Pain Checklist – Revised (NCCPC-R)**:
+- Evaluates 27 observable items across 6 subscales: Vocal, Emotional, Facial, Body Language, Protective, and Physiological.
+- **Red-Flag Escalation:** If the distress score crosses the validated threshold ($\ge 6$ on observed subscales), the system generates an immediate **Medical Escalation Card**, advising caregivers to conduct a medical review for physical pain (e.g., ear infection, dental pain, gastrointestinal reflux, acute injury). Behavioral and sensory interpretations are suppressed.
 
-### 7.2 Contrastive Triplet Loss Formulation
-During the nightly optimization cycle, the projection layers and LoRA adapters are tuned using Contrastive Triplet Loss:
-$$\mathcal{L}_{triplet} = \max\left( d(\mathbf{a}, \mathbf{p}) - d(\mathbf{a}, \mathbf{n}) + \alpha_{margin}, \; 0 \right)$$
-where:
-- $\mathbf{a} = \text{mean\_pool}(\mathbf{Z}_{anchor}) \in \mathbb{R}^{4096}$ is the anchor sensory latent embedding from the daily recording.
-- $\mathbf{p} = \text{mean\_pool}(\mathbf{Z}_{positive}) \in \mathbb{R}^{4096}$ is a positive sample from the historical database matching the caregiver-verified intent label.
-- $\mathbf{n} = \text{mean\_pool}(\mathbf{Z}_{negative}) \in \mathbb{R}^{4096}$ is a hard-negative sample from the historical database possessing a distinct intent label but similar acoustic or visual characteristics.
-- $\alpha_{margin} = 0.25$ is the separation margin.
-- $d(\mathbf{u}, \mathbf{v})$ is the Cosine Distance metric:
-  $$d(\mathbf{u}, \mathbf{v}) = 1 - \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|_2 \|\mathbf{v}\|_2}$$
+---
 
-### 7.3 RAG-Backed Replay Buffer (The 80/20 Invariant)
-To prevent catastrophic forgetting (overwriting previously mastered intents while adapting to new daily data), the nightly training loop enforces a strict batch composition:
-- **$80\%$ Historical Replay Exemplars:** Randomly and hard-mined samples drawn from the ChromaDB collection `nd_communicative_intents`.
-- **$20\%$ Novel Daily Samples:** The fresh clips and caregiver annotations gathered during the preceding 24-hour cycle.
+## 7. Continuous Adaptation, Re-fitting & Model Governance
 
-This 4:1 historical-to-novel ratio anchors the gradient trajectory, ensuring that updates refine existing cluster boundaries without distorting the established latent topology.
+### 7.1 Periodic Full Re-fit Over Nightly SGD
+Running nightly Stochastic Gradient Descent with small batches (e.g., 2 novel examples + 8 historical examples) produces high gradient variance and instability in high-dimensional space.
+
+Project N replaces nightly SGD with a **periodic full re-fit**:
+- At scheduled intervals (or upon accumulation of $K$ verified examples), the lightweight 128-dimensional metric projection head and prototype clusters are re-fit over the entire verified episodic history.
+- On Apple Silicon, re-fitting a 128-dimensional metric head over hundreds of examples executes in seconds on Metal GPU arrays, making catastrophic forgetting structurally impossible.
+
+### 7.2 Model Promotion Gate
+No candidate model is deployed to caregiver-facing inference automatically. Promotion requires passing an explicit validation gate:
+1. **Holdout Evaluation:** Candidate weights are evaluated on locked, time-separated test splits.
+2. **Safety Regression Check:** Zero increase in false reassurance or missed NCCPC-R distress events.
+3. **Caregiver Review:** The caregiver reviews performance metrics and approves model promotion.
+4. **Lineage & Rollback:** All prior model weights and embedding spaces are versioned, enabling instant one-click rollback.
