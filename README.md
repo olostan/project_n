@@ -103,6 +103,7 @@ project_n/
 │   ├── ios/              # Native iOS configuration with Keychain security
 │   └── lib/              # Flutter UI: Camera capture, offline SQLite queue, AAC bridge
 ├── docs/                 # Architecture, clinical governance, and review documents
+│   ├── WHITE_PAPER.md         # Scientific whitepaper for SLPs, OTs & researchers
 │   ├── REVIEW_REFINEMENTS.md  # Comprehensive multi-reviewer scientific audit
 │   ├── evaluation_protocol.md # Preregistered N-of-1 validation protocol & baselines
 │   └── report-source.md       # Raw peer review source document
@@ -137,7 +138,15 @@ project_n/
 
 ---
 
-## 6. Safety, Epistemics & Governance
+## 6. Research & Clinical Whitepaper
+
+For Speech-Language Pathologists (SLPs), Occupational Therapists (OTs), developmental pediatricians, and clinical researchers, a dedicated scientific whitepaper is available in [`docs/WHITE_PAPER.md`](file:///Users/olostan/code/project_n/docs/WHITE_PAPER.md):
+- **Title:** *Project N: A Dyadic, Multimodal, and Transactional Framework for Communication Support in Minimally Speaking Autism*
+- **Contents:** Comprehensive analysis of non-verbal bioacoustics (ReCANVo, Narain et al.), the Transactional Model of Communication (Sameroff, Wetherby & Prizant), the SCERTS framework, mitigating the Facilitated Communication authorship trap, and integrating adult communication partner scaffolding into the core relational schema.
+
+---
+
+## 7. Safety, Epistemics & Governance
 
 1. **Child Authorship First:** Possibilities are routed to Child N via an AAC bridge. His confirmed selections or behavioral gestures outrank all adult interpretations.
 2. **Medical Precedence:** Pain or acute distress evaluated under NCCPC-R triggers medical review escalations, superseding any behavioral interpretation.
