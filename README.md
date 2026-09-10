@@ -69,14 +69,14 @@ sequenceDiagram
 
 All detailed technical architectures, clinical protocols, interactive zoomable diagrams, and formal specifications are hosted on the interactive documentation portal:
 
-| Document | Focus & Target Audience | Live Link |
-| :--- | :--- | :--- |
-| 📄 **Scientific Whitepaper** | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. | [Read Whitepaper](https://olostan.github.io/project_n/WHITE_PAPER/) |
-| 🧠 **Engineering Architecture** | Detailed theoretical design, sensory feature extraction, metric learning, episodic retrieval, and interactive diagrams. | [Explore Architecture](https://olostan.github.io/project_n/design/) |
-| 📐 **Technical Specifications** | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and UI layout wireframe. | [View Specifications](https://olostan.github.io/project_n/specs/) |
-| 📋 **Evaluation Protocol** | Single-case (N-of-1) study design, leave-one-day-out splits, locked safety holdouts, and model promotion criteria. | [Inspect Protocol](https://olostan.github.io/project_n/evaluation_protocol/) |
-| 🛡️ **System & Safety Invariants** | Non-negotiable safety rules: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. | [Check Invariants](https://olostan.github.io/project_n/invariants/) |
-| 🤖 **Autonomous Agent Directives** | Development standards, Apple MLX memory management conventions, and documentation synchronization rules. | [Read Directives](https://olostan.github.io/project_n/agents/) |
+| Document | Focus & Target Audience |
+| :--- | :--- |
+| [📄 **Scientific Whitepaper**](https://olostan.github.io/project_n/WHITE_PAPER/) | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. |
+| [🧠 **Engineering Architecture**](https://olostan.github.io/project_n/design/) | Detailed theoretical design, sensory feature extraction, metric learning, episodic retrieval, and interactive diagrams. |
+| [📐 **Technical Specifications**](https://olostan.github.io/project_n/specs/) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and UI layout wireframe. |
+| [📋 **Evaluation Protocol**](https://olostan.github.io/project_n/evaluation_protocol/) | Single-case (N-of-1) study design, leave-one-day-out splits, locked safety holdouts, and model promotion criteria. |
+| [🛡️ **System & Safety Invariants**](https://olostan.github.io/project_n/invariants/) | Non-negotiable safety rules: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. |
+| [🤖 **Autonomous Agent Directives**](https://olostan.github.io/project_n/agents/) | Development standards, Apple MLX memory management conventions, and documentation synchronization rules. |
 
 ---
 
