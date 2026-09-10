@@ -28,12 +28,12 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
   - Device credentials must reside in hardware-backed storage: **Android Keystore** on Android devices and **iOS Keychain** on iOS devices (never in application preferences or shared storage).
   - Clips captured offline away from home (playgrounds, outdoor parks, OT clinic sessions) are encrypted locally using AES-256 in the client SQLite outbox before being flushed to the Mac.
 - **Child Assent & Dissent:** The capture system must respect behavioral dissent (e.g., turning away or covering the camera immediately terminates recording). Camera-free private zones (bathrooms, bedrooms) are enforced in software. Untagged footage is automatically purged after a configurable retention window.
-- **De-Identification:** In public and committed code/documentation, the child is strictly de-identified (referred to as Child N). No identifiable personal health information (PHI) is committed to Git.
+- **Child Identity & Data Separation:** The project documentation transparently acknowledges the personal parental motivation and dedicated origin for Nolan Shybanov (7-year-old non-verbal autistic child). However, at the engineering, runtime, data storage, and modeling layers, strict pseudonymization and health data protection are enforced: all runtime biometric databases, local SQLite outboxes, media encryption containers, inference logs, and benchmark datasets strictly refer to **Child N** and contain zero identifiable personal health information (PHI). Under no circumstances are raw video/audio recordings, facial embeddings, or clinical diagnostic records committed to Git or transmitted over external networks.
 
 ### Invariant 2: Measured Hardware Memory Ceiling
 **Peak unified memory allocation must NEVER cause page swapping to SSD and must remain bounded by a measured ceiling on the target hardware.**
 
-- On 48 GB Unified Memory systems, peak operational allocation must remain strictly $\le 36.0\text{ GB}$, with an operational baseline $\le 28.0\text{ GB}$, preserving $\ge 8.0\text{ GB}$ for macOS system stability.
+- On 48 GB Unified Memory systems, peak operational allocation must remain strictly $\le 36.0\text{ GB}$, with an operational baseline $\le 28.0\text{ GB}$, preserving $\ge 12.0\text{ GB}$ ($48\text{ GB} - 36\text{ GB}$) for macOS system stability.
 - Memory budgets must reflect measured benchmark envelopes (active Metal allocations, dynamic cache, context window, and model weights) rather than unverified static assertions.
 
 ### Invariant 3: Base LLM Weight Freezing
@@ -53,7 +53,7 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 ### Invariant 5: No Autonomous Model Deployment (Gated Promotion)
 **No model checkpoint or adapter may be deployed to caregiver-facing inference automatically or via unverified overnight gradient updates.**
 
-- Continuous adaptation requires an explicit promotion gate conforming to [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
+- Continuous adaptation requires an explicit promotion gate conforming to [`evaluation_protocol.md`](evaluation_protocol.md):
 
   1. Candidate models are trained on accumulated, verified records.
   2. Candidates are evaluated against time-separated and context-stratified holdout sets plus a locked "never-train" safety set.
@@ -72,17 +72,20 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 - **Abstention as a First-Class State:** If nearest-neighbor distance in metric space exceeds a calibrated threshold or if signal quality is compromised, the system must **abstain** ("unrecognized pattern") and suggest observational or AAC-based exploratory options.
 - **Forbidden Terminology:** Outputs and documentation must not use deterministic terms such as "child state diagnosis", "translating into intent", or "caregiver treatment protocols".
 
-### Invariant 7: Medical Rule-Out & Red-Flag Escalation
-**Distress and potential pain must be assessed using a validated instrument and must NEVER be silently mapped to sensory seeking or behavioral intent.**
+### Invariant 7: Medical Safety Gate & Red-Flag Escalation Priority
+**Distress and potential physical pain must be assessed using a validated instrument, must execute FIRST in the inference pipeline, and must NEVER be silently mapped to sensory seeking or behavioral intent.**
 
-- Pain and somatic distress evaluation utilizes the validated Non-Communicating Children's Pain Checklist – Revised (**NCCPC-R**) schema across vocal, emotional, facial, body language, protective, and physiological subscales.
-- When distress indicators or their rate of change exceed clinical thresholds, the system must trigger a **Medical Escalation Card** advising caregiver medical review. Sensory or behavioral interpretations are suppressed during red-flag states.
+- **Instrument Specification (NCCPC-PV):** Acute pain and somatic distress evaluation utilizes the validated Non-Communicating Children's Pain Checklist – Postoperative Version (**NCCPC-PV**; Breau et al., 2002; doi:10.1016/s0304-3959(02)00179-3) across 27 items ($0–81$ scale) in six real subscales: **Vocal, Social, Facial, Activity, Body and Limbs, and Physiological** (evaluated over a 10-minute observation window).
+- **Pipeline Priority (Triage First):** The medical safety check executes **FIRST** upon episode ingestion, *prior* to metric prototype matching, behavioral clustering, or novelty abstention. Novel distress episodes must never bypass medical evaluation.
+- **Conservative Cut-Off ($S_{NCCPC} \ge 6$):** Any score $S_{NCCPC} \ge 6$ triggers an immediate **Medical Escalation Card** prompting caregiver clinical review. On the NCCPC-PV, $\ge 6$ is the ROC-derived threshold for *mild pain* (sensitivity 0.88, specificity 0.81), while $\ge 11$ indicates moderate-to-severe pain. The gate is intentionally set at the mild threshold because clinical cost asymmetry heavily favors over-escalation (a false-positive prompts a harmless caregiver check-in, whereas a false-negative risks overlooking acute medical emergencies such as otitis media, dental abscess, reflux, or appendicitis).
+- **Scoring Provenance:** The 27-item checklist is completed by caregivers via the app/dashboard UI. The automated sensory pipeline computes an auxiliary *Acoustic/Kinematic Distress Alert* (monitoring vocal strain/CPP, shrill pitch excursions, grimacing/guarding pose cues) that flags suspect episodes and prompts the caregiver to administer the NCCPC-PV. All behavioral and sensory explanations are suppressed during active distress states.
 
-### Invariant 8: The AAC Bridge & Child Authorship
-**The child is the primary author of his communication. Inferred possibilities must route through augmentative and alternative communication (AAC) channels rather than delivering unverified conclusions to adults.**
+### Invariant 8: Caregiver Insight Priority & Child Authorship Alignment
+**The core purpose of Project N is to help parents understand their non-verbal child by providing thorough, grounded multimodal analysis of uploaded clips and actionable co-regulatory hints. When available, child-initiated communication directly informs and refines this understanding.**
 
-- Generated possibilities are structured as candidate options pre-populated on an AAC choice board or speech-generating device for the child to select, confirm, or reject.
-- Child-confirmed responses (via AAC selection, physical reach, or explicit gesture) outrank all adult or caregiver hypotheses in the data record.
+- **Parent-Centered Analysis Card:** The primary deliverable is a rich four-layer analysis for parents and clinicians: measured acoustic/kinematic patterns (L1), historical precedents and resolutions (L2), situational context (L3), and evidence-based explanatory hints (L4).
+- **Practical Co-Regulation Hints:** Outputs focus on actionable support (e.g., environmental modifications, proprioceptive sensory inputs, hydration checks, wait-time adjustments) based on what has historically helped this child.
+- **Optional AAC Bridge & Child Confirmation:** When the child utilizes an AAC device, communication board, or clear intentional gestures (physical reach, nodding, pushing away), the child's direct selections outrank adult interpretations in the longitudinal record. However, AAC usage is an optional empowerment channel, never a mandatory prerequisite for generating parental insights.
 
 ### Invariant 9: Lineage, Versioning & Evaluation Set Immutability
 **Training data, retrieval indices, and evaluation benchmarks must be strictly segregated.**
@@ -95,7 +98,7 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 - Use `mlx.core` and `mlx.nn`. Metal Performance Shaders attention must be called via `mx.fast.scaled_dot_product_attention`.
 - Memory tracking must use `mx.get_active_memory()` and `mx.get_peak_memory()`. Model freezing must use `model.freeze()`.
-- Standard CPU-bound demuxing libraries (`numpy`, `scipy`, `soundfile`, `librosa`) are permitted for ingest and DSP feature preparation prior to MLX array conversion.
+- Standard CPU-bound demuxing, video decoding, and extraction libraries (`numpy`, `scipy`, `soundfile`, `librosa`, `opencv-python`, and `mediapipe`) are permitted for media ingest, pose landmark extraction, and DSP feature preparation prior to MLX array conversion. All neural network forward passes, attention blocks, loss functions, and metric projection heads must execute natively on Apple MLX without PyTorch or CUDA dependencies.
 
 ---
 
@@ -111,7 +114,7 @@ The following parameters are empirical design defaults subject to systematic abl
 | **LoRA Rank & Scale** | $r=64, \alpha=128$ | $r \in [16, 32, 64], \alpha = 2r$ | Confined strictly to output rendering and schema alignment. |
 | **Metric Embedding Dimension** | 128 dimensions | 64 to 256 dimensions | Compact metric space for prototype/k-NN retrieval. |
 | **Triplet / Contrastive Margin** | $\alpha_{margin} = 0.25$ | 0.1 to 0.5 | Evaluated with supervised contrastive / prototypical loss. |
-| **Capture Frame Rate & Res** | 30 fps @ 720p | 15 fps to 30 fps, 720p/1080p | 15–30 fps provides optimal Nyquist coverage for motor stims. |
+| **Capture Frame Rate & Res** | 30 fps @ 720p | 15 fps to 30 fps, 720p/1080p | 30 fps provides Nyquist coverage for 3–6 Hz motor stims; sequence downsampling (Mondal & Washington 2026) reduces redundant compute. |
 | **Audio STFT Window & Hop** | $N=2048$, $H=160$ (48 kHz) | $N \in [1024, 2048], H \in [160, 240]$ | Accompanied by 10 ms hop F0/voice quality tracking. |
 | **Abstention Distance Cutoff** | 95th percentile holdout | Calibrated per-class threshold | Governs coverage vs error rate trade-off. |
 

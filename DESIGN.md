@@ -19,7 +19,7 @@ Sensory processing in autistic individuals frequently diverges across auditory, 
 1. **Proprioceptive & Vestibular Seeking:** Atypical sensory threshold gating can lead individuals to seek intense vestibular or proprioceptive input to achieve somatic equilibrium (e.g., rhythmic rocking, vertical jumping, or rapid hand/wrist stimming).
 2. **Auditory Hyper-Reactivity & Gating Differences:** Thalamocortical gating differences can reduce acoustic habituation. Ambient noises (such as mechanical hums or overlapping voices) can register as acute somatic distress rather than ignorable background sound.
 3. **Stimming as Active Self-Regulation & Predictability Seeking:**
-   Motor stimming (e.g., 3 Hz to 6 Hz wrist rotation, finger-flicking) and tonal vocalizations are not purposeless pathology to be suppressed. Contemporary cognitive neuroscience—notably the **HIPPEA framework** (High Inflexible Precision of Prediction Errors in Autism; [Van de Cruys et al., 2014](WHITE_PAPER.md#ref-16))—conceptualizes stereotypic movements as strategies to generate highly predictable sensory feedback in an uncertain or overwhelming environment. Stims fulfill plural, context-dependent roles: down-regulating hyper-arousal, up-regulating under-stimulated sensory pathways, expressing joy, or communicating engagement.
+   Motor stimming (e.g., 3 Hz to 6 Hz wrist rotation, finger-flicking) and tonal vocalizations are not purposeless pathology to be suppressed. Contemporary cognitive neuroscience—notably the **HIPPEA framework** (High Inflexible Precision of Prediction Errors in Autism; [Van de Cruys et al., 2014](WHITE_PAPER.md#ref-19))—conceptualizes stereotypic movements as strategies to generate highly predictable sensory feedback in an uncertain or overwhelming environment. Stims fulfill plural, context-dependent roles: down-regulating hyper-arousal, up-regulating under-stimulated sensory pathways, expressing joy, or communicating engagement.
 
 ### 1.3 Paralinguistic Structure of Idiosyncratic Vocalizations
 In the absence of phonemic speech, communicative and affective states are conveyed through non-verbal acoustic signals:
@@ -37,17 +37,17 @@ A core risk in automated affective computing is the assumption that facial movem
 Project N avoids two critical epistemic traps:
 
 1. **The Facilitated Communication (FC) / RPM Authorship Trap:**
-   Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests ([National Autism Center, 2021](WHITE_PAPER.md#ref-10)) because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
-2. **The Truth Criterion (Actionable Resolution & Child Authorship):**
-   Project N establishes an objective, falsifiable ground truth:
+   Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests ([National Autism Center, 2026](WHITE_PAPER.md#ref-13)) because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
+2. **The Truth Criterion (Actionable Resolution & Child Communication):**
+   Project N establishes an objective, falsifiable evaluation framework:
 
-   - **Primary Truth Criterion:** The child's direct response via Augmentative and Alternative Communication (AAC) or explicit physical choices outranks all adult interpretations.
-   - **Secondary Truth Criterion:** Documenting whether an offered support (e.g., offering water, deep pressure, or a quiet break) successfully resolved the observed distress episode within an observed temporal window.
+   - **Behavioral Resolution Truth Criterion:** Documenting whether an offered caregiver co-regulatory support (e.g., offering water, deep proprioceptive pressure, sensory break, or wait time) successfully resolved the observed distress episode and restored homeostatic baseline within an observed temporal window.
+   - **Child Communication Alignment:** When the child communicates directly via an AAC device, visual choice board, or clear intentional gestures (physical reach, nodding, pushing away), that child-authored choice is logged as high-confidence ground truth in the longitudinal memory.
 
 ### 2.2 Failure of Commercial Foundation Encoders & Unconstrained LLMs
 Standard foundation models impose severe neurotypical inductive biases:
 
-- **Phonemic Discretization (The Whisper Failure):** ASR models are trained to map acoustic energy into discrete phonemic and lexical tokens. Whisper's decoder discards non-lexical harmonic resonances, vowel hums, and pitch contours as "untranscribable noise." However, intermediate encoder representations (layers 6–12) retain rich paralinguistic and prosodic information. The failure lives in the phonemic text head and CTC loss, not necessarily in the acoustic encoder layers.
+- **Phonemic Discretization (The Whisper Failure):** ASR models are trained to map acoustic energy into discrete phonemic and lexical tokens. Whisper's autoregressive decoder discards non-lexical harmonic resonances, vowel hums, and pitch contours as "untranscribable noise." However, intermediate encoder representations (layers 6–12) retain rich paralinguistic and prosodic information. The failure lives in the autoregressive language decoder's strong lexical prior and token-level cross-entropy loss (which penalizes non-words and hallucinates standard English vocabulary), not necessarily in the acoustic encoder layers.
 - **Spatial Pooling (The Standard ViT Failure):** Standard vision transformers pool pixels spatially across frames, obliterating 3 Hz–6 Hz hand or finger stims into generic background scenery tokens.
 - **The Unaligned Prefix Fallacy (`F-01`):** Projecting continuous sensory vectors directly into a frozen LLM prefix without extensive end-to-end multimodal alignment training (which requires hundreds of thousands of paired examples) yields random vectors from the LLM's perspective. The LLM will generate fluent, confident, but **input-independent** clinical prose. Project N therefore removes the LLM from the primary inference path.
 
@@ -61,14 +61,14 @@ Project N deploys a modular, multi-pathway sensory extraction architecture combi
 graph TD
     subgraph Streams ["Sensory Input Streams"]
         Audio["Acoustic Stream (48 kHz WAV)<br/>Micro-pitch F0, CQT 84 bins, 128 Log-Mel"]
-        Video["Kinematic Stream (30 fps 720p)<br/>75 Body/Hand Pose Landmarks, RAFT Optical Flow"]
+        Video["Kinematic Stream (30 fps 720p)<br/>75 Body/Hand Pose Landmarks, Farnebäck Optical Flow"]
         Physio["Physiological Stream (Wearable)<br/>EDA Conductance, HRV Vagal Tone, Accelerometry"]
     end
 
     subgraph FrontEnds ["Sensory Latent Projections"]
         X_a["Acoustic Latent<br/>X_a ∈ ℝ^(T_a × 512)"]
         X_k["Kinematic Latent<br/>X_k ∈ ℝ^(T_k × 512)"]
-        X_p["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 128)<br/>(Masked via e_∅ if unmonitored)"]
+        X_p["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 64)<br/>(Masked via e_∅ if unmonitored)"]
     end
 
     subgraph Fusion ["Cross-Modal Binding (Apple Silicon MLX)"]
@@ -94,9 +94,9 @@ graph TD
 ```
 
 ### 3.1 Acoustic Front End (Resolving the Micro-Pitch Limit)
-In a 7-year-old child, fundamental phonation frequencies range from $150\text{ Hz}$ to $400\text{ Hz}$. At a $48\text{ kHz}$ sampling rate, a 128-band log-mel filterbank produces bands of approximately $27\text{ Hz}$ width near $300\text{ Hz}$, rendering $\pm 15\text{ Hz}$ micro-pitch shifts sub-bin and unresolvable.
+In pediatric non-verbal communication, subtle paralinguistic inflections (hypothesized in this N-of-1 deployment to manifest within $\pm 15\text{ Hz}$ to $\pm 50\text{ Hz}$ excursions) cannot be resolved by standard mel filterbanks alone: at a $48\text{ kHz}$ sampling rate, a 128-band log-mel filterbank produces bands of approximately $27.8\text{ Hz}$ width near $300\text{ Hz}$, rendering fine pitch fluctuations sub-bin.
 
-Project N resolves this with a dedicated tripartite acoustic engine:
+Project N resolves this with a dedicated tripartite acoustic engine that separates **pitch periodicity tracking** (via pYIN / autocorrelation) from **harmonic overtone structure** (via Constant-Q Transform filterbanks preserving geometric octave intervals):
 
 ```mermaid
 graph TD
@@ -122,8 +122,8 @@ Project N establishes a robust kinematic hierarchy:
 
 ```mermaid
 graph TD
-    RawVideo["Raw Video Input<br/>30 fps @ 720p (5.0s window = 150 frames)"] --> PoseStream["1. Body-Relative Pose (MediaPipe Holistic)<br/>• 33 Body landmarks (torso, head, limbs)<br/>• 42 Hand keypoints (21 per hand)<br/>Total: 75 keypoints (x, y, visibility)"]
-    RawVideo --> FlowStream["2. Dense Optical Flow (RAFT)<br/>Motion displacement field (u, v)<br/>Spatially pooled to 8×8 grid (128-dim)"]
+    RawVideo["Raw Video Input<br/>30 fps @ 720p (5.0s window = 150 frames)"] --> PoseStream["1. Body-Relative Pose (MediaPipe Holistic)<br/>• 33 Body landmarks (x, y, z, visibility)<br/>• 42 Hand keypoints (21 per hand: x, y, z)<br/>Total: 75 keypoints (225 kinematic features)"]
+    RawVideo --> FlowStream["2. Dense Optical Flow (OpenCV Farnebäck)<br/>Motion displacement field (u, v)<br/>Spatially pooled to 8×8 grid (128-dim)"]
 
     PoseStream --> TorsoNorm["Torso-Relative Normalization<br/>Scaled by inter-shoulder distance:<br/>p̃ = (p - p_midhip) / ||p_lshoulder - p_rshoulder||₂<br/>(Invariant to camera shake, zoom, and distance)"]
 
@@ -151,7 +151,7 @@ graph TD
 
     EDA & HRV & Acc --> PhysioLatent["Physiological Latent<br/>X_physio ∈ ℝ^(B × 50 × 64)"]
 
-    SensorGate -- "No" --> NullModality["Missing Modality Gating<br/>Substitutes learned null embedding: e_∅^physio<br/>(Zero performance drop on dual-modal operation)"]
+    SensorGate -- "No" --> NullModality["Missing Modality Gating<br/>Substitutes learned null embedding: e_∅^physio<br/>(Maintains stable metric geometry without sensor)"]
 
     style WearableInput fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style SensorGate fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
@@ -172,7 +172,7 @@ Project N inverts traditional multimodal generation. The Large Language Model is
 
 ```mermaid
 graph TD
-    L1["Layer 1: Measured Observation<br/>• Acoustic latent X_a (F0, CQT, Log-Mel)<br/>• Kinematic latent X_k (Normalized Pose, RAFT Flow)<br/>• Physiological latent X_p (EDA, HRV, Accel)"] --> Resampler["Multimodal Perceiver Resampler (Apple MLX)<br/>Cross-attention audio-visual temporal correspondence"]
+    L1["Layer 1: Measured Observation<br/>• Acoustic latent X_a (F0, CQT, Log-Mel)<br/>• Kinematic latent X_k (Normalized Pose, Farnebäck Flow)<br/>• Physiological latent X_p (EDA, HRV, Accel)"] --> Resampler["Multimodal Perceiver Resampler (Apple MLX)<br/>Cross-attention audio-visual temporal correspondence"]
 
     Resampler --> Pooling["Attention Pooling & L2 Normalization"]
     Pooling --> MetricVector["128-dimensional Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
@@ -195,38 +195,42 @@ Using a 128-dimensional metric space (rather than 4096 dimensions) prevents geom
 $$\mathbf{c}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{z}_i$$
 
 ### 4.2 Calibrated Abstention & Epistemic Decision Gating
+Decision triage enforces a strict safety hierarchy: **Medical Safety Triage executes FIRST** prior to any metric matching or novelty evaluation.
 
 ```mermaid
 graph TD
-    Query["Query Vector z & Nearest Prototype c_nearest"] --> Gate1{"Calibrated Abstention Gate<br/>d(z, c_nearest) > τ_abstain ?"}
+    Query["Incoming Episode<br/>Acoustic, Kinematic, Context Features"] --> Gate1{"Validated Medical Safety Gate (Triage First)<br/>NCCPC-PV Distress Score ≥ 6<br/>or Automated Sensory Distress Alert?"}
 
-    Gate1 -- "Yes (Novel / Unseen)" --> AbstainCard["Abstention Card<br/>'Unrecognized Pattern. Insufficient historical similarity.'<br/>Recommended Action: Present open AAC board or check environment."]
+    Gate1 -- "Yes (Acute Distress / Pain)" --> MedicalCard["Medical Escalation Card<br/>Warrants review for physical pain (ear, dental, GI reflux).<br/>Behavioral/sensory interpretations suppressed."]
 
-    Gate1 -- "No (Familiar Episode)" --> Gate2{"Validated Medical Gate<br/>NCCPC-R Distress Score ≥ 6 ?"}
+    Gate1 -- "No (Regulated / Non-Pain)" --> Embed["Metric Projection & Prototype Search<br/>Compute z ∈ ℝ^128, find c_nearest"]
 
-    Gate2 -- "Yes (Acute Distress)" --> MedicalCard["Medical Escalation Card<br/>Warrants review for physical pain (ear, dental, GI reflux).<br/>Behavioral/sensory interpretations suppressed."]
+    Embed --> Gate2{"Calibrated Abstention Gate<br/>d(z, c_nearest) > τ_abstain ?"}
 
-    Gate2 -- "No (Regulated / Stimming)" --> DualExec["Dual Execution Pipeline"]
+    Gate2 -- "Yes (Novel / Unseen)" --> AbstainCard["Abstention Card<br/>'Unrecognized Pattern. Insufficient historical similarity.'<br/>Recommended Action: Present open AAC board or check environment."]
 
-    subgraph AACPathway ["Child Authorship via AAC Bridge"]
-        AAC["AAC Candidate Tile Dispatch<br/>Dispatches options ([Water], [Sensory Break], [Deep Pressure])<br/>directly to Nolan's speech device.<br/><b>Child direct selection is authoritative ground truth.</b>"]
+    Gate2 -- "No (Familiar Episode)" --> InsightSynthesis["Synthesized Behavioral Analysis & Insight Engine"]
+
+    subgraph CaregiverPathway ["Primary: Caregiver & Therapist Decision Support"]
+        LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Generates L1–L4 Caregiver & Therapist Card:<br/>  - Holistic acoustic strain & motion analysis<br/>  - Prior co-regulatory resolutions (e.g., deep pressure)<br/>  - Grounded OT/SLP literature citations & observational precedents<br/>• Zero ungrounded generative narratives"]
     end
 
-    subgraph CaregiverPathway ["Caregiver Decision Support"]
-        LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Formats L1-L4 into distinct visual cards<br/>• Zero ungrounded generative narratives"]
+    subgraph AACPathway ["Complementary: Optional Child Authorship"]
+        AAC["AAC Candidate Tile Dispatch (Optional)<br/>Pre-populates candidate options ([Water], [Break], [Pressure])<br/>directly on child's speech device if accessible.<br/><b>Child direct choice or gesture refines truth record.</b>"]
     end
 
-    DualExec --> AAC
-    DualExec --> LLM
+    InsightSynthesis --> LLM
+    InsightSynthesis -.-> AAC
 
     style Query fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style Gate1 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
     style Gate2 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Embed fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style AbstainCard fill:#fff7e6,stroke:#fa8c16,stroke-width:2px
     style MedicalCard fill:#fff1f0,stroke:#f5222d,stroke-width:2px
-    style DualExec fill:#f6ffed,stroke:#52c41a,stroke-width:2px
-    style AACPathway fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style InsightSynthesis fill:#f6ffed,stroke:#52c41a,stroke-width:2px
     style CaregiverPathway fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style AACPathway fill:#fffbe6,stroke:#faad14,stroke-width:2px
 ```
 
 If the distance between the query vector $\mathbf{z}$ and the nearest historical prototype exceeds a calibrated threshold $\tau_{abstain}$:
@@ -272,8 +276,7 @@ When an episode matches historical precedents in Layer 2 (e.g., deep propriocept
 The server executes as an asynchronous daemon under Python 3.11+ using FastAPI and Uvicorn:
 
 - **Metal Memory Residency:** MLX tensor arrays reside directly in Apple Silicon Unified RAM. FastAPI endpoints execute inference passes via Python C++ bindings with zero IPC overhead.
-- **Server-Sent Events (SSE) Bus:** Real-time event streaming (`/api/v1/events/stream`) pushes live progress to the web dashboard (demuxing $\to$ acoustic $\to$ kinematic $\to$ metric $\to$ retrieval $\to$ AAC routing $\to$ LLM streaming).
-- **Two-Key macOS Vault:** Background video ingestion while the Mac screen is locked uses a signed LaunchAgent helper with Apple's Data Protection Keychain (`SecItem` with `kSecAttrAccessibleAfterFirstUnlock`). Touch ID authentication is required to decrypt and view raw video files.
+- **Two-Key macOS Vault & Envelope Encryption:** Background video ingestion while the Mac screen is locked uses a signed LaunchAgent helper with Apple's Data Protection Keychain (`SecItem` with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` and `kSecAttrSynchronizable = @NO`). Media files are encrypted with per-clip Data Encryption Keys (DEKs) wrapped under an Ingest KEK. A separate Biometric Review KEK requiring Touch ID / user presence (`kSecAccessControlUserPresence`) is required to unwrap raw video for interactive viewing on the dashboard. On paired Android mobile devices, key storage validates hardware-backed security via `KeyInfo.getSecurityLevel()` (`SECURITY_LEVEL_STRONGBOX` or `SECURITY_LEVEL_TRUSTED_ENVIRONMENT`).
 
 ### 6.2 Mobile Companion Architecture (Flutter Android & iOS)
 The mobile companion app runs on Flutter, supporting both Android and iOS:
@@ -301,8 +304,8 @@ Rather than running unstable nightly SGD on single batches, Project N executes a
 - On Apple Silicon Metal shaders, re-fitting a 128-dimensional metric space over hundreds of episodes completes in seconds, making catastrophic forgetting structurally impossible.
 
 ### 7.2 Gated Model Promotion Pipeline
-Before any candidate model is deployed to caregiver-facing inference, it must pass the preregistered evaluation protocol in [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
+Before any candidate model is deployed to caregiver-facing inference, it must pass the prespecified evaluation protocol in [`evaluation_protocol.md`](evaluation_protocol.md):
 
 1. **Holdout Evaluation:** Evaluated on leave-one-day-out (LODO) splits and the locked 50-episode safety holdout set.
-2. **Safety Regression Check:** Zero tolerance for missed NCCPC-R distress events ([Breau et al., 2002](WHITE_PAPER.md#ref-2)).
+2. **Safety Regression Check:** Zero tolerance for missed NCCPC-PV distress events ([Breau et al., 2002](WHITE_PAPER.md#ref-2)).
 3. **Caregiver Sign-off:** The caregiver inspects validation metrics on the dashboard and explicitly confirms promotion.

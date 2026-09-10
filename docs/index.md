@@ -20,27 +20,31 @@
 
 ## Core System Architecture
 
-Project N is engineered to run **100% offline** on local Apple Silicon hardware (tested on an Apple M5 Pro with 48GB Unified Memory), preserving complete family privacy while eliminating cloud latency.
+Project N is engineered to run **100% offline** on local Apple Silicon hardware (targeting an Apple M5 Pro with 48GB Unified Memory), preserving complete family privacy while eliminating cloud latency.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Child as Child N (Completely Non-Verbal)
-    actor Partner as Communication Partner (Parent / SLP / OT)
+    actor Partner as Communication Partner (Parent / OT / SLP)
     participant Engine as Project N Local Assistant (Apple Silicon)
-    participant AAC as Child's AAC Speech Device
+    participant AAC as Child's AAC Speech Device (Optional)
 
     Child->>Partner: Vocal inflection + rhythmic wrist stim (Natural bid)
-    Note over Partner: Partner observes & scaffolds interpersonal support:<br/>"Do you need a sensory break?"
-    Partner->>Engine: Natural episode captured via mobile client
-    Engine->>Engine: Computes pitch contour (F0), pose landmarks & physiological arousal
+    Note over Partner: Partner observes context & captures clip via mobile client
+    Partner->>Engine: Uploads clip with situational antecedents
+    Engine->>Engine: Computes pitch contour (F0), pose kinematics & holistic movement
+    Engine->>Engine: Evaluates Medical Safety Gate (NCCPC-PV triage first)
     Engine->>Engine: Matches against Child N's historical verified episodes (128-dim metric space)
-    Engine->>AAC: Dispatches candidate options ([Water], [Sensory Break], [Deep Pressure])
-    Child->>AAC: Directly selects [Sensory Break] icon
-    AAC-->>Partner: Speaks aloud: "Sensory Break"
-    Partner->>Child: Provides quiet space / dim lights (Co-regulation restored)
-    Note over Child,Partner: Regulation latency & child confirmation logged
-    Engine->>Engine: Stores child-confirmed resolution as ground truth
+    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
+    opt Optional Child Authorship
+        Engine->>AAC: Pre-populates candidate tiles ([Deep Pressure], [Sensory Break])
+        Child->>AAC: Directly selects icon or gestures
+        AAC-->>Partner: Speaks aloud child's choice
+    end
+    Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
+    Note over Child,Partner: Co-regulation restored; latency & outcome recorded
+    Engine->>Engine: Updates local N-of-1 episodic memory with verified outcome
 ```
 
 ---
@@ -51,7 +55,7 @@ sequenceDiagram
 graph LR
     P1["1. Bioacoustic Physics<br/>F0, CQT, Jitter, Shimmer, CPP<br/>(No Phonemic Collapse)"]
     P2["2. Dyadic & Transactional Loop<br/>SCERTS Model & Adult Partner<br/>(Scaffolding & Regulation)"]
-    P3["3. Child Authorship (AAC)<br/>Options routed to speech device<br/>(Child selection is truth)"]
+    P3["3. Holistic Insights & Hints<br/>Parent & OT Decision Support<br/>(Acoustics + Vision + History)"]
     P4["4. 100% Offline Local Vault<br/>Apple Silicon Metal & Two-Key<br/>(Zero Cloud Telemetry)"]
 
     P1 & P2 & P3 & P4 --> Core["Project N Communication Assistant"]
@@ -62,17 +66,17 @@ graph LR
     style P4 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
 ```
 
-1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking at $\sim 1\text{ Hz}$ resolution, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
-2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** ([Prizant et al., 2006](WHITE_PAPER.md#ref-11)), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
-3. **Child Authorship via the AAC Bridge:** The system never speaks *for* the child. Candidate possibilities are routed to Child N's speech-generating device or AAC choice board as pre-populated icons for him to select, confirm, or reject.
-4. **Medical Safety Gate (NCCPC-R):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Revised ([Breau et al., 2002](WHITE_PAPER.md#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
+1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking via pYIN/autocorrelation, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
+2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** ([Prizant et al., 2006](WHITE_PAPER.md#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](WHITE_PAPER.md#ref-16); [Wetherby & Prizant, 2000](WHITE_PAPER.md#ref-20)), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
+3. **Holistic Caregiver & Therapist Insights:** The primary goal is helping parents and therapists (OTs, SLPs) understand the child's communicative bids. By analyzing the complete multimodal picture—fusing acoustic physics with full-body kinematics and environmental antecedents—Project N surfaces what the child is experiencing, what interventions succeeded in prior sessions, and actionable, evidence-grounded hints to guide co-regulation. Where accessible, candidate possibilities can also bridge to an AAC choice board for direct child self-advocacy.
+4. **Medical Safety Gate (NCCPC-PV):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Postoperative Version ([Breau et al., 2002](WHITE_PAPER.md#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
 
 ---
 
 ## Documentation Roadmap
 
 - 📄 **[Scientific Whitepaper](WHITE_PAPER.md):** Formal clinical paper for Speech-Language Pathologists, OTs, and autism researchers detailing the transactional paradigm, bioacoustics, and AAC authorship.
-- 📋 **[Preregistered Evaluation Protocol](evaluation_protocol.md):** Single-case (N-of-1) study design with leave-one-day-out splits, mandatory baselines B1–B4, and safety metrics.
+- 📋 **[Prespecified Evaluation Protocol](evaluation_protocol.md):** Single-case (N-of-1) study design with leave-one-day-out splits, mandatory baselines B1–B4, and safety metrics.
 - 📐 **[Technical Specifications](specs.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
 - 🧠 **[Theoretical Architecture & Design](design.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
 - 🛡️ **[System & Safety Invariants](invariants.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.

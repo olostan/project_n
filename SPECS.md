@@ -4,7 +4,7 @@
 
 ## 1. System Technology Stack & Architectural Decisions
 
-Project N is engineered specifically for local execution on Apple Silicon (tested on M5 Pro with 48GB Unified Memory), maintaining 100% offline privacy while serving an intuitive, rich interface for caregivers.
+Project N is engineered specifically for local execution on Apple Silicon (targeting an M5 Pro with 48GB Unified Memory), maintaining 100% offline privacy while serving an intuitive, rich interface for caregivers.
 
 ```mermaid
 graph TD
@@ -36,10 +36,10 @@ graph TD
 
     subgraph NeuralCore ["Neural Engine & Inference Core (Apple Silicon MLX 0.22+)"]
         MLX_Metal["Apple MLX Native Metal C++ Bindings (Unified Memory)"]
-        MLX_Sensory["Sensory Extractors: F0/CQT/Mel (Audio), MediaPipe/RAFT (Kinematics), EDA (Phys)"]
+        MLX_Sensory["Sensory Extractors: F0/CQT/Mel (Audio), MediaPipe/Farnebäck (Kinematics), EDA (Phys)"]
         MLX_Metric["128-dim Attention-Pooled L2-Normalized Metric Projection Head"]
         MLX_Matcher["Prototypical & k-NN Matcher over Verified History"]
-        MLX_Safety["27-item NCCPC-R Validated Distress Evaluator (Medical Gate)"]
+        MLX_Safety["27-item NCCPC-PV Validated Distress Evaluator (Medical Gate)"]
         MLX_Renderer["Schema-Constrained Qwen2.5-14B-Instruct (4-bit, 100% Frozen W₀)"]
         MLX_Metal --- MLX_Sensory --- MLX_Metric --- MLX_Matcher --- MLX_Safety --- MLX_Renderer
     end
@@ -107,24 +107,27 @@ graph TD
 A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
 
 1. **Body-Relative Landmark Extraction (MediaPipe Holistic / BlazePose):**
-   - 33 Pose landmarks (torso, shoulders, elbows, wrists, head).
-   - 21 Hand landmarks per hand ($2 \times 21 = 42$ hand keypoints).
-   - Total landmarks: $K = 75$. Each landmark outputs $(x, y, \text{visibility})$.
+   - 33 Pose landmarks (torso, shoulders, elbows, wrists, head), outputting $(x, y, z, \text{visibility})$ ($33 \times 4 = 132$ features).
+   - 21 Hand landmarks per hand ($2 \times 21 = 42$ hand keypoints), outputting spatial coordinates $(x, y, z)$ ($42 \times 3 = 126$ features; note that MediaPipe does not provide visibility scores for hand keypoints).
+   - Total landmarks: $K = 75$ keypoints (258 features per frame).
    - **Torso-Relative Normalization:** Coordinates are normalized relative to shoulder-hip center and scaled by inter-shoulder width:
      $$\tilde{\mathbf{p}}_k = \frac{\mathbf{p}_k - \mathbf{p}_{mid\_hip}}{\|\mathbf{p}_{left\_shoulder} - \mathbf{p}_{right\_shoulder}\|_2}$$
      This eliminates camera translation, zoom, and distance artifacts.
 
-   - Landmark matrix: $\mathbf{K} \in \mathbb{R}^{B \times 150 \times 225}$.
-2. **Dense Optical Flow (RAFT):**
-   Extracts horizontal and vertical displacement fields $(u, v)$ between consecutive frames ($T_{diff} = 149$ steps), spatially pooled to an $8 \times 8$ grid ($128$ dimensions per frame).
-3. **Kinematic Projection:** $\mathbf{X}_{kinematic} = \text{TemporalTransformer}([\mathbf{K} \;\|\; \mathbf{O}]) \in \mathbb{R}^{B \times 150 \times 512}$.
+   - Landmark matrix: $\mathbf{K} \in \mathbb{R}^{B \times 150 \times 258}$.
+2. **Dense Optical Flow (OpenCV Farnebäck):**
+   Extracts horizontal and vertical displacement fields $(u, v)$ between consecutive frames using OpenCV's native, CPU-bound Farnebäck algorithm (`cv2.calcOpticalFlowFarneback`; $T_{diff} = 149$ steps), spatially pooled to an $8 \times 8$ grid ($128$ dimensions per frame). This eliminates external PyTorch dependencies while running with minimal CPU overhead. To align temporally with the 150-frame pose sequence, the flow sequence is left-padded with a zero-displacement initial frame $\mathbf{0} \in \mathbb{R}^{B \times 1 \times 128}$, yielding $\tilde{\mathbf{O}} \in \mathbb{R}^{B \times 150 \times 128}$.
+3. **Kinematic Projection:** $\mathbf{X}_{kinematic} = \text{TemporalTransformer}([\mathbf{K} \;\|\; \tilde{\mathbf{O}}]) \in \mathbb{R}^{B \times 150 \times 512}$.
 
 ### 2.3 Physiological Feature Extraction (Optional Auxiliary Channel)
-When wearable sensor streams (e.g., Apple Watch, Empatica) are available:
+When wearable sensor streams (e.g., paired Apple Watch or research biosensors) are available:
 
 1. **Electrodermal Activity (EDA @ 4 Hz):** Continuous decomposition into tonic Skin Conductance Level (SCL) and phasic Skin Conductance Response (SCR) using convex optimization:
    $$G(t) = SCL(t) + SCR(t) + \epsilon(t)$$
-2. **Heart Rate Variability (HRV @ 100 Hz PPG):** Extracts inter-beat intervals (IBI), Root Mean Square of Successive Differences (RMSSD), and High-Frequency (HF, $0.15–0.4\text{ Hz}$) vagal power.
+2. **Heart Rate & Autonomic Variability (HRV):** 
+   - Over short 5-second video windows, physiological telemetry provides exploratory **time-domain metrics**: mean Heart Rate (BPM), pulse-interval variance, and Root Mean Square of Successive Differences (RMSSD).
+   - Frequency-domain spectral metrics (such as High-Frequency vagal power, HF $0.15–0.40\text{ Hz}$) require rolling buffers of 1–5 minutes of continuous data (ESC/NASPE standards) and are computed only when continuous background buffers are available.
+   - When ingesting from consumer devices like Apple Watch via HealthKit, samples are received as discrete episodic quantities (e.g. episodic HR, SDNN) rather than continuous 100 Hz raw photoplethysmography (PPG), whereas research devices (e.g., Empatica) stream continuous raw PPG/EDA when paired.
 3. **3-Axis Accelerometry (@ 50 Hz):** Wrist tremor energy and gross motor magnitude: $a_{mag}(t) = \sqrt{a_x^2 + a_y^2 + a_z^2}$.
 4. **Output Dimension:** $\mathbf{X}_{physio} \in \mathbb{R}^{B \times 50 \times 64}$.
 
@@ -133,8 +136,7 @@ Because wearable sensors are **completely optional** (and may not be tolerated b
 $$\mathbf{m} = [m_{audio}, m_{kinematic}, m_{physio}] \in \{0, 1\}^3$$
 When wearable telemetry is absent ($m_{physio} = 0$):
 
-- $\mathbf{X}_{physio}$ is replaced by a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio} \in \mathbb{R}^{64}$.
-- Attention scores over the physiological channel are masked to $-\infty$.
+- $\mathbf{X}_{physio}$ is replaced by a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio} \in \mathbb{R}^{64}$ broadcast across the temporal sequence.
 - The resulting metric vector $\mathbf{z}_{metric} \in \mathbb{R}^{128}$ resides in the identical geometric space, allowing continuous matching against historical episodes with or without physiological records.
 
 ---
@@ -159,11 +161,26 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 
 - The system offers open AAC exploration or caregiver observational check-in rather than guessing.
 
-### 3.3 NCCPC-R Validated Medical Rule-Out
-Distress is evaluated via the Non-Communicating Children's Pain Checklist – Revised ([Breau et al., 2002](WHITE_PAPER.md#ref-2)) across 27 items ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
+### 3.3 NCCPC-PV Validated Medical Rule-Out (Triage First)
+Distress is evaluated using the validated Non-Communicating Children's Pain Checklist – Postoperative Version (**NCCPC-PV**; [Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00007) across 27 items scored on a 4-point scale ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
 
-- Subscales: Vocal (items 1–5), Emotional (6–9), Facial (10–13), Body Language (14–19), Protective (20–22), Physiological (23–27). Total score: $0 \le S_{NCCPC} \le 81$.
-- **Clinical Cut-off:** Score $S_{NCCPC} \ge 6$ triggers an immediate **Medical Escalation Card**, displaying:
+- **Six Validated Subscales:**
+  - **Vocal (items 1–5):** Moaning, whining, crying, screaming, idiosyncratic distress sounds.
+  - **Social (items 6–9):** Seeking comfort, withdrawn, less responsive, difficult to distract.
+  - **Facial (items 10–13):** Furrowed brow, clenching teeth, wincing, distressed expression.
+  - **Activity (items 14–17):** Not moving around, jumpy, restless, unusual stillness.
+  - **Body and Limbs (items 18–23):** Guarding, stiff, flinching, pulling legs up, gesturing to body part.
+  - **Physiological (items 24–27):** Pale/flushed, sweating, tears, rapid breathing.
+  Total composite score: $0 \le S_{NCCPC} \le 81$ (standardized over a 10-minute structured observation).
+
+- **Clinical Cut-off & Cost Asymmetry Rationale:**
+  - $S_{NCCPC} \ge 6$: Validated cut-off for **mild pain** (ROC sensitivity $0.88$, specificity $0.81$ for caregiver ratings).
+  - $S_{NCCPC} \ge 11$: Validated cut-off for **moderate-to-severe pain**.
+  - **Conservative Escalation Policy:** The automated safety gate triggers at the *mild* cut-off ($S_{NCCPC} \ge 6$). This is an intentional clinical design choice: the cost asymmetry heavily favors over-escalation (a false-positive prompts a benign caregiver physical check-in, whereas a false-negative risks overlooking acute medical emergencies such as otitis media, dental abscess, GI reflux, or acute abdomen).
+
+- **Dual Scoring Provenance:**
+  - **Caregiver Gold Standard:** The full 27-item checklist is completed by caregivers via the mobile companion app or dashboard UI during observed distress episodes.
+  - **Automated Sensory Distress Alert:** At inference time, the MLX sensory extractors compute an automated distress alert (monitoring vocal strain/CPP, shrieks/spikes in $F_0$, rapid guarding/flinching kinematics). If the automated alert fires, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to complete the formal NCCPC-PV checklist:
   ```text
   [MEDICAL ESCALATION REQUIRED]
   Observable distress indicators exceed clinical threshold (Score: 8/81).
@@ -352,7 +369,7 @@ graph TD
 
 ### 6.2 Key Dashboard Screens
 1. **Live Multimodal Inspector:**
-   - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and RAFT motion vectors frame-by-frame.
+   - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and Farnebäck motion vectors frame-by-frame.
    - Synchronized audio waveform with interactive pitch trace ($F_0$ curve) and CQT spectrogram heatmaps.
 2. **Interactive 2D Lexicon Cluster Map:**
    - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
@@ -363,13 +380,17 @@ graph TD
 
 ---
 
-## 7. Complete MLX Core Implementation
+## 7. Architectural Reference Sketch & Component Signatures
 
-Below is the complete, executable MLX pipeline implementing the multimodal metric head with missing-modality gating, episodic retrieval, NCCPC-R distress evaluation, and schema-constrained Qwen2.5-14B rendering.
+Below is an illustrative architectural specification and pseudo-code sketch outlining the component interfaces: the multimodal metric projection head with missing-modality gating, episodic prototype retrieval, NCCPC-PV distress rule-out, and schema-constrained Qwen2.5-14B rendering.
+
+> [!NOTE]
+> **Implementation Scope Note**  
+> This section serves as an interface contract and dataflow blueprint for Phase 1 implementation. Production feature extraction routines, validation assertions, and runtime pipeline modules reside in the repository source packages (`extraction/`, `models/`, `rag/`, `server/`).
 
 ```python
 """
-Project N: Core Multimodal Metric Learning, Safety & Rendering Pipeline.
+Project N: Core Multimodal Metric Learning, Safety & Rendering Pipeline Interface Sketch.
 Targeted natively for Apple Silicon Metal Unified Memory (mlx >= 0.22.0).
 """
 
@@ -512,9 +533,11 @@ class EpisodicPrototypeMatcher:
 class NCCPCRuleOut:
     """
     Evaluates observed distress behaviors against the Non-Communicating
-    Children's Pain Checklist – Revised (NCCPC-R) 27-item instrument.
+    Children's Pain Checklist – Postoperative Version (NCCPC-PV) 27-item instrument.
     """
-    RED_FLAG_CUTOFF = 6  # Validated clinical threshold for potential physical pain
+    # Validated clinical cut-off for mild pain (sensitivity 0.88, specificity 0.81).
+    # Triggered conservatively at mild threshold due to high clinical cost of false negatives.
+    RED_FLAG_CUTOFF = 6
 
     @classmethod
     def evaluate(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
@@ -536,6 +559,8 @@ def execute_inference_cycle(
     raw_audio: mx.array,
     raw_kinematic: mx.array,
     raw_physio: Optional[mx.array],
+    measured_features: Dict[str, Any],    # Extracted L1 features (F0, CPP, motion freq, etc.)
+    caregiver_context: Dict[str, Any],    # L3 antecedents (time elapsed, transition state, etc.)
     nccpc_scores: Dict[str, int],
     metric_head: MetricProjectionHead,
     matcher: EpisodicPrototypeMatcher,
@@ -546,18 +571,24 @@ def execute_inference_cycle(
 ) -> Dict[str, Any]:
     """
     Executes an end-to-end Project N inference cycle adhering to the four-layer output contract.
+    Returns a comprehensive caregiver analysis card with observational insights, historical
+    precedents, antecedent context, and grounded hypotheses to support parent decision-making.
     """
-    # 1. MEDICAL RULE-OUT
+    # 1. MEDICAL SAFETY RULE-OUT (NCCPC-PV Triage First)
     safety_check = NCCPCRuleOut.evaluate(nccpc_scores)
     if safety_check["is_red_flag"]:
         return {
             "layer": "SAFETY_ESCALATION",
             "nccpc_score": safety_check["nccpc_total"],
             "escalation_card": safety_check["recommendation"],
-            "aac_candidates": ["medical_attention", "caregiver_comfort"]
+            "actionable_hints": [
+                "Examine child for physical symptoms or acute somatic discomfort",
+                "Follow family pediatrician-approved escalation protocol"
+            ],
+            "optional_aac_candidates": ["medical_attention", "caregiver_comfort"]
         }
 
-    # 2. METRIC PROJECTION
+    # 2. METRIC PROJECTION (128-dim L2 space)
     z_metric = metric_head(raw_audio, raw_kinematic, raw_physio)
     mx.eval(z_metric)
 
@@ -566,29 +597,48 @@ def execute_inference_cycle(
     if match_result["abstained"]:
         return {
             "layer": "ABSTAIN",
-            "message": "Unrecognized behavioral pattern; insufficient historical precedent.",
+            "message": "Unrecognized behavioral pattern; insufficient historical similarity.",
             "nearest_distance": match_result["nearest_distance"],
-            "aac_candidates": ["open_choice_board", "check_in"]
+            "actionable_hints": [
+                "Observe child without immediate intervention",
+                "Offer open-ended visual schedule or preferred comfort object"
+            ],
+            "optional_aac_candidates": ["open_choice_board", "check_in"]
         }
 
     # 4. CLINICAL EVIDENCE RETRIEVAL (L4)
     top_action = match_result["candidates"][0]["action_taken"]
     evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
-    evidence_text = lit_results["documents"][0][0] if lit_results["documents"] else "Clinical guidelines on file."
+    evidence_text = lit_results["documents"][0][0] if lit_results["documents"] else "Evidence library guidelines on file."
 
-    # 5. AAC BRIDGE PRE-POPULATION
-    aac_options = [c["action_taken"] for c in match_result["candidates"] if c["action_taken"]]
+    # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY
+    f0_mean = measured_features.get("f0_mean_hz", "N/A")
+    cpp_val = measured_features.get("cpp_db", "N/A")
+    motion_type = measured_features.get("dominant_motion", "rhythmic movement")
+    motion_freq = measured_features.get("motion_freq_hz", "N/A")
 
-    # 6. SCHEMA-CONSTRAINED FOUR-LAYER (L1–L4) RENDERING
-    l1 = "Acoustics: F0 mean 268 Hz (stable). Kinematics: 3.8 Hz wrist rotation. Quality: Adequate."
-    l2 = f"Matched {len(match_result['candidates'])} prior episodes. Most frequent resolution: {top_action}."
-    l3 = "Caregiver notes: Post-school transition, 45 minutes since last drink."
-    l4 = f"Research evidence: {evidence_text[:140]}..."
+    l1 = (
+        f"Acoustic: F0 mean {f0_mean} Hz, Cepstral Peak Prominence {cpp_val} dB. "
+        f"Kinematic: {motion_type} at {motion_freq} Hz. Signal quality: Adequate."
+    )
+    l2 = (
+        f"Matched {len(match_result['candidates'])} prior episodes in historical vault. "
+        f"Most frequent co-regulatory resolution: {top_action}."
+    )
+    l3 = (
+        f"Antecedents: {caregiver_context.get('transition_state', 'routine activity')}, "
+        f"{caregiver_context.get('elapsed_min_since_hydration', 'unknown')} min since water, "
+        f"ambient noise: {caregiver_context.get('noise_level', 'moderate')}."
+    )
+    l4 = f"Research literature: {evidence_text[:140]}..."
 
     render_prompt = (
-        f"Render the following structured evidence into four distinct labeled layers (L1 to L4). "
-        f"Do NOT invent causes, diagnoses, or treatments absent from below:\n\n"
+        f"You are a supportive, evidence-grounded communication assistant for the parents and therapists of Child N.\n"
+        f"Analyze this newly uploaded episode based on the four layers below. Present objective observations "
+        f"and historical precedents (e.g., 'In X of Y prior episodes with comparable acoustic/kinematic markers, intervention Z "
+        f"was followed by regulation within N minutes; literature note: Author Year'). Frame insights as observations "
+        f"and non-prescriptive hypotheses to explore, avoiding imperative medical commands or internal psychic assumptions:\n\n"
         f"[L1 Measured]: {l1}\n"
         f"[L2 History]: {l2}\n"
         f"[L3 Context]: {l3}\n"
@@ -596,7 +646,11 @@ def execute_inference_cycle(
     )
 
     # Base LLM is 100% frozen via model.freeze()
-    rendered_card = llm_renderer.generate_from_prompt(render_prompt, max_tokens=256)
+    # In MLX-LM runtime, generation is executed via mlx_lm.generate(llm_model, tokenizer, prompt=...)
+    rendered_card = f"Caregiver Analysis Card:\n{render_prompt}"
+
+    # Optional AAC bridge candidates (for child self-advocacy if accessible)
+    aac_options = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
 
     return {
         "structured_data": {
@@ -605,8 +659,12 @@ def execute_inference_cycle(
             "L3_context": l3,
             "L4_evidence": l4
         },
-        "aac_candidates": aac_options,
-        "caregiver_card": rendered_card
+        "caregiver_analysis_card": rendered_card,
+        "historical_precedents_and_observations": [
+            f"Precedent: In historical episodes matching this acoustic/kinematic profile, {top_action} was followed by homeostatic regulation.",
+            f"Contextual observation: Transition state noted as {caregiver_context.get('transition_state', 'activity')}."
+        ],
+        "optional_aac_candidates": aac_options
     }
 ```
 
@@ -626,7 +684,7 @@ graph TD
 
     subgraph P2 ["Phase 2: Tripartite Sensory Extraction Engines"]
         P2_1["2.1 extraction/acoustic.py: F0/jitter/shimmer + CQT 84-bin + Log-Mel"]
-        P2_2["2.2 extraction/kinematic.py: MediaPipe 75 landmarks + RAFT flow"]
+        P2_2["2.2 extraction/kinematic.py: MediaPipe 75 landmarks + Farnebäck flow"]
         P2_3["2.3 extraction/physiology.py: Wearable EDA, HRV, and 3-axis accel"]
         P2_1 --> P2_2 --> P2_3
     end

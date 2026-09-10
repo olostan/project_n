@@ -28,14 +28,14 @@
 
 ## 1. Mission Statement & System Overview
 
-**Project N is a 100% offline, privacy-preserving, child-authored communication-support assistant** engineered specifically for completely non-verbal neurodivergent children.
+**Project N is a 100% offline, privacy-preserving behavioral insight and communication-support assistant** engineered specifically for completely non-verbal neurodivergent children and the parents and therapists who support them.
 
 ### What Makes Project N Different
 
 1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using high-resolution bioacoustic physics (fundamental frequency $F_0$ pitch tracking, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). The system matches acoustic signals directly to past verified episodes without forcing sounds into clumsy English descriptions.
-2. **The Dyadic Transactional Loop:** Communication is not an isolated broadcast. Grounded in the **SCERTS framework** ([Prizant et al., 2006](https://olostan.github.io/project_n/WHITE_PAPER/#ref-11)) and the **Transactional Model of Communication** ([Sameroff, 1975](https://olostan.github.io/project_n/WHITE_PAPER/#ref-13); [Wetherby & Prizant, 2000](https://olostan.github.io/project_n/WHITE_PAPER/#ref-17)), the system models the interactive dance between the child and the adult communication partner (what the parent/therapist said, what physical scaffolding was offered, and how the child responded).
-3. **Child Authorship via the AAC Bridge:** The system never speaks *for* the child. Candidate possibilities are dispatched to Child N's speech-generating device or AAC choice board as pre-populated icons for him to select, confirm, or reject.
-4. **Medical Safety Gate (NCCPC-R):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Revised ([Breau et al., 2002](https://olostan.github.io/project_n/WHITE_PAPER/#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
+2. **The Dyadic Transactional Loop:** Communication is not an isolated broadcast. Grounded in the **SCERTS framework** ([Prizant et al., 2006](https://olostan.github.io/project_n/WHITE_PAPER/#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](https://olostan.github.io/project_n/WHITE_PAPER/#ref-16); [Wetherby & Prizant, 2000](https://olostan.github.io/project_n/WHITE_PAPER/#ref-20)), the system models the interactive dance between the child and the adult communication partner (what the parent/therapist said, what physical scaffolding was offered, and how the child responded).
+3. **Holistic Caregiver & Therapist Insights:** The primary goal is helping parents and therapists (OTs, SLPs) understand the child's communicative bids. By analyzing the complete multimodal picture—fusing acoustic physics with full-body kinematics and environmental antecedents—Project N surfaces what the child is experiencing, what interventions succeeded in prior sessions, and actionable, evidence-grounded hints to guide co-regulation. Where accessible, candidate possibilities can also bridge to an AAC choice board for direct child self-advocacy.
+4. **Medical Safety Gate (NCCPC-PV):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Postoperative Version ([Breau et al., 2002](https://olostan.github.io/project_n/WHITE_PAPER/#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
 5. **100% Offline & Two-Key Encrypted:** Runs locally on an Apple Silicon Mac (M5 Pro) with zero cloud network telemetry. Video and audio recordings are encrypted with unique per-clip keys.
 
 ---
@@ -45,22 +45,26 @@
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Child N
-    actor Partner as Communication Partner
-    participant Engine as Project N Assistant
-    participant AAC as Child AAC Device
+    actor Child as Child N (Completely Non-Verbal)
+    actor Partner as Communication Partner (Parent / OT / SLP)
+    participant Engine as Project N Local Assistant (Apple Silicon)
+    participant AAC as Child AAC Device (Optional)
 
-    Child->>Partner: Natural communication bid (vocalization and movement)
-    Note over Partner: Partner scaffolds and observes
-    Partner->>Engine: Captures episode via mobile app
-    Engine->>Engine: Extracts acoustic, kinematic and physiological signals
-    Engine->>Engine: Matches against confirmed episodes in metric space
-    Engine->>AAC: Proposes candidate tiles ([Water], [Pressure], [Break])
-    Child->>AAC: Selects desired icon directly
-    AAC-->>Partner: Speaks aloud: Deep Pressure
-    Partner->>Child: Provides requested co-regulation support
-    Note over Child, Partner: Regulation restored and outcome logged
-    Engine->>Engine: Stores child-confirmed resolution as ground truth
+    Child->>Partner: Natural communication bid (Pitch glide + 4Hz wrist stim)
+    Note over Partner: Partner observes context & captures clip via mobile app
+    Partner->>Engine: Uploads clip with situational antecedents
+    Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
+    Engine->>Engine: Evaluates Medical Safety Gate (NCCPC-PV triage first)
+    Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
+    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
+    opt Optional Child Authorship
+        Engine->>AAC: Pre-populates candidate tiles ([Deep Pressure], [Sensory Break])
+        Child->>AAC: Directly selects icon or gestures
+        AAC-->>Partner: Speaks aloud child's choice
+    end
+    Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
+    Note over Child,Partner: Co-regulation restored; latency & outcome recorded
+    Engine->>Engine: Updates local N-of-1 episodic memory with verified outcome
 ```
 
 ---
@@ -122,7 +126,7 @@ Then open `http://localhost:8000` in your web browser.
 Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion Foundations)**:
 - [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
 - [x] Architecture, system invariants, and technical specifications formalized.
-- [x] Preregistered evaluation protocol and safety promotion gates established.
+- [x] Prespecified evaluation protocol and safety promotion gates established.
 - [ ] Phase 1: Local Mac backend daemon (FastAPI), encrypted vault, and acoustic feature pipeline.
 - [ ] Phase 2: Metric projection head, episodic prototype retrieval, and ChromaDB integration.
 - [ ] Phase 3: Flutter companion app with offline outbox and pairing.

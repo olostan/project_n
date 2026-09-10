@@ -1,5 +1,9 @@
 # Project N scientific, clinical, and systems review
 
+> [!NOTE]
+> **Historical Audit Provenance**  
+> This document preserves the original architectural, clinical, and systems critique delivered on 2026-09-08 that motivated the architectural overhaul of Project N. The actionable recommendations from this audit were incorporated into [`REVIEW_REFINEMENTS.md`](REVIEW_REFINEMENTS.md), and current normative technical specifications reside in [`SPECS.md`](specs.md), [`DESIGN.md`](design.md), and [`INVARIANTS.md`](invariants.md).
+
 **Date:** 2026-09-08  
 **Scope:** All Markdown documents present in the repository at review start (`AGENTS.md`, `DESIGN.md`, `INVARIANTS.md`, `README.md`, and `SPECS.md`), plus the clarified intended use: a private, parent-owned system for understanding one child better, running locally on an always-on Mac and accepting clips from a paired Flutter app. This is a research and architecture review, not an assessment of any child and not medical, legal, or regulatory advice.
 
@@ -51,7 +55,7 @@ Every screen should offer `None of these`, `Not enough information`, `Other`, `C
 
 ### 3. The acoustic theory overclaims
 
-There is evidence that some acoustic/prosodic characteristics differ in some autistic cohorts, but effect sizes are modest, results are inconsistent, and this literature concerns mostly speech—not a validated mapping from idiosyncratic non-speech vocalization to a child's hunger, discomfort, curiosity, or pain. A meta-analysis found only roughly 61–64% discriminatory accuracy for population autism-vs-control voice features [Fusaroli et al.](https://doi.org/10.1002/aur.1678), and a newer review again reports inconsistent prosody/voice-quality findings [Fusaroli et al., 2026](https://pubmed.ncbi.nlm.nih.gov/42287519/).
+There is evidence that some acoustic/prosodic characteristics differ in some autistic cohorts, but effect sizes are modest, results are inconsistent, and this literature concerns mostly speech—not a validated mapping from idiosyncratic non-speech vocalization to a child's hunger, discomfort, curiosity, or pain. A meta-analysis found only roughly 61–64% discriminatory accuracy for population autism-vs-control voice features [Fusaroli et al.](https://doi.org/10.1002/aur.1678), and a newer systematic review and meta-analysis again reports inconsistent prosody/voice-quality findings [Song, Kuang, & Chen, 2026](https://pubmed.ncbi.nlm.nih.gov/42287519/).
 
 Therefore the following claims should be removed unless supported by child-specific prospective data: stable low-variance F0 means self-soothing; ±15–50 Hz trajectories reliably distinguish named intentions; and spectral or harmonic properties encode a particular affective valence. Preserve F0, intensity, spectral shape, duration, periodicity, and rhythm as measurable features. Treat their interpretation as an empirical, individual, uncertainty-bearing prediction task.
 
@@ -264,7 +268,7 @@ The humane premise is strong: take non-speaking communication seriously, avoid f
 | Observed facial/body/vocal cues do not justify direct emotion detection claims; context and observer agreement matter | [Barrett et al., 2019](https://journals.sagepub.com/doi/10.1177/1529100619832930); peer-reviewed critical review. |
 | Connectivity findings in autism are inconsistent and moderated by heterogeneity | [Vasa et al., 2017](https://pubmed.ncbi.nlm.nih.gov/28083565/); peer-reviewed review. |
 | RRB/stimming functions are plural and regulation is one, not exclusive, function | [Hinton et al., 2024](https://doi.org/10.1016/j.rasd.2024.102458); scoping review. |
-| Prosodic population findings are modest/inconsistent, not an individual intent decoder | [Fusaroli et al., 2017](https://doi.org/10.1002/aur.1678) and [Fusaroli et al., 2026](https://pubmed.ncbi.nlm.nih.gov/42287519/); systematic reviews/meta-analyses. |
+| Prosodic population findings are modest/inconsistent, not an individual intent decoder | [Fusaroli et al., 2017](https://doi.org/10.1002/aur.1678) and [Song, Kuang, & Chen, 2026](https://pubmed.ncbi.nlm.nih.gov/42287519/); systematic reviews/meta-analyses. |
 | ASI evidence is targeted to individually defined functional goals and remains qualified | [Schaaf et al., 2018](https://pubmed.ncbi.nlm.nih.gov/29280711/) and [Acuña et al., 2025](https://pubmed.ncbi.nlm.nih.gov/40193295/); systematic reviews. |
 | Qwen2.5-14B dimensions | [Official Qwen configuration](https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/blob/main/config.json); first-party model config. |
 | Perceiver compression and need for trained cross-attention integration | [Flamingo](https://storage.googleapis.com/deepmind-media/DeepMind.com/Blog/tackling-multiple-tasks-with-a-single-visual-language-model/flamingo.pdf) and [LLaVA](https://arxiv.org/abs/2304.08485); primary model papers. |
