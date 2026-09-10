@@ -57,25 +57,40 @@ Standard foundation models impose severe neurotypical inductive biases:
 
 Project N deploys a modular, multi-pathway sensory extraction architecture combining acoustics, kinematics, and direct physiology.
 
-```text
-RAW ACOUSTIC STREAM (48 kHz WAV)
-├─ Dedicated Pitch Track ────► F0, Jitter, Shimmer, HNR, CPP (~10ms hop) ─┐
-├─ Harmonic Filterbank   ────► Constant-Q Transform (CQT) 84 bins         ├─► Acoustic Latent (X_a)
-└─ Broadband Texture     ────► 128 Log-Mel Spectrogram Bands              │
-                                                                           │
-KINEMATIC STREAM (30 fps 720p)                                             │
-├─ Body-Relative Pose   ────► MediaPipe Holistic Torso-Normalized Skeletons├─► Kinematic Latent (X_k)
-├─ Dense Optical Flow   ────► RAFT Motion Displacement Vector Field       │
-└─ Visual Context       ────► Low-Rate Context / Spatial Tokens           │
-                                                                           │
-PHYSIOLOGICAL STREAM (Wearable, Optional)                                  │
-├─ Electrodermal (EDA)  ────► Tonic SCL & Phasic SCR Conductance (cvxEDA) ├─► Physiological Latent (X_p)
-├─ Cardiorespiratory    ────► Inter-Beat Intervals & HRV RMSSD (100 Hz PPG)│   (Masked if absent)
-└─ Accelerometry        ────► 3-Axis Somatic Tremor Energy (50 Hz)        │
-                                                                           ▼
-                                                Multimodal Attention Pooling & L2-Norm
-                                                                           ▼
-                                                Metric Vector: z_metric ∈ R^128 (||z||2 = 1)
+```mermaid
+graph TD
+    subgraph AcousticPipeline ["Acoustic Stream (48 kHz WAV)"]
+        A_Raw["Raw Audio<br/>(48 kHz WAV)"] --> A_Pitch["Dedicated Pitch Track<br/>F0, Jitter, Shimmer, HNR, CPP (~10ms)"]
+        A_Raw --> A_CQT["Harmonic Filterbank<br/>Constant-Q Transform (84 bins)"]
+        A_Raw --> A_Mel["Broadband Texture<br/>128 Log-Mel Spectrogram Bands"]
+        A_Pitch & A_CQT & A_Mel --> A_Latent["Acoustic Latent<br/>X_a ∈ ℝ^(T_a × 512)"]
+    end
+
+    subgraph KinematicPipeline ["Kinematic Stream (30 fps 720p)"]
+        K_Raw["Raw Video<br/>(30 fps 720p)"] --> K_Pose["Body-Relative Pose<br/>MediaPipe Holistic (75 Skeletons)"]
+        K_Raw --> K_Flow["Dense Optical Flow<br/>RAFT Motion Displacement Field"]
+        K_Raw --> K_Context["Spatial Context<br/>Low-Rate Context / Scene Tokens"]
+        K_Pose & K_Flow & K_Context --> K_Latent["Kinematic Latent<br/>X_k ∈ ℝ^(T_k × 512)"]
+    end
+
+    subgraph PhysioPipeline ["Physiological Stream (Wearable, Optional)"]
+        P_Raw["Wearable Telemetry<br/>(Optional BLE / Apple Watch)"] --> P_EDA["Electrodermal Activity (EDA)<br/>Tonic SCL & Phasic SCR (cvxEDA)"]
+        P_Raw --> P_HRV["Cardiorespiratory<br/>Inter-Beat Intervals & HRV RMSSD"]
+        P_Raw --> P_Acc["3-Axis Accelerometry<br/>Somatic Tremor Energy (50 Hz)"]
+        P_EDA & P_HRV & P_Acc --> P_Latent["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 128)<br/>(Null embedding e_∅ if absent)"]
+    end
+
+    subgraph Fusion ["Cross-Modal Fusion & Metric Projection (Apple MLX)"]
+        A_Latent & K_Latent & P_Latent --> Resampler["Multimodal Perceiver Resampler<br/>Cross-Attention Latent Queries"]
+        Resampler --> AttnPool["Multimodal Attention Pooling & L2 Normalization"]
+        AttnPool --> MetricVec["Normalized Metric Embedding<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
+    end
+
+    style AcousticPipeline fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style KinematicPipeline fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style PhysioPipeline fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style Fusion fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style MetricVec fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
 ```
 
 ### 3.1 Acoustic Front End (Resolving the Micro-Pitch Limit)
@@ -119,38 +134,50 @@ To ground internal arousal without circular inference from video, Project N inte
 
 Project N inverts traditional multimodal generation. The Large Language Model is removed from the primary classification loop and restricted to schema-constrained rendering.
 
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                L1: MEASURED OBSERVATION                                │
-│   Acoustic metrics, pose trajectories, physiological levels, capture quality score      │
-└───────────────────────────────────────────┬────────────────────────────────────────────┘
-                                            │
-                                            ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                       CROSS-MODAL BINDING & METRIC SPACE (MLX)                         │
-│   Multimodal Resampler trained on Audio-Visual Temporal Correspondence (CAV-MAE)       │
-│   Attention Pooling + L2 Normalization -> 128-dimensional metric vector (z ∈ R^128)    │
-└───────────────────────────────────────────┬────────────────────────────────────────────┘
-                                            │
-                                            ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   L2: RETRIEVAL & CALIBRATED MATCHING (ChromaDB / SQLite)              │
-│   k-NN / Prototype retrieval over historical confirmed episodes of Child N             │
-│   Calibrated multi-label probabilities & prediction sets                               │
-│   ABSTENTION: If d(nearest) > tau_abstain, emit "Unrecognized Pattern"                 │
-│   RED FLAG: If NCCPC-R distress threshold exceeded, emit "Medical Escalation"          │
-└───────────────────────────────────────────┬────────────────────────────────────────────┘
-                                            │
-              ┌─────────────────────────────┴─────────────────────────────┐
-              ▼                                                           ▼
-┌───────────────────────────────────────────┐ ┌──────────────────────────────────────────┐
-│          CHILD-AUTHORED AAC BRIDGE        │ │        CAREGIVER INTERFACE RENDERER      │
-│                                           │ │                                          │
-│   Pre-populates candidate options on      │ │   Schema-Constrained LLM (Qwen2.5-14B)   │
-│   speech-generating device or AAC choice  │ │   100% Frozen Base Weights (W0)          │
-│   board for Child N to select or reject.  │ │   Formats L1-L4 into four distinct       │
-│   Child selection outranks adult labels.  │ │   visual evidence layers. No added facts.│
-└───────────────────────────────────────────┘ └──────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph L1_Block ["Layer 1: Measured Observation"]
+        L1["L1 Measured Observation<br/>• Acoustic pitch (F0), jitter/shimmer, CQT harmonic ratios<br/>• Torso-normalized pose landmarks & dense optical flow<br/>• Autonomic arousal metrics & capture quality score"]
+    end
+
+    subgraph Binding_Block ["Cross-Modal Binding & Metric Space (Apple MLX)"]
+        Binding["Cross-Modal Latent Resampler (CAV-MAE)<br/>Attention Pooling + L2 Normalization<br/>Maps to 128-dimensional metric vector (z ∈ ℝ^128)"]
+    end
+
+    subgraph L2_Block ["Layer 2: Retrieval & Calibrated Matching (ChromaDB / SQLite)"]
+        Retrieval["Historical Prototype & k-NN Retrieval<br/>Cosine similarity over Nolan's confirmed episodes"]
+        AbstainGate{"Distance > τ_abstain ?"}
+        MedGate{"NCCPC-R ≥ 6 ?"}
+        
+        Retrieval --> AbstainGate
+        AbstainGate -- "Yes (Novel)" --> Out_Abstain["Abstention: 'Unrecognized Pattern'<br/>Prompt open AAC board / environment check"]
+        AbstainGate -- "No (Familiar)" --> MedGate
+        MedGate -- "Yes (Pain/Distress)" --> Out_Med["Medical Escalation Card<br/>Immediate clinical rule-out"]
+        MedGate -- "No (Regulated/Sensory)" --> Candidates["Ranked Historical Candidates<br/>Calibrated multi-label probabilities"]
+    end
+
+    subgraph Outcomes ["Dual Output Pathways"]
+        subgraph PathAAC ["Child-Authored AAC Bridge"]
+            AAC["AAC Candidate Tile Dispatch<br/>Dispatches options ([Water], [Sensory Break], [Deep Pressure])<br/>directly to Nolan's speech device.<br/><b>Child direct selection is authoritative ground truth.</b>"]
+        end
+
+        subgraph PathCaregiver ["Caregiver Interface Renderer"]
+            LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Formats L1-L4 into distinct visual cards<br/>• Strictly prohibited from adding ungrounded claims"]
+        end
+    end
+
+    L1 --> Binding
+    Binding --> Retrieval
+    Candidates --> AAC
+    Candidates --> LLM
+
+    style L1_Block fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style Binding_Block fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style L2_Block fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style PathAAC fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style PathCaregiver fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style Out_Med fill:#fff1f0,stroke:#f5222d,stroke-width:2px
+    style Out_Abstain fill:#fff7e6,stroke:#fa8c16,stroke-width:2px
 ```
 
 ### 4.1 Metric Space & Prototypical Learning
@@ -175,36 +202,22 @@ Recommended Action: Observe environmental context or present AAC open choice boa
 
 Rather than bulk-fine-tuning LoRA on academic text (which causes hallucination and fact drift), Project N grounds its clinical knowledge via an inspectable, versioned Retrieval-Augmented Generation (RAG) store.
 
-```text
-CLINICAL PDF INGESTION PIPELINE (Offline / Pre-deployment)
-┌───────────────────────────────┐
-│ Curated Academic Literature   │ (FBA, HIPPEA, Interoception, AAC, NCCPC-R, ASI)
-└───────────────┬───────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ PDF Extractor (PyMuPDF)       │ Preserves section hierarchy, tables & metadata
-└───────────────┬───────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Semantic Chunker              │ ~500 tokens / chunk with 50-token overlap
-└───────────────┬───────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Metadata Enricher             │ Extracts author, year, population, evidence grade
-└───────────────┬───────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ Local MLX Embedding Model     │ nomic-embed-text-v1.5 (768-dim metric space)
-└───────────────┬───────────────┘
-                │
-                ▼
-┌───────────────────────────────┐
-│ ChromaDB: clinical_evidence   │ Local HNSW cosine index
-└───────────────────────────────┘
+```mermaid
+graph TD
+    Lit["Curated Academic Literature<br/>(FBA, HIPPEA, Interoception, AAC, NCCPC-R, Ayres Sensory Integration)"] --> PDF["PDF Extractor (PyMuPDF)<br/>Preserves section hierarchy, tables & metadata"]
+    PDF --> Chunk["Semantic Chunker<br/>~500 tokens / chunk with 50-token sliding overlap"]
+    Chunk --> Meta["Metadata Enricher<br/>Extracts author, year, population, study design & evidence grade"]
+    Meta --> Embed["Local MLX Embedding Model<br/>nomic-embed-text-v1.5 (768-dim metric space)"]
+    Embed --> Chroma["ChromaDB: clinical_evidence Collection<br/>Local HNSW cosine index (100% offline)"]
+    Chroma -.-> Retrieval["Runtime Layer 4 (L4) Citation Engine<br/>Matches verified episode outcome to peer-reviewed literature"]
+
+    style Lit fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style PDF fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Chunk fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Meta fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style Embed fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Chroma fill:#e6f7ff,stroke:#1890ff,stroke-width:3px
+    style Retrieval fill:#fff0f6,stroke:#eb2f96,stroke-width:2px
 ```
 
 ### 5.1 Evidence Synthesis Without Hallucination
