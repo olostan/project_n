@@ -16,6 +16,7 @@ Agents operate under the persona of **Principal Systems Architect and Apple Sili
 > An AI agent must NEVER commit or complete a code change without synchronizing the technical documentation across the repository.
 
 Whenever an agent introduces modifications that alter:
+
 1. **Tensor Dimensions & Pipeline Shapes** (e.g., changes to STFT parameters, pitch hop intervals, pose landmarks, resampler query counts, metric projection dimensions):
    - The agent **MUST** update Section 1 of [`SPECS.md`](file:///Users/olostan/code/project_n/SPECS.md).
    - The agent **MUST** update Section 3 of [`DESIGN.md`](file:///Users/olostan/code/project_n/DESIGN.md).
@@ -58,6 +59,7 @@ attn_out = mx.fast.scaled_dot_product_attention(
 
 ### 3.3 Lazy Evaluation & Memory Management
 Apple MLX executes operations lazily, constructing an execution graph until evaluation is explicitly triggered. In unmanaged loops, lazy graph accumulation causes memory bloat and will breach memory ceilings.
+
 - **Rule:** Call `mx.eval()` on loss arrays, metric accumulators, and layer outputs at deterministic boundaries.
 - **Rule:** When computing forward passes across multiple segments, evaluate intermediate projections before concatenating into larger attention matrices.
 ```python
@@ -121,6 +123,7 @@ print('Peak Metal Memory (GB):', mx.get_peak_memory() / 1e9)
 
 ### 4.4 Parameterized CLI Execution
 All CLI entrypoints (e.g., in `training/` and `server/`) must support standard runtime arguments:
+
 - `--model_size`: e.g., `14b` (default `Qwen/Qwen2.5-14B-Instruct`), `32b`.
 - `--batch_size`: default `10` for validation batches.
 - `--vram_limit`: default `36.0` (gigabytes).
@@ -131,6 +134,7 @@ All CLI entrypoints (e.g., in `training/` and `server/`) must support standard r
 ## 5. Summary Checklist for Code Reviews
 
 Before submitting or executing a change, verify:
+
 - [ ] Has `git status` been checked, ensuring no unwanted artifacts, binary video files, or `.safetensors` are staged?
 - [ ] Does every tensor transformation match the explicit shape definitions in `SPECS.md`?
 - [ ] Is `mx.fast.scaled_dot_product_attention` utilized for all multi-head attention blocks?

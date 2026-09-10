@@ -1,4 +1,4 @@
-# Project N: A Dyadic, Multimodal, and Transactional Framework for Communication Support in Minimally Speaking Autism
+# Project N: A Dyadic, Multimodal, and Transactional Framework for Communication Support in Completely Non-Verbal Autism
 
 **Lead Researcher & Project Architect:** Valentyn Shybanov ([olostan.me](https://olostan.me/) · [GitHub](https://github.com/olostan))  
 **Collaborative Scope:** Speech-Language Pathologists (SLPs), Occupational Therapists (OTs), Developmental Pediatricians, Neurodiversity Researchers, and Assistive Technology Practitioners  
@@ -9,7 +9,7 @@
 
 ## Foreword from the Founder
 
-> *"I am a software engineer, systems architect, and—most importantly—the father of a 7-year-old minimally speaking boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my child.*
+> *"I am a software engineer, systems architect, and—most importantly—the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my child. Nolan is non-verbal. Completely.*
 >
 > *My son cannot speak in words, but he is never silent. He communicates continuously: through subtle pitch inflections in his throat, micro-tremors in his hands, bodily orientations, and rhythms of movement. Traditional society and standard AI models discard these signals as 'meaningless noise.' But to me, as his father, that 'noise' is his entire voice.*
 >
@@ -23,7 +23,7 @@
 
 ## Abstract
 
-Minimally speaking autistic individuals (such as children requiring Level 3 supports) communicate through an intricate, non-phonetic multimodal repertoire: idiosyncratic vocalizations, continuous tonal hums, micro-pitch inflections, repetitive kinetic motor stims, postural adjustments, and physiological shifts. Traditional artificial intelligence paradigms attempt to process non-verbal communication through an extractive "intent translation" lens—treating the child as an isolated, closed-box signal generator and attempting to decode an internal mental state into neurotypical English text. 
+Completely non-verbal autistic individuals (such as children requiring Level 3 supports) communicate through an intricate, non-phonetic multimodal repertoire: idiosyncratic vocalizations, continuous tonal hums, micro-pitch inflections, repetitive kinetic motor stims, postural adjustments, and physiological shifts. Traditional artificial intelligence paradigms attempt to process non-verbal communication through an extractive "intent translation" lens—treating the child as an isolated, closed-box signal generator and attempting to decode an internal mental state into neurotypical English text. 
 
 This paper presents the scientific rationale and methodological foundation for **Project N**, a local-first, privacy-preserving computational framework that departs fundamentally from extractive decoding. Grounded in the **Transactional Model of Communication** (Sameroff, 1975; Wetherby & Prizant, 2000) and the **SCERTS Framework** (Prizant, Wetherby, Rubin, & Laurent, 2006), Project N conceptualizes non-verbal communication as an active, **dyadic co-regulatory loop** between the child and their communicative partners (caregivers, therapists, educators). Rather than relying on acoustic features alone, the system evaluates the multimodal convergence of the child's acoustic physics, body-relative kinematics, optional autonomic physiology, and—critically—the adult communication partner's verbal scaffolding, physical interactions, and situational antecedents. By routing candidate possibilities directly through an Augmentative and Alternative Communication (AAC) bridge, the framework preserves child authorship, mitigates Facilitated Communication (FC) epistemic traps, and provides clinicians and families with an evidence-grounded, four-layer decision-support assistant.
 
@@ -35,7 +35,7 @@ This paper presents the scientific rationale and methodological foundation for *
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Child N (Minimally Speaking)
+    actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / SLP / OT)
     participant Engine as Project N Local Assistant (Mac M5 Pro)
     participant AAC as Child's AAC Speech Device
@@ -103,17 +103,19 @@ graph TD
 ### 2.1 Beyond the Verbal Threshold: Non-Speaking Is Not Non-Communicative
 A substantial proportion (estimated at 25% to 35%) of autistic children remain minimally speaking or non-verbal past school age (Tager-Flusberg & Kasari, 2013). For these individuals, the absence of functional speech does not signify a lack of communicative intent, cognitive agency, or receptive language comprehension. Rather, co-occurring challenges—including Childhood Apraxia of Speech (CAS), oral-motor dyspraxia, sensory processing differences, and atypical sensorimotor feedforward integration—disrupt the complex neuromuscular coordination required to articulate discrete phonemic sequences.
 
-In clinical Speech-Language Pathology (SLP), communication is recognized as inherently multimodal (Light & McNaughton, 2014). Minimally speaking children routinely mobilize an extensive communicative repertoire:
+In clinical Speech-Language Pathology (SLP), communication is recognized as inherently multimodal (Light & McNaughton, 2014). Non-verbal children routinely mobilize an extensive communicative repertoire:
+
 - **Paralinguistic Acoustic Cues:** Continuous vocal fold vibrations, glottal stops, clicks, harmonic overtone sweeps, guttural resonance, and micro-pitch shifts ($\pm 15\text{ to } 50\text{ Hz}$) that reflect physiological equilibrium, affective valence, or protest.
 - **Kinematic & Motor Dynamics:** High-frequency repetitive motor behaviors ("stims"), including 3–6 Hz wrist rotations, finger-flicking in peripheral vision, pacing, torso rocking, or intentional physical reaches.
 - **Physiological & Autonomic Fluctuations:** Sympathetic nervous system arousal, electrodermal reactivity, and cardiorespiratory shifts (HRV) driven by sensory demands.
 
 ### 2.2 The Neurotypical Inductive Bias of Commercial AI
 Conventional foundation models (speech-to-text engines like Whisper, audio transformers like AST, and vision transformers like CLIP/ViT) are trained on massive datasets of neurotypical human speech and cinematic macro-actions. Their loss functions are mathematically optimized to enforce **phonemic and spatial collapse**:
+
 1. **Acoustic Phonemic Discretization:** Whisper’s decoder penalizes acoustic variance that does not map onto standardized phonemes or linguistic tokens. Idiosyncratic tonal hums or guttural phonations are filtered out as background noise or collapsed into silence.
 2. **Visual Spatial Pooling:** Standard vision models downsample spatial patches across temporal windows, blending a rapid 4 Hz wrist-flick or finger tremor into the static background pixels of a living room.
 
-When applied to a minimally speaking child, commercial AI obliterates the very substrate that constitutes their expressive vocabulary.
+When applied to a completely non-verbal child, commercial AI obliterates the very substrate that constitutes their expressive vocabulary.
 
 ---
 

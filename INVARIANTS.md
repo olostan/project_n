@@ -6,6 +6,7 @@
 This document establishes the system, architectural, mathematical, security, and governance boundaries governing **Project N**. Every contributor, automated script, and autonomous AI coding agent (e.g., Antigravity, Cursor, Claude Code) operating on this codebase is strictly bound by these rules.
 
 Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`), this document makes an explicit distinction between:
+
 1. **True Non-Negotiable Invariants (§1):** Hard system, safety, privacy, and architectural constraints that must never be violated.
 2. **Tunable Empirical Defaults (§2):** Research and training hyperparameters that are explicitly configurable and subject to experimental ablation.
 
@@ -15,6 +16,7 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 ### Invariant 1: Privacy, Offline Execution & Encryption Vault
 **Zero external network telemetry. All media, features, embeddings, and clinical records MUST process strictly offline on local hardware.**
+
 - **No Cloud AI APIs:** Inclusion or invocation of remote cloud AI APIs (OpenAI, Anthropic, Google Cloud Vertex/Gemini, AWS Bedrock, HuggingFace Inference API, or any remote telemetry collector) is strictly prohibited across all modules.
 - **Zero-Cloud Dashboard:** The local Caregiver Web Dashboard (React + Tailwind) must bundle all JavaScript, CSS, font, and asset dependencies locally. Loading remote CDNs or external web resources is forbidden.
 - **Two-Key Vault Posture:** 
@@ -30,16 +32,19 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 ### Invariant 2: Measured Hardware Memory Ceiling
 **Peak unified memory allocation must NEVER cause page swapping to SSD and must remain bounded by a measured ceiling on the target hardware.**
+
 - On 48 GB Unified Memory systems, peak operational allocation must remain strictly $\le 36.0\text{ GB}$, with an operational baseline $\le 28.0\text{ GB}$, preserving $\ge 8.0\text{ GB}$ for macOS system stability.
 - Memory budgets must reflect measured benchmark envelopes (active Metal allocations, dynamic cache, context window, and model weights) rather than unverified static assertions.
 
 ### Invariant 3: Base LLM Weight Freezing
 **Base Large Language Model weights ($\mathbf{W}_0$) must remain 100% frozen in memory. Weight updates are strictly confined to lightweight connectors, adapters, or metric heads.**
+
 - In Apple MLX, base model freezing must be enacted via `model.freeze()` (never no-op attribute mutations like `param.trainable = False`).
 - Base LLM weights are loaded in quantized format directly into Metal unified memory. De-quantization into FP16/FP32 for base weight fine-tuning is prohibited.
 
 ### Invariant 4: Sensory Bypass & Inductive Bias
 **Phonemic speech-to-text transcriptions (e.g., Whisper text tokens, CTC phoneme decoding) and text-only intermediate captioning bottlenecks are strictly prohibited in the primary sensory decoding path.**
+
 - **Acoustic Front End:** The system must preserve raw acoustic dynamics. Explicit pitch tracking (F0), voice quality metrics (jitter, shimmer, HNR, spectral tilt), harmonic filterbanks (CQT/ERB), and broadband log-mel representations are permitted and required. Pitch tracking is an acoustic measurement, not an ASR phoneme decoder.
 - **Pretrained Encoders as Experimental Arms:** Pretrained acoustic representations (e.g., BEATs, AudioMAE, or frozen intermediate encoder layers) and pretrained vision backbones may be evaluated as competing experimental arms against custom-trained encoders. The ban applies to *phonemic transcription and text-only intermediate bottlenecks*, not to pretrained acoustic representations.
 - **Kinematic Extraction:** Pixel differencing alone must not be relied upon due to camera motion vulnerability. Pose/keypoint landmarks (e.g., MediaPipe Holistic, BlazePose) form the primary motion substrate, complemented by optical flow and context.
@@ -47,7 +52,9 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 ### Invariant 5: No Autonomous Model Deployment (Gated Promotion)
 **No model checkpoint or adapter may be deployed to caregiver-facing inference automatically or via unverified overnight gradient updates.**
+
 - Continuous adaptation requires an explicit promotion gate conforming to [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
+
   1. Candidate models are trained on accumulated, verified records.
   2. Candidates are evaluated against time-separated and context-stratified holdout sets plus a locked "never-train" safety set.
   3. Predeclared criteria must be satisfied: improved calibration error, coverage, and per-class precision/recall, with **zero safety regressions**.
@@ -56,6 +63,7 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 ### Invariant 6: Output Truthfulness, Non-Diagnostic Framing & Four-Layer Separation
 **The system is a caregiver- and child-controlled communication-support tool, NOT a diagnostic device or intent translator. It must never present an inferred state, pain assessment, or intent as fact.**
+
 - **Four-Layer Traceability:** Every system output must be explicitly partitioned into four visually distinct layers:
   - **Layer 1 (L1 - Measured Observation):** Directly measured acoustic, kinematic, and physiological features (e.g., vocalization duration, F0 mean/variance, motion periodicity).
   - **Layer 2 (L2 - Comparable History):** Historical episodes from Child N's verified records exhibiting similar metric embeddings and their recorded outcomes.
@@ -66,21 +74,25 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 
 ### Invariant 7: Medical Rule-Out & Red-Flag Escalation
 **Distress and potential pain must be assessed using a validated instrument and must NEVER be silently mapped to sensory seeking or behavioral intent.**
+
 - Pain and somatic distress evaluation utilizes the validated Non-Communicating Children's Pain Checklist – Revised (**NCCPC-R**) schema across vocal, emotional, facial, body language, protective, and physiological subscales.
 - When distress indicators or their rate of change exceed clinical thresholds, the system must trigger a **Medical Escalation Card** advising caregiver medical review. Sensory or behavioral interpretations are suppressed during red-flag states.
 
 ### Invariant 8: The AAC Bridge & Child Authorship
 **The child is the primary author of his communication. Inferred possibilities must route through augmentative and alternative communication (AAC) channels rather than delivering unverified conclusions to adults.**
+
 - Generated possibilities are structured as candidate options pre-populated on an AAC choice board or speech-generating device for the child to select, confirm, or reject.
 - Child-confirmed responses (via AAC selection, physical reach, or explicit gesture) outrank all adult or caregiver hypotheses in the data record.
 
 ### Invariant 9: Lineage, Versioning & Evaluation Set Immutability
 **Training data, retrieval indices, and evaluation benchmarks must be strictly segregated.**
+
 - Every stored embedding must record the exact encoder checkpoint ID that generated it. When encoders are updated, retrieval indices must be re-embedded from a versioned corpus snapshot to prevent silent embedding drift.
 - A locked, immutable benchmark evaluation set and safety set must remain isolated from mutable daily training buffers.
 
 ### Invariant 10: Apple MLX Native Framework Purity
 **Core tensor transformations, forward passes, and training loops must execute natively on Apple MLX (`mlx.core`, `mlx.nn`).**
+
 - Use `mlx.core` and `mlx.nn`. Metal Performance Shaders attention must be called via `mx.fast.scaled_dot_product_attention`.
 - Memory tracking must use `mx.get_active_memory()` and `mx.get_peak_memory()`. Model freezing must use `model.freeze()`.
 - Standard CPU-bound demuxing libraries (`numpy`, `scipy`, `soundfile`, `librosa`) are permitted for ingest and DSP feature preparation prior to MLX array conversion.

@@ -68,12 +68,14 @@ Raw Audio: s ∈ R^(240000)
 
 1. **Short-Time Fourier Transform (STFT):**
    $$S(m, k) = \sum_{n=0}^{N-1} s(n + mH) \cdot w(n) e^{-j \frac{2\pi}{N} k n}$$
+
    - FFT Window: $N = 2048$ (yielding linear bin width $\Delta f = 48000 / 2048 = 23.4375\text{ Hz}$).
    - Hop Length: $H = 160$ samples ($3.333\text{ ms}$ temporal resolution).
    - Window Function: Periodic Hann window $w(n) = 0.5 \left(1 - \cos\left(\frac{2\pi n}{N}\right)\right)$.
    - Frame Count (Uncentered): $T_m = 1 + \lfloor(240000 - 2048) / 160\rfloor = 1488$ frames.
 2. **Dedicated Pitch & Periodicity Tracking:**
    To overcome the $\sim 27\text{ Hz}$ mel-filterbank resolution limit, fundamental frequency ($F_0$) is tracked via autocorrelation / pYIN over a candidate range of $50\text{ Hz}$ to $600\text{ Hz}$ at a $10\text{ ms}$ hop ($T_p = 500$ frames per 5s):
+
    - **Local Jitter:** Relative period-to-period perturbation $\frac{\frac{1}{T-1} \sum |T_i - T_{i+1}|}{\frac{1}{T} \sum T_i}$.
    - **Local Shimmer:** Amplitude perturbation $\frac{\frac{1}{T-1} \sum |A_i - A_{i+1}|}{\frac{1}{T} \sum A_i}$.
    - **Harmonics-to-Noise Ratio (HNR):** $10 \log_{10} \frac{E_{harmonic}}{E_{noise}}$ (in dB).
@@ -92,6 +94,7 @@ A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
    - **Torso-Relative Normalization:** Coordinates are normalized relative to shoulder-hip center and scaled by inter-shoulder width:
      $$\tilde{\mathbf{p}}_k = \frac{\mathbf{p}_k - \mathbf{p}_{mid\_hip}}{\|\mathbf{p}_{left\_shoulder} - \mathbf{p}_{right\_shoulder}\|_2}$$
      This eliminates camera translation, zoom, and distance artifacts.
+
    - Landmark matrix: $\mathbf{K} \in \mathbb{R}^{B \times 150 \times 225}$.
 2. **Dense Optical Flow (RAFT):**
    Extracts horizontal and vertical displacement fields $(u, v)$ between consecutive frames ($T_{diff} = 149$ steps), spatially pooled to an $8 \times 8$ grid ($128$ dimensions per frame).
@@ -99,6 +102,7 @@ A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
 
 ### 2.3 Physiological Feature Extraction (Optional Auxiliary Channel)
 When wearable sensor streams (e.g., Apple Watch, Empatica) are available:
+
 1. **Electrodermal Activity (EDA @ 4 Hz):** Continuous decomposition into tonic Skin Conductance Level (SCL) and phasic Skin Conductance Response (SCR) using convex optimization:
    $$G(t) = SCL(t) + SCR(t) + \epsilon(t)$$
 2. **Heart Rate Variability (HRV @ 100 Hz PPG):** Extracts inter-beat intervals (IBI), Root Mean Square of Successive Differences (RMSSD), and High-Frequency (HF, $0.15–0.4\text{ Hz}$) vagal power.
@@ -109,6 +113,7 @@ When wearable sensor streams (e.g., Apple Watch, Empatica) are available:
 Because wearable sensors are **completely optional** (and may not be tolerated by Child N), the multimodal projection head implements explicit modality gating:
 $$\mathbf{m} = [m_{audio}, m_{kinematic}, m_{physio}] \in \{0, 1\}^3$$
 When wearable telemetry is absent ($m_{physio} = 0$):
+
 - $\mathbf{X}_{physio}$ is replaced by a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio} \in \mathbb{R}^{64}$.
 - Attention scores over the physiological channel are masked to $-\infty$.
 - The resulting metric vector $\mathbf{z}_{metric} \in \mathbb{R}^{128}$ resides in the identical geometric space, allowing continuous matching against historical episodes with or without physiological records.
@@ -129,12 +134,15 @@ assert mx.allclose(mx.sum(mx.square(z_metric), axis=-1), mx.array([1.0])), "L2 N
 ### 3.2 Episodic Prototype Matching & Calibrated Abstention
 Matching is performed via cosine distance against historical prototype vectors $\mathbf{c}_k$ in ChromaDB / SQLite:
 $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
+
 - **Calibrated Abstention Rule:** If $\min_k d(\mathbf{z}, \mathbf{c}_k) > \tau_{abstain}$ (where default $\tau_{abstain} = 0.35$, tuned to 95th percentile holdout distance):
   $$\text{Decision} = \text{ABSTAIN} \implies \text{"Unrecognized behavioral pattern; insufficient historical similarity."}$$
+
 - The system offers open AAC exploration or caregiver observational check-in rather than guessing.
 
 ### 3.3 NCCPC-R Validated Medical Rule-Out
 Distress is evaluated via the Non-Communicating Children's Pain Checklist – Revised across 27 items ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
+
 - Subscales: Vocal (items 1–5), Emotional (6–9), Facial (10–13), Body Language (14–19), Protective (20–22), Physiological (23–27). Total score: $0 \le S_{NCCPC} \le 81$.
 - **Clinical Cut-off:** Score $S_{NCCPC} \ge 6$ triggers an immediate **Medical Escalation Card**, displaying:
   ```text

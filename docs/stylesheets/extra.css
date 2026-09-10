@@ -1,0 +1,181 @@
+/* ==============================================================================
+   Project N: MkDocs Material Custom Stylesheet
+   Expands content width, optimizes sidebar space, and ensures responsive diagrams
+   ============================================================================== */
+
+/* --- Container Width Expansion --- */
+/* Expand max grid width so widescreen displays use screen estate effectively */
+.md-grid {
+  max-width: 96rem; /* 1536px */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Allow main content column to take all available width */
+.md-content {
+  max-width: 100%;
+}
+
+.md-content__inner {
+  margin-top: 1rem;
+  margin-bottom: 3rem;
+  max-width: 100%;
+}
+
+/* --- Mermaid Diagram Container Styling --- */
+.mermaid {
+  display: block;
+  overflow-x: auto;
+  text-align: center;
+  margin: 2rem 0;
+  padding: 1.5rem 1rem;
+  background-color: var(--md-code-bg-color, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--md-default-fg-color--lightest, #e2e8f0);
+  border-radius: 0.75rem;
+  position: relative;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.mermaid:hover {
+  border-color: var(--md-primary-fg-color, #3f51b5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Ensure Mermaid diagrams have a legible baseline size and never collapse */
+.mermaid svg {
+  min-width: 720px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: inline-block;
+}
+
+/* For sequence diagrams with multiple actors */
+.mermaid svg[id^="mermaid-"]:has(.actor),
+.mermaid svg[id^="mermaid-"]:has([class*="actor"]) {
+  min-width: 900px;
+}
+
+/* --- Interactive Zoom / Expand Button on Diagrams --- */
+.diagram-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.diagram-expand-btn {
+  background: var(--md-primary-fg-color, #3f51b5);
+  color: #ffffff !important;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.9;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.diagram-expand-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+/* --- Fullscreen Lightbox Modal for Diagrams --- */
+.diagram-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 15, 30, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10000;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  flex-direction: column;
+}
+
+.diagram-modal.active {
+  display: flex;
+}
+
+.diagram-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #f8fafc;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.diagram-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.diagram-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.diagram-modal-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.15s ease;
+}
+
+.diagram-modal-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.diagram-modal-close {
+  background: #ef4444;
+  border: none;
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.diagram-modal-close:hover {
+  background: #dc2626;
+}
+
+.diagram-modal-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.diagram-modal-body svg {
+  max-width: none !important;
+  width: auto !important;
+  height: auto !important;
+  transform-origin: center center;
+  transition: transform 0.15s ease;
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}

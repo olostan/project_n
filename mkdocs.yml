@@ -1,5 +1,5 @@
 site_name: Project N
-site_description: Multimodal Communication Support & Behavioral Insight Pipeline for Minimally Speaking Autism
+site_description: Multimodal Communication Support & Behavioral Insight Pipeline for Completely Non-Verbal Autism
 site_author: Valentyn Shybanov
 site_url: https://olostan.github.io/project_n/
 
@@ -33,6 +33,7 @@ theme:
     - navigation.expand
     - navigation.top
     - navigation.tracking
+    - toc.integrate
     - search.suggest
     - search.highlight
     - content.code.copy
@@ -61,9 +62,13 @@ markdown_extensions:
   - toc:
       permalink: true
 
+extra_css:
+  - stylesheets/extra.css
+
 extra_javascript:
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - javascripts/extra.js
 
 nav:
   - Home: index.md

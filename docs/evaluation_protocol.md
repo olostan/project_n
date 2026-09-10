@@ -1,7 +1,7 @@
 # Project N: Preregistered N-of-1 Evaluation Protocol & Benchmark Specification
 
 **Document Status:** Preregistered Clinical & Engineering Protocol  
-**Target Subject:** Child N (7-year-old minimally speaking autistic child)  
+**Target Subject:** Nolan / Child N (7-year-old completely non-verbal autistic child)  
 **Setting:** Home, school transition, community (playground), and clinic (Occupational Therapy)  
 **Primary Investigators:** Parent/Caregiver System Architect & Clinical Advisory Circle (OT/SLP/Pediatrician)  
 **Protocol Version:** 1.0.0  
@@ -15,6 +15,7 @@
 Standard machine learning evaluations in affective computing benchmark "accuracy" against adult observer ratings. As established by Barrett et al. (2019) and the Facilitated Communication / RPM literature, observer agreement does not establish ground truth and risks manufacturing false certainty.
 
 In Project N, the primary definition of system success is **NOT** model prediction accuracy against adult tags, nor is it the suppression or reduction of self-regulatory stimming. The primary benefit is:
+
 1. **Child-Confirmed Communication Rate:** The frequency with which Child N actively selects, confirms, or uses candidate options routed to his Augmentative and Alternative Communication (AAC) speech-generating device or choice board.
 2. **Caregiver Action Utility & Resolution Latency:** The measured reduction in time required to identify and provide effective comfort or support (e.g., hydration, deep pressure, sensory break) during distress episodes.
 

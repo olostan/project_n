@@ -1,7 +1,7 @@
 # Project N: Multimodal Communication Support for Non-Verbal Autism
 
 <p align="center">
-  <em>An open-source, local-first intelligence architecture designed to support minimally speaking autistic children through high-resolution acoustic physics, body-relative kinematics, transactional adult partner scaffolding, and child-authored AAC communication.</em>
+  <em>An open-source, local-first intelligence architecture designed to support completely non-verbal autistic children through high-resolution acoustic physics, body-relative kinematics, transactional adult partner scaffolding, and child-authored AAC communication.</em>
 </p>
 
 ---
@@ -9,7 +9,7 @@
 ## A Note from the Founder
 
 <div style="border-left: 4px solid #1890ff; padding-left: 1rem; margin: 1.5rem 0; font-style: italic; background-color: rgba(24, 144, 255, 0.05); padding-top: 0.5rem; padding-bottom: 0.5rem;">
-  <p>"I am <a href="https://olostan.me/" target="_blank"><strong>Valentyn Shybanov</strong></a>, a software engineer, systems architect, and the father of a 7-year-old minimally speaking boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my son.</p>
+  <p>"I am <a href="https://olostan.me/" target="_blank"><strong>Valentyn Shybanov</strong></a>, a software engineer, systems architect, and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my son. Nolan is non-verbal. Completely.</p>
   <p>My son cannot use spoken words, but he is never silent. He communicates continuously: through subtle pitch inflections in his throat, micro-tremors in his hands, bodily orientations, and rhythms of movement. Traditional foundation models and commercial AI discard these signals as 'meaningless background noise.' But to me, as his father, that 'noise' is his entire voice.</p>
   <p>I started Project N not as a commercial startup, not to make money, and not to promote a product. I started it out of a father’s deep desire to understand his child. I am pouring my twenty-plus years of engineering experience, systems architecture knowledge, and machine learning skills into building a free, open-source, local-first tool that can help parents like me and the dedicated therapists who support our children.</p>
   <p>If you are a speech-language pathologist, an occupational therapist, an autism researcher, or an engineer who believes in communication rights: I warmly invite you to review this work, critique it, and help us make it better."</p>
@@ -25,7 +25,7 @@ Project N is engineered to run **100% offline** on local Apple Silicon hardware 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Child N (Minimally Speaking)
+    actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / SLP / OT)
     participant Engine as Project N Local Assistant (Apple Silicon)
     participant AAC as Child's AAC Speech Device

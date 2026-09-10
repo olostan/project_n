@@ -11,7 +11,7 @@
 
 ## A Note from the Founder
 
-> *"I am [Valentyn Shybanov](https://olostan.me/), a software engineer and the father of a 7-year-old minimally speaking, Level 3 autistic boy. Every single day, I experience the heartbreak and beauty of trying to understand my son. He has so much to say, but he cannot use spoken words. His entire vocabulary is written in subtle vocal inflections, guttural tones, rapid hand movements, and physical rhythms.*
+> *"I am [Valentyn Shybanov](https://olostan.me/), a software engineer and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day, I experience the heartbreak and beauty of trying to understand my son. He has so much to say, but he cannot use spoken words. Nolan is non-verbal. Completely. His entire vocabulary is written in subtle vocal inflections, guttural tones, rapid hand movements, and physical rhythms.*
 >
 > *I started Project N not as a commercial product, not to make money, and not to promote a startup. I started it out of a father’s deep desire to understand his child. I want to dedicate my engineering experience, systems knowledge, and machine learning skills to build a free, open-source, local-first tool that can help parents like me and the therapists who dedicate their lives to these children.*
 >
@@ -23,9 +23,10 @@
 
 ## 1. Mission Statement & System Overview
 
-**Project N is a 100% offline, privacy-preserving, child-authored communication-support assistant** engineered specifically for minimally speaking neurodivergent children.
+**Project N is a 100% offline, privacy-preserving, child-authored communication-support assistant** engineered specifically for completely non-verbal neurodivergent children.
 
 ### What Makes Project N Different
+
 1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using high-resolution bioacoustic physics (fundamental frequency $F_0$ pitch tracking, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). The system matches acoustic signals directly to past verified episodes without forcing sounds into clumsy English descriptions.
 2. **The Dyadic Transactional Loop:** Communication is not an isolated broadcast. Grounded in the **SCERTS framework** and the **Transactional Model of Communication**, the system models the interactive dance between the child and the adult communication partner (what the parent/therapist said, what physical scaffolding was offered, and how the child responded).
 3. **Child Authorship via the AAC Bridge:** The system never speaks *for* the child. Candidate possibilities are dispatched to Child N's speech-generating device or AAC choice board as pre-populated icons for him to select, confirm, or reject.
@@ -40,7 +41,7 @@
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Child N (Minimally Speaking)
+    actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / SLP / OT)
     participant Engine as Project N Local Assistant (Apple Silicon)
     participant AAC as Child's AAC Speech Device
