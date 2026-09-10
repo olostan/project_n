@@ -19,7 +19,7 @@ Sensory processing in autistic individuals frequently diverges across auditory, 
 1. **Proprioceptive & Vestibular Seeking:** Atypical sensory threshold gating can lead individuals to seek intense vestibular or proprioceptive input to achieve somatic equilibrium (e.g., rhythmic rocking, vertical jumping, or rapid hand/wrist stimming).
 2. **Auditory Hyper-Reactivity & Gating Differences:** Thalamocortical gating differences can reduce acoustic habituation. Ambient noises (such as mechanical hums or overlapping voices) can register as acute somatic distress rather than ignorable background sound.
 3. **Stimming as Active Self-Regulation & Predictability Seeking:**
-   Motor stimming (e.g., 3 Hz to 6 Hz wrist rotation, finger-flicking) and tonal vocalizations are not purposeless pathology to be suppressed. Contemporary cognitive neuroscience—notably the **HIPPEA framework** (High Inflexible Precision of Prediction Errors in Autism; Van de Cruys et al., 2014)—conceptualizes stereotypic movements as strategies to generate highly predictable sensory feedback in an uncertain or overwhelming environment. Stims fulfill plural, context-dependent roles: down-regulating hyper-arousal, up-regulating under-stimulated sensory pathways, expressing joy, or communicating engagement.
+   Motor stimming (e.g., 3 Hz to 6 Hz wrist rotation, finger-flicking) and tonal vocalizations are not purposeless pathology to be suppressed. Contemporary cognitive neuroscience—notably the **HIPPEA framework** (High Inflexible Precision of Prediction Errors in Autism; [Van de Cruys et al., 2014](WHITE_PAPER.md#ref-16))—conceptualizes stereotypic movements as strategies to generate highly predictable sensory feedback in an uncertain or overwhelming environment. Stims fulfill plural, context-dependent roles: down-regulating hyper-arousal, up-regulating under-stimulated sensory pathways, expressing joy, or communicating engagement.
 
 ### 1.3 Paralinguistic Structure of Idiosyncratic Vocalizations
 In the absence of phonemic speech, communicative and affective states are conveyed through non-verbal acoustic signals:
@@ -32,12 +32,12 @@ In the absence of phonemic speech, communicative and affective states are convey
 ## 2. Epistemic Validity, the "Rosetta Stone" Fallacy & Grounding
 
 ### 2.1 The Emotion-Inference Critique & Epistemic Traps
-A core risk in automated affective computing is the assumption that facial movements or vocal acoustic properties map uniformly to internal emotional states. As established by Barrett et al. (2019), emotional expressions are profoundly context-dependent; observer agreement does not establish ground truth.
+A core risk in automated affective computing is the assumption that facial movements or vocal acoustic properties map uniformly to internal emotional states. As established by [Barrett et al. (2019)](WHITE_PAPER.md#ref-1), emotional expressions are profoundly context-dependent; observer agreement does not establish ground truth.
 
 Project N avoids two critical epistemic traps:
 
 1. **The Facilitated Communication (FC) / RPM Authorship Trap:**
-   Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
+   Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests ([National Autism Center, 2021](WHITE_PAPER.md#ref-10)) because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
 2. **The Truth Criterion (Actionable Resolution & Child Authorship):**
    Project N establishes an objective, falsifiable ground truth:
 
@@ -304,5 +304,5 @@ Rather than running unstable nightly SGD on single batches, Project N executes a
 Before any candidate model is deployed to caregiver-facing inference, it must pass the preregistered evaluation protocol in [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
 
 1. **Holdout Evaluation:** Evaluated on leave-one-day-out (LODO) splits and the locked 50-episode safety holdout set.
-2. **Safety Regression Check:** Zero tolerance for missed NCCPC-R distress events.
+2. **Safety Regression Check:** Zero tolerance for missed NCCPC-R distress events ([Breau et al., 2002](WHITE_PAPER.md#ref-2)).
 3. **Caregiver Sign-off:** The caregiver inspects validation metrics on the dashboard and explicitly confirms promotion.

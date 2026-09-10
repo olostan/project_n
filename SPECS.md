@@ -160,7 +160,7 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 - The system offers open AAC exploration or caregiver observational check-in rather than guessing.
 
 ### 3.3 NCCPC-R Validated Medical Rule-Out
-Distress is evaluated via the Non-Communicating Children's Pain Checklist – Revised across 27 items ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
+Distress is evaluated via the Non-Communicating Children's Pain Checklist – Revised ([Breau et al., 2002](WHITE_PAPER.md#ref-2)) across 27 items ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
 
 - Subscales: Vocal (items 1–5), Emotional (6–9), Facial (10–13), Body Language (14–19), Protective (20–22), Physiological (23–27). Total score: $0 \le S_{NCCPC} \le 81$.
 - **Clinical Cut-off:** Score $S_{NCCPC} \ge 6$ triggers an immediate **Medical Escalation Card**, displaying:

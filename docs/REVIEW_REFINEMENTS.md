@@ -86,13 +86,13 @@ realistic target, and define the baselines that must be beaten.
 
 | Result | Source | Implication for Project N |
 | :-- | :-- | :-- |
-| 7,077 labeled non-verbal vocalizations, 8 minimally speaking individuals, labeled in real time by a close family member | ReCANVo (Johnson et al., 2023) | Almost exactly this project's data design. The premise is validated, not speculative. |
-| Speaker-dependent 5-way function classification: UAR **0.75 / 0.53 / 0.79** for three individuals | Narain et al., 2022 | **This is the realistic target.** Achieved with conventional spectral features plus SVM/random forest — not a 14B LLM. |
-| Aggression forecast 1 min ahead from 3 min of wearable physiology: AUROC **0.71** population vs **0.84** person-dependent, n=20, 85% minimally verbal | Goodwin et al., 2023 | Quantifies the personalization gain. Also the strongest argument for adding a physiological channel (`F-07`). |
-| Pose-derived features on the public stimming benchmark: 97.5% (LSTM) / 98.75% (GRU) | SSBD frame-rate ablation | Pose is robust and cheap; see `F-05`. |
-| Accuracy **peaks at 15-frame sampling**, not every frame (LSTM 90.0% → 97.5%), at ~93% less compute | SSBD frame-rate ablation | 60 fps is not merely unnecessary, it is counterproductive; see `F-06`. |
-| Aided AAC: improved vocal output in **87%** of participants, no study reporting decreased speech | NDBI + aided AAC meta-analysis | AAC does not suppress speech. Removes the main objection to `P0-4`. |
-| Population autism-vs-control voice features: Cohen's d 0.4–0.5, **61–64%** discriminatory accuracy | Fusaroli et al., 2017 | Cited for contrast: *population* prosody markers are weak. This is a different question from within-child decoding, and the distinction must be kept straight in the docs. |
+| 7,077 labeled non-verbal vocalizations, 8 minimally speaking individuals, labeled in real time by a close family member | [ReCANVo (Johnson et al., 2023)](#ref-johnson-2023) | Almost exactly this project's data design. The premise is validated, not speculative. |
+| Speaker-dependent 5-way function classification: UAR **0.75 / 0.53 / 0.79** for three individuals | [Narain et al., 2022](#ref-narain-2022) | **This is the realistic target.** Achieved with conventional spectral features plus SVM/random forest — not a 14B LLM. |
+| Aggression forecast 1 min ahead from 3 min of wearable physiology: AUROC **0.71** population vs **0.84** person-dependent, n=20, 85% minimally verbal | [Goodwin et al., 2023](#ref-goodwin-2023) | Quantifies the personalization gain. Also the strongest argument for adding a physiological channel (`F-07`). |
+| Pose-derived features on the public stimming benchmark: 97.5% (LSTM) / 98.75% (GRU) | [SSBD frame-rate ablation](#ref-ssbd-framerate) | Pose is robust and cheap; see `F-05`. |
+| Accuracy **peaks at 15-frame sampling**, not every frame (LSTM 90.0% → 97.5%), at ~93% less compute | [SSBD frame-rate ablation](#ref-ssbd-framerate) | 60 fps is not merely unnecessary, it is counterproductive; see `F-06`. |
+| Aided AAC: improved vocal output in **87%** of participants, no study reporting decreased speech | [NDBI + aided AAC meta-analysis](#ref-ndbi-aac) | AAC does not suppress speech. Removes the main objection to `P0-4`. |
+| Population autism-vs-control voice features: Cohen's d 0.4–0.5, **61–64%** discriminatory accuracy | [Fusaroli et al., 2017](#ref-fusaroli-2017) | Cited for contrast: *population* prosody markers are weak. This is a different question from within-child decoding, and the distinction must be kept straight in the docs. |
 
 **Read 2.2 together:** person-specific models substantially outperform population models, and the honest
 ceiling for this task is roughly 0.75 UAR on a handful of classes — not a fluent narrative of a child's
@@ -337,10 +337,10 @@ closed loop manufactures false certainty.
 Two literatures bear directly on this:
 
 - The emotion-inference critique establishes that facial, body, and vocal cues are context-dependent, and
-  specifically warns against calling agreement with observers "accuracy" (Barrett et al., 2019). That is
+  specifically warns against calling agreement with observers "accuracy" ([Barrett et al., 2019](#ref-barrett-2019)). That is
   precisely the metric this design would otherwise report.
 - Facilitated Communication, Rapid Prompting Method, and Spelling to Communicate all failed on
-  **authorship**. ASHA, ASAT, and the National Autism Center hold that none has demonstrated independent
+  **authorship**. ASHA, ASAT, and the [National Autism Center](#ref-nac-2021) hold that none has demonstrated independent
   authorship under blinded testing; a 2017 review of 108 RPM papers found not one message-passing validity
   test. Project N is not FC — the signal is a real sensor recording, not a facilitator's hand — but it is
   exposed to the identical epistemic failure, and the documents currently contain no validity test at all.
@@ -375,7 +375,7 @@ Distress behavior in non-speaking autistic children is frequently **medical**: c
 pain, otitis, migraine, seizure activity, and later menarche. A system that answers "vestibular seeking"
 while the child has appendicitis has caused harm, and it will answer confidently, because that is what LLMs do.
 
-The ad-hoc enum is also unnecessary. **NCCPC-R** (Non-Communicating Children's Pain Checklist – Revised) is
+The ad-hoc enum is also unnecessary. [**NCCPC-R**](#ref-breau-2002) (Non-Communicating Children's Pain Checklist – Revised; [Breau et al., 2002](#ref-breau-2002)) is
 a validated 27-item instrument across six subscales — vocal, emotional, facial, body language, protective,
 physiological — built for this population, designed for use by parents without training, internal
 consistency α ≈ 0.92, with established sensitivity to pain. Several items are directly observable in the
@@ -435,7 +435,7 @@ the debate as open. None of this establishes the *neurophysiological explanation
 
 Two more current frameworks explain why stimming occurs more falsifiably than sensory integration does:
 
-- **HIPPEA** (Van de Cruys et al., 2014) — prediction errors assigned inflexibly high precision, with
+- **HIPPEA** ([Van de Cruys et al., 2014](#ref-vandecruys-2014)) — prediction errors assigned inflexibly high precision, with
   stereotyped behavior as a strategy for increasing environmental predictability. This reframes a stim as
   uncertainty reduction, which is testable and antecedent-linked.
 - **Interoception** — covers the body-state axis that the sensory-integration literature handles indirectly.
@@ -917,45 +917,45 @@ association prospectively.
 
 **Population and task**
 
-- Johnson, Narain, Quatieri, Maes, Picard. *ReCANVo: A database of real-world communicative and affective nonverbal vocalizations.* Scientific Data 10:523 (2023). https://www.nature.com/articles/s41597-023-02405-7
-- Narain et al. *Modeling Real-World Affective and Communicative Nonverbal Vocalizations From Minimally Speaking Individuals.* IEEE Trans. Affective Computing (2022). https://ieeexplore.ieee.org/document/9898895/
-- Goodwin et al. *Wearable Biosensing to Predict Imminent Aggressive Behavior in Psychiatric Inpatient Youths With Autism.* JAMA Network Open (2023). https://pmc.ncbi.nlm.nih.gov/articles/PMC10739066/
-- NIDCD. *Workshop on minimally verbal / non-speaking autistic people* (2023). https://www.nidcd.nih.gov/workshops/2023/summary
+- <a id="ref-johnson-2023"></a>**Johnson, C., Narain, J., Quatieri, T., Maes, P., & Picard, R. (2023).** *ReCANVo: A database of real-world communicative and affective nonverbal vocalizations.* Scientific Data 10:523. [nature.com](https://www.nature.com/articles/s41597-023-02405-7)
+- <a id="ref-narain-2022"></a>**Narain, J., Johnson, C., Quatieri, T., Maes, P., & Picard, R. (2022).** *Modeling Real-World Affective and Communicative Nonverbal Vocalizations From Minimally Speaking Individuals.* IEEE Transactions on Affective Computing. [IEEE Xplore](https://ieeexplore.ieee.org/document/9898895/)
+- <a id="ref-goodwin-2023"></a>**Goodwin, M. S., Mazefsky, C. A., Ioannidis, S., Erdogmus, D., & Siegel, M. (2023).** *Wearable Biosensing to Predict Imminent Aggressive Behavior in Psychiatric Inpatient Youths With Autism.* JAMA Network Open. [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC10739066/)
+- <a id="ref-nidcd-2023"></a>**NIDCD. (2023).** *Workshop on minimally verbal / non-speaking autistic people.* [NIH NIDCD](https://www.nidcd.nih.gov/workshops/2023/summary)
 
 **Epistemics and validity**
 
-- Barrett, Adolphs, Marsella, Martinez, Pollak. *Emotional Expressions Reconsidered.* Psychological Science in the Public Interest (2019). https://journals.sagepub.com/doi/10.1177/1529100619832930
-- National Autism Center. *Position statement on S2C, RPM, and FC.* https://nationalautismcenter.org/national-autism-center-releases-position-statement-on-spelling-to-communicate-rapid-prompting-method-and-facilitated-communication/
-- *Safeguarding the communication rights of minimally- or non-speaking people* (2025). https://www.tandfonline.com/doi/full/10.1080/23297018.2025.2544116
-- Ghassemi et al. *Practical guidance on artificial intelligence for health-care data / uncertainty and abstention.* npj Digital Medicine (2020). https://www.nature.com/articles/s41746-020-00367-3
-- NIST. *AI Risk Management Framework Core.* https://airc.nist.gov/airmf-resources/airmf/5-sec-core/
+- <a id="ref-barrett-2019"></a>**Barrett, L. F., Adolphs, R., Marsella, S., Martinez, A. M., & Pollak, S. D. (2019).** *Emotional Expressions Reconsidered: Challenges to Inferring Emotion from Human Facial Movements.* Psychological Science in the Public Interest. [SAGE Journals](https://journals.sagepub.com/doi/10.1177/1529100619832930)
+- <a id="ref-nac-2021"></a>**National Autism Center. (2021).** *Position statement on S2C, RPM, and FC.* [nationalautismcenter.org](https://nationalautismcenter.org/national-autism-center-releases-position-statement-on-spelling-to-communicate-rapid-prompting-method-and-facilitated-communication/)
+- <a id="ref-tandf-2025"></a>*Safeguarding the communication rights of minimally- or non-speaking people.* (2025). [Taylor & Francis](https://www.tandfonline.com/doi/full/10.1080/23297018.2025.2544116)
+- <a id="ref-ghassemi-2020"></a>**Ghassemi, M., Oakden-Rayner, L., & Beam, A. L. (2020).** *Practical guidance on artificial intelligence for health-care data / uncertainty and abstention.* npj Digital Medicine. [nature.com](https://www.nature.com/articles/s41746-020-00367-3)
+- <a id="ref-nist-ai"></a>**NIST.** *AI Risk Management Framework Core.* [NIST AIRC](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
 
 **Clinical frameworks**
 
-- Fusaroli et al. *Is voice a marker for Autism spectrum disorder? A systematic review and meta-analysis.* Autism Research 10(3):384–407 (2017). d = 0.4–0.5, ~61–64% discriminatory accuracy. https://onlinelibrary.wiley.com/doi/10.1002/aur.1678
-- Van de Cruys et al. *Precise Minds in Uncertain Worlds: Predictive Coding in Autism.* Psychological Review (2014). https://sandervandecruys.be/pdf/2014-VandeCruysetal-PsychRev-Precise_minds.pdf
-- Schaaf et al. (2018) https://pubmed.ncbi.nlm.nih.gov/29280711/ and Acuña et al. (2025) https://pubmed.ncbi.nlm.nih.gov/40193295/ — Ayres Sensory Integration systematic reviews.
-- Schoen et al. *A systematic review of Ayres Sensory Integration intervention for children with autism.* Autism Research (2019). https://onlinelibrary.wiley.com/doi/full/10.1002/aur.2046
-- Vasa et al. *The disrupted connectivity hypothesis of autism.* (2017). https://pubmed.ncbi.nlm.nih.gov/28083565/
-- *Is functional brain connectivity atypical in autism? A systematic review of EEG and MEG studies.* PLOS One (2017). https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0175870
-- Breau et al. *Non-Communicating Children's Pain Checklist – Revised (NCCPC-R).* https://www.community-networks.ca/wp-content/uploads/2015/07/PainChklst_BreauNCCPC-R2004.pdf
-- *The Effect of NDBI and Aided AAC on Language Development of Children on the Autism Spectrum with Minimal Speech.* https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12208088/
-- ASHA. *AAC in early intervention.* https://www.asha.org/practice/early-intervention-provider-support/augmentative-and-alternative-communication-in-early-intervention/
+- <a id="ref-fusaroli-2017"></a>**Fusaroli, R., Lambrechts, A., Bang, D., Bowler, D. M., & Gaigg, S. B. (2017).** *Is voice a marker for Autism spectrum disorder? A systematic review and meta-analysis.* Autism Research 10(3):384–407. [Wiley Online Library](https://onlinelibrary.wiley.com/doi/10.1002/aur.1678)
+- <a id="ref-vandecruys-2014"></a>**Van de Cruys, S., Evers, K., Van der Hallen, R., Van Eylen, L., Boets, B., de-Wit, L., & Wagemans, J. (2014).** *Precise Minds in Uncertain Worlds: Predictive Coding in Autism.* Psychological Review. [sandervandecruys.be](https://sandervandecruys.be/pdf/2014-VandeCruysetal-PsychRev-Precise_minds.pdf)
+- <a id="ref-schaaf-2018"></a>**Schaaf et al. (2018)** [PubMed: 29280711](https://pubmed.ncbi.nlm.nih.gov/29280711/) and **Acuña et al. (2025)** [PubMed: 40193295](https://pubmed.ncbi.nlm.nih.gov/40193295/) — *Ayres Sensory Integration systematic reviews.*
+- <a id="ref-schoen-2019"></a>**Schoen, S. A., Lane, S. J., Mailloux, Z., May-Benson, T., Parham, L. D., Smith Roley, S., & Schaaf, R. C. (2019).** *A systematic review of Ayres Sensory Integration intervention for children with autism.* Autism Research. [Wiley Online Library](https://onlinelibrary.wiley.com/doi/full/10.1002/aur.2046)
+- <a id="ref-vasa-2017"></a>**Vasa, R. A., Mostofsky, S. H., & Ewen, J. B. (2017).** *The disrupted connectivity hypothesis of autism.* [PubMed: 28083565](https://pubmed.ncbi.nlm.nih.gov/28083565/)
+- <a id="ref-plos-2017"></a>*Is functional brain connectivity atypical in autism? A systematic review of EEG and MEG studies.* PLOS One (2017). [PLOS One](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0175870)
+- <a id="ref-breau-2002"></a>**Breau, L. M., McGrath, P. J., Camfield, C. S., & Rosmus, C. (2002).** *Non-Communicating Children's Pain Checklist – Revised (NCCPC-R).* [Checklist Guide](https://www.community-networks.ca/wp-content/uploads/2015/07/PainChklst_BreauNCCPC-R2004.pdf)
+- <a id="ref-ndbi-aac"></a>*The Effect of NDBI and Aided AAC on Language Development of Children on the Autism Spectrum with Minimal Speech.* [PMC](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12208088/)
+- <a id="ref-asha-aac"></a>**ASHA.** *AAC in early intervention.* [asha.org](https://www.asha.org/practice/early-intervention-provider-support/augmentative-and-alternative-communication-in-early-intervention/)
 
 **Models and systems**
 
-- Qwen2.5-14B-Instruct configuration. https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/blob/main/config.json
-- Alayrac et al. *Flamingo: a Visual Language Model for Few-Shot Learning.* https://arxiv.org/abs/2204.14198
-- Liu et al. *Visual Instruction Tuning (LLaVA).* https://arxiv.org/abs/2304.08485
-- Chen et al. *BEATs: Audio Pre-Training with Acoustic Tokenizers.* https://arxiv.org/abs/2212.09058
-- Rajagopalan et al. *Detecting self-stimulatory behaviours for autism diagnosis* (SSBD). https://ieeexplore.ieee.org/document/7025294/
-- *Evaluating the Effect of Frame Rate in Sequence-Based Classification of Autism-Related Self-Stimulatory Hand Idiosyncrasies.* https://arxiv.org/html/2607.07957v1
-- MLX neural-network API. https://ml-explore.github.io/mlx/build/html/python/nn.html
-- MLX-LM (cache and prefill control). https://github.com/ml-explore/mlx-lm
+- <a id="ref-qwen25"></a>**Qwen2.5-14B-Instruct.** *Model configuration and architecture specifications.* [Hugging Face](https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/blob/main/config.json)
+- <a id="ref-alayrac-2022"></a>**Alayrac, J. B., et al. (2022).** *Flamingo: a Visual Language Model for Few-Shot Learning.* [arXiv:2204.14198](https://arxiv.org/abs/2204.14198)
+- <a id="ref-liu-2023"></a>**Liu, H., Li, C., Wu, Q., & Lee, Y. J. (2023).** *Visual Instruction Tuning (LLaVA).* [arXiv:2304.08485](https://arxiv.org/abs/2304.08485)
+- <a id="ref-chen-2022"></a>**Chen, S., et al. (2022).** *BEATs: Audio Pre-Training with Acoustic Tokenizers.* [arXiv:2212.09058](https://arxiv.org/abs/2212.09058)
+- <a id="ref-rajagopalan-2015"></a>**Rajagopalan, S. S., Dhall, A., & Goecke, R. (2015).** *Self-stimulatory behaviours in the wild for autism diagnosis (SSBD).* [IEEE Xplore](https://ieeexplore.ieee.org/document/7025294/)
+- <a id="ref-ssbd-framerate"></a>*Evaluating the Effect of Frame Rate in Sequence-Based Classification of Autism-Related Self-Stimulatory Hand Idiosyncrasies.* [arXiv:2607.07957](https://arxiv.org/html/2607.07957v1)
+- <a id="ref-mlx-nn"></a>**Apple MLX Team.** *MLX neural-network API reference.* [ml-explore.github.io](https://ml-explore.github.io/mlx/build/html/python/nn.html)
+- <a id="ref-mlx-lm"></a>**Apple MLX Team.** *MLX-LM (cache and prefill control).* [GitHub](https://github.com/ml-explore/mlx-lm)
 
 **Platform and regulatory**
 
-- Apple. *TN3137: On Mac keychain APIs and implementations.* https://developer.apple.com/documentation/Technotes/tn3137-on-mac-keychains
-- Apple. *Restricting keychain item accessibility.* https://developer.apple.com/documentation/security/restricting-keychain-item-accessibility
-- FDA. *Clinical Decision Support Software* guidance. https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software
-- HHS. *HIPAA Security Rule.* https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html
+- <a id="ref-apple-tn3137"></a>**Apple.** *TN3137: On Mac keychain APIs and implementations.* [Apple Developer](https://developer.apple.com/documentation/Technotes/tn3137-on-mac-keychains)
+- <a id="ref-apple-keychain"></a>**Apple.** *Restricting keychain item accessibility.* [Apple Developer](https://developer.apple.com/documentation/security/restricting-keychain-item-accessibility)
+- <a id="ref-fda-cds"></a>**FDA.** *Clinical Decision Support Software Guidance.* [FDA Guidance](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software)
+- <a id="ref-hhs-hipaa"></a>**HHS.** *HIPAA Security Rule.* [HHS.gov](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html)

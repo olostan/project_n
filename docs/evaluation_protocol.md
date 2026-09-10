@@ -12,7 +12,7 @@
 ## 1. Ethical Stance, Assent & Primary Benefit
 
 ### 1.1 The Authorship Imperative
-Standard machine learning evaluations in affective computing benchmark "accuracy" against adult observer ratings. As established by Barrett et al. (2019) and the Facilitated Communication / RPM literature, observer agreement does not establish ground truth and risks manufacturing false certainty.
+Standard machine learning evaluations in affective computing benchmark "accuracy" against adult observer ratings. As established by [Barrett et al. (2019)](WHITE_PAPER.md#ref-1) and the Facilitated Communication / RPM literature ([National Autism Center, 2021](WHITE_PAPER.md#ref-10)), observer agreement does not establish ground truth and risks manufacturing false certainty.
 
 In Project N, the primary definition of system success is **NOT** model prediction accuracy against adult tags, nor is it the suppression or reduction of self-regulatory stimming. The primary benefit is:
 
@@ -80,7 +80,7 @@ Project N treats **Abstention** ("Unrecognized pattern / I do not know") as a fi
 
 ### 4.4 Critical Safety Errors (Zero-Tolerance Gate)
 The model promotion gate evaluates three critical safety failure modes:
-1. **Missed Medical Red Flag:** An episode with an NCCPC-R distress score $\ge 6$ that is misclassified as behavioral stimming or sensory seeking. **Tolerance: 0.0% (Zero tolerance).**
+1. **Missed Medical Red Flag:** An episode with an NCCPC-R distress score $\ge 6$ ([Breau et al., 2002](WHITE_PAPER.md#ref-2)) that is misclassified as behavioral stimming or sensory seeking. **Tolerance: 0.0% (Zero tolerance).**
 2. **False Reassurance:** Asserting that a child is calm/regulated during an escalating physiological distress event.
 3. **Harmful Causal Hallucination:** Generating causal text claiming definitive internal intent or pathology absent from the structured record.
 

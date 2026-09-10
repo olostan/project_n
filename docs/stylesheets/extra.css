@@ -196,22 +196,30 @@
 
 /* Ensure anchors in lists and headers have generous scroll margin so sticky header does not obscure them */
 [id^="ref-"],
-li:has(a[id^="ref-"]),
+li:has([id^="ref-"]),
 li[id^="ref-"] {
   scroll-margin-top: 6rem;
 }
 
-/* Smooth pulse highlight when jumping to a referenced citation */
-li:has(a[id^="ref-"]):target,
-li[id^="ref-"]:target {
-  animation: citation-pulse 2s ease-out;
+/* Highlight and outline the active target bibliography item when navigated to */
+li:has(:target),
+li:target {
+  background-color: rgba(63, 81, 181, 0.08) !important;
+  outline: 2px solid var(--md-primary-fg-color, #3f51b5) !important;
+  outline-offset: 6px;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(63, 81, 181, 0.15) !important;
+  transition: all 0.3s ease-in-out;
+  scroll-margin-top: 6rem;
 }
 
-@keyframes citation-pulse {
-  0% {
-    background-color: rgba(63, 81, 181, 0.25);
-  }
-  100% {
-    background-color: transparent;
-  }
+/* Dark mode target highlight */
+[data-md-color-scheme="slate"] li:has(:target),
+[data-md-color-scheme="slate"] li:target {
+  background-color: rgba(124, 77, 255, 0.15) !important;
+  outline: 2px solid var(--md-accent-fg-color, #7c4dff) !important;
+  outline-offset: 6px;
+  box-shadow: 0 4px 16px rgba(124, 77, 255, 0.25) !important;
 }
+
+

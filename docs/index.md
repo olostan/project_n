@@ -63,9 +63,9 @@ graph LR
 ```
 
 1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking at $\sim 1\text{ Hz}$ resolution, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
-2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** (Prizant et al., 2006), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
+2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** ([Prizant et al., 2006](WHITE_PAPER.md#ref-11)), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
 3. **Child Authorship via the AAC Bridge:** The system never speaks *for* the child. Candidate possibilities are routed to Child N's speech-generating device or AAC choice board as pre-populated icons for him to select, confirm, or reject.
-4. **Medical Safety Gate (NCCPC-R):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Revised, immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
+4. **Medical Safety Gate (NCCPC-R):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Revised ([Breau et al., 2002](WHITE_PAPER.md#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
 
 ---
 
