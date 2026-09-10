@@ -57,7 +57,7 @@ sequenceDiagram
     Note over Partner: Partner observes context & captures clip via mobile app
     Partner->>Engine: Uploads clip with situational antecedents
     Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
-    Engine->>Engine: Evaluates Medical Safety Gate (NCCPC-PV triage first)
+    Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
     Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
     opt Optional Child Authorship

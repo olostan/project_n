@@ -34,6 +34,10 @@ jobs:
           pip install --upgrade pip
           pip install mkdocs-material
 
+      - name: Verify Academic Citations (Crossref & DataCite)
+        run: |
+          python tests/verify_citations.py
+
       - name: Build MkDocs Site
         run: mkdocs build --site-dir site
 

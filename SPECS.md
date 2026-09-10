@@ -165,13 +165,13 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 Physical distress and somatic pain must always take absolute priority over behavioral or sensory interpretations. In clinical practice, pain in non-communicating children is evaluated using validated instruments:
 
 - **The Validated Clinical Instruments (Caregiver Gold Standard):**
-  - **NCCPC-PV** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00007): Evaluated across 24 children postoperatively; cut-off $S_{NCCPC} \ge 11$ indicates moderate-to-severe pain.
-  - **NCCPC-R** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1016/S0304-3959(02)00179-3): Evaluated in home/residential settings; cut-off $S_{NCCPC} \ge 6$ indicates presence of pain.
-  - Both instruments comprise 27 items scored across 6 subscales (Vocal, Social, Facial, Activity, Body/Limbs, Physiological) over a **10-minute structured human caregiver observation** ($0 \le S_{NCCPC} \le 81$).
+  - **NCCPC-PV** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00004): Evaluated across 24 children postoperatively; comprises 27 items across 6 subscales ($0 \le S_{NCCPC} \le 81$) standardized over a **10-minute structured human caregiver observation**; validated cut-off $S_{NCCPC} \ge 11$ indicates moderate-to-severe pain.
+  - **NCCPC-R** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1016/S0304-3959(02)00179-3): Evaluated in home/residential settings across 71 children; comprises 30 items across 7 subscales ($0 \le S_{NCCPC} \le 90$) over a **2-hour observation window**; validated cut-off $S_{NCCPC} \ge 7$ indicates presence of pain (84% sensitivity, up to 77% specificity).
+  - *Clinical Workflow Alignment:* Because the 2-hour observation window of the NCCPC-R makes it infeasible for acute, immediate post-episode checks, the in-the-moment mobile companion checklist is structured around the 10-minute, 27-item observation (NCCPC-PV).
 - **Decoupling Automated Inference from Clinical Checklists:**
   A 5-second computer vision and audio clip cannot compute a 10-minute clinical checklist. Project N therefore strictly separates automated inference from clinical diagnosis:
   - **Automated Acute Distress Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for acute acoustic spikes ($F_0 > 450\text{ Hz}$ shriek excursions, severe CPP periodic-to-aperiodic drops $< 4.0\text{ dB}$) and rapid guarding/flinching kinematics.
-  - **Caregiver Safety Prompt:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check (or complete the 10-minute NCCPC observation):
+  - **Caregiver Safety Prompt:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check (or complete the 10-minute, 27-item NCCPC-PV observation):
   ```text
   [MEDICAL ESCALATION REQUIRED]
   Acoustic and kinematic signals indicate acute distress / potential pain anomaly.
@@ -562,20 +562,31 @@ class AcuteDistressAnomalyDetector:
 class NCCPCChecklist:
     """
     Caregiver-completed Non-Communicating Children's Pain Checklist (Breau et al., 2002).
-    Standardized over a 10-minute structured human observation across 27 items (0 to 81).
-    - NCCPC-PV (Breau et al., 2002, Anesthesiology): cut-off >= 11 indicates moderate-to-severe pain.
-    - NCCPC-R (Breau et al., 2002, Pain): cut-off >= 6 indicates presence of pain in home settings.
+    - NCCPC-PV (Breau et al., 2002, Anesthesiology, doi:10.1097/00000542-200203000-00004):
+      27 items across 6 subscales (0 to 81) over a 10-minute observation. Cut-off >= 11 indicates moderate-to-severe pain.
+      Used for in-the-moment post-episode caregiver check-ins on mobile companion devices.
+    - NCCPC-R (Breau et al., 2002, Pain, doi:10.1016/S0304-3959(02)00179-3):
+      30 items across 7 subscales (0 to 90) over a 2-hour observation. Cut-off >= 7 indicates presence of pain.
     """
-    MODERATE_SEVERE_CUTOFF = 11
-    MILD_HOME_CUTOFF = 6
+    NCCPC_PV_MODERATE_CUTOFF = 11
+    NCCPC_R_CUTOFF = 7
 
     @classmethod
-    def score(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
+    def score_pv(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
         total_score = sum(item_scores.values())
         return {
             "total_score": total_score,
-            "exceeds_mild_cutoff": total_score >= cls.MILD_HOME_CUTOFF,
-            "exceeds_moderate_severe_cutoff": total_score >= cls.MODERATE_SEVERE_CUTOFF
+            "instrument": "NCCPC-PV (27 items, 10-min)",
+            "exceeds_threshold": total_score >= cls.NCCPC_PV_MODERATE_CUTOFF
+        }
+
+    @classmethod
+    def score_r(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
+        total_score = sum(item_scores.values())
+        return {
+            "total_score": total_score,
+            "instrument": "NCCPC-R (30 items, 2-hr)",
+            "exceeds_threshold": total_score >= cls.NCCPC_R_CUTOFF
         }
 
 
@@ -605,9 +616,9 @@ def execute_inference_cycle(
     caregiver_pain_flag = False
     nccpc_total = None
     if caregiver_nccpc_scores is not None:
-        nccpc_result = NCCPCChecklist.score(caregiver_nccpc_scores)
+        nccpc_result = NCCPCChecklist.score_pv(caregiver_nccpc_scores)
         nccpc_total = nccpc_result["total_score"]
-        caregiver_pain_flag = nccpc_result["exceeds_mild_cutoff"]
+        caregiver_pain_flag = nccpc_result["exceeds_threshold"]
 
     if anomaly_check["distress_anomaly"] or caregiver_pain_flag:
         return {

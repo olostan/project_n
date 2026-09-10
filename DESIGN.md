@@ -201,7 +201,7 @@ Decision triage enforces a strict safety hierarchy: **Medical Safety Triage exec
 graph TD
     Query["Incoming Episode<br/>Acoustic, Kinematic, Context Features"] --> Gate1{"Medical Distress Screener (Triage First)<br/>Acute Acoustic / Kinematic Distress Anomaly?"}
 
-    Gate1 -- "Yes (Acute Distress / Pain Anomaly)" --> MedicalCard["Caregiver Medical Prompt Card<br/>Prompts caregiver to conduct pediatrician-approved comfort check<br/>(e.g., 27-item NCCPC checklist; Breau et al., 2002).<br/>Behavioral/sensory interpretations suppressed."]
+    Gate1 -- "Yes (Acute Distress / Pain Anomaly)" --> MedicalCard["Caregiver Medical Prompt Card<br/>Prompts caregiver to conduct pediatrician-approved comfort check<br/>(e.g., 27-item NCCPC-PV checklist; Breau et al., 2002).<br/>Behavioral/sensory interpretations suppressed."]
 
     Gate1 -- "No (Regulated / Non-Pain)" --> Embed["Metric Projection & Prototype Search<br/>Compute z ∈ ℝ^128, find c_nearest"]
 
@@ -285,7 +285,7 @@ graph TD
     subgraph LivingRoomDelivery ["Real-Time Parent Support at Home"]
         NewEpisode["Child N Dysregulates at Home<br/>(High acoustic tension + pacing)"] --> QueryEngine["Query Matching Episodes + Personal Fact Store"]
         Store --> QueryEngine
-        QueryEngine --> ParentCard["Parent View Advice:<br/>'💡 Technique from Thursday OT with Sarah: Try firm joint compression<br/>on forearms and offer his favorite red squishy toy.'"]
+        QueryEngine --> ParentCard["Parent View Advice:<br/>'💡 Sarah (OT) suggested, Thursday session: Try firm joint compression<br/>on forearms and offer his favorite red squishy toy.'"]
     end
 
     OT_Clip & Parent_Clip --> Extract
@@ -297,7 +297,7 @@ graph TD
 
 1. **Ingestion & Attribution:** Clips and debrief notes recorded during clinical sessions are tagged with `source_type: "ot_session" | "slp_session"` and therapist attribution (`therapist_name: "Sarah (OT)"`).
 2. **Technique Extraction:** The local pipeline extracts specific physical scaffolding (e.g., joint compression, sensory swing protocols, weighted input) and communication strategies (e.g., visual schedule cues, 10-second wait-time).
-3. **Living Room Scaffolding:** When matching behavioral patterns arise at home, the assistant surfaces specific, familiar strategies demonstrated by trusted therapists, empowering parents with professional techniques without requiring clinical jargon.
+3. **Living Room Scaffolding:** When matching behavioral patterns arise at home, the assistant surfaces specific, familiar strategies explicitly framed as relaying the clinician's instruction (*"Sarah (OT) suggested, Thursday session: ..."*), empowering parents with professional techniques without requiring clinical jargon and ensuring the AI assistant does not autonomously prescribe medical or therapeutic interventions.
 
 ---
 

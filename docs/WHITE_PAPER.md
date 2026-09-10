@@ -83,8 +83,8 @@ graph TD
     Acoustic & Kinematic & Physio --> JointEvent
 
     subgraph Analytical Core [Project N Local Processing]
-        JointEvent --> SafetyGate{NCCPC-PV Pain Score >= 6<br/>or Sensory Distress Alert?}
-        SafetyGate -->|Yes| MedicalCard[Medical Red-Flag Escalation Card]
+        JointEvent --> SafetyGate{Acute Distress Anomaly Screener<br/>Acoustic/Kinematic Spike?}
+        SafetyGate -->|Yes| MedicalCard[Caregiver Medical Comfort Check Prompt]
         SafetyGate -->|No| MetricHead[128-dim L2 Metric Projection Head]
         MetricHead --> EpisodicMemory[(Historical Verified Precedents)]
         EpisodicMemory --> RAG[(Clinical Evidence Library: FBA, HIPPEA, Interoception)]
@@ -162,9 +162,12 @@ stateDiagram-v2
     Dysregulation --> MedicalTriage: Observable Distress Indicators Present
 
     state MedicalTriage {
-        [*] --> CheckNCCPC: Evaluate 27-Item NCCPC-PV Checklist
-        CheckNCCPC --> RedFlagEscalation: Score >= 6 (Physical Pain Suspected)
-        CheckNCCPC --> BehavioralDyad: Score < 6 (Sensory / Communicative)
+        [*] --> DistressScreening: Automated Acute Distress Screener
+        DistressScreening --> CaregiverPrompt: Acoustic/Kinematic Anomaly Detected
+        DistressScreening --> BehavioralDyad: Baseline Telemetry (Sensory / Communicative)
+        CaregiverPrompt --> PhysicalCheck: Caregiver Conducts Pediatrician Check / NCCPC-PV
+        PhysicalCheck --> RedFlagEscalation: Acute Pain / Distress Confirmed by Caregiver
+        PhysicalCheck --> BehavioralDyad: Physical Cause Ruled Out by Caregiver
     }
 
     RedFlagEscalation --> ClinicalMedicalReview: Alert Caregiver to Examine Physical Cause
@@ -214,7 +217,7 @@ Project N builds directly upon and synthesizes several empirical research bodies
 
 ### 5.5 Somatic Distress & Pain Evaluation
 - **Non-Communicating Children’s Pain Checklist – Postoperative Version (NCCPC-PV; [Breau et al., 2002](#ref-2)):**
-  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed for caregivers and clinicians to evaluate postoperative physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute structured observation). In its validation cohort of 24 children postoperatively, a cut-off of $\ge 11$ indicated moderate-to-severe pain (while in home settings, NCCPC-R establishes $\ge 6$ as indicative of pain). Project N strictly separates automated 5-second sensory anomaly screening from this 10-minute clinical checklist: real-time acoustic/kinematic distress anomalies immediately prompt caregivers to execute their family pediatrician-approved physical comfort protocol, while suppressing behavioral interpretations.
+  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed for caregivers and clinicians to evaluate postoperative physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute structured observation). In its validation cohort of 24 children postoperatively, a cut-off of $\ge 11$ indicated moderate-to-severe pain (while in home settings, the 30-item, 2-hour NCCPC-R establishes $\ge 7$ as indicative of pain; Breau et al., 2002). Because a 2-hour observation window cannot be performed in-the-moment following an acute episode, Project N structures its acute post-episode caregiver check around the 10-minute, 27-item instrument (NCCPC-PV). Real-time acoustic/kinematic distress anomalies immediately prompt caregivers to execute their family pediatrician-approved physical comfort protocol, while suppressing behavioral interpretations.
 
 ---
 
@@ -277,7 +280,7 @@ Both views are derived from the exact same deterministic underlying records, ens
 ### 7.3 The Clinic-to-Home Knowledge Transfer Loop
 In pediatric therapy, a persistent clinical challenge is the generalization gap: effective co-regulatory and communicative strategies discovered by therapists during structured 45-minute clinical sessions often fail to transfer into family home environments. Project N bridges this divide through its **Personal & Therapist Knowledge Store**:
 1. **Clinical Strategy Ingestion:** Therapists can record brief clip exemplars or session notes detailing successful interventions (e.g., specific joint compression protocols, sensory swing sequences, or visual wait-time scaffolding).
-2. **Contextual Living Room Delivery:** When comparable acoustic strain or motor dysregulation occurs at home, the assistant retrieves the therapist's proven technique and presents it directly to parents in plain, supportive language (*"Idea from Thursday's OT session with Sarah: Try firm joint compression on forearms"*).
+2. **Contextual Living Room Delivery:** When comparable acoustic strain or motor dysregulation occurs at home, the assistant retrieves the therapist's proven technique and presents it directly to parents in plain, supportive language (*"Sarah (OT) suggested, Thursday session: Try firm joint compression on forearms"* — explicitly relaying the licensed clinician's own instructions for Child N rather than having the AI autonomously recommend medical treatment).
 3. **Bidirectional Longitudinal Review:** Therapists review objective home resolution outcomes during weekly check-ins, verifying whether clinical scaffolding successfully generalized to naturalistic family routines.
 
 ---
@@ -295,18 +298,18 @@ We warmly invite speech-language pathologists, occupational therapists, assistiv
 ## 9. References & Academic Bibliography
 
 1. <a id="ref-1"></a>**Barrett, L. F., Adolphs, R., Marsella, S., Martinez, A. M., & Pollak, S. D. (2019).** Emotional expressions reconsidered: Challenges to inferring emotion from human facial movements. *Psychological Science in the Public Interest*, 20(1), 1–68. [doi:10.1177/1529100619832930](https://doi.org/10.1177/1529100619832930)
-2. <a id="ref-2"></a>**Breau, L. M., Finley, G. A., McGrath, P. J., & Camfield, C. S. (2002).** Validation of the Non-communicating Children’s Pain Checklist–Postoperative Version. *Anesthesiology*, 96(3), 528–535. [doi:10.1097/00000542-200203000-00007](https://doi.org/10.1097/00000542-200203000-00007)
+2. <a id="ref-2"></a>**Breau, L. M., Finley, G. A., McGrath, P. J., & Camfield, C. S. (2002).** Validation of the Non-communicating Children’s Pain Checklist–Postoperative Version. *Anesthesiology*, 96(3), 528–535. [doi:10.1097/00000542-200203000-00004](https://doi.org/10.1097/00000542-200203000-00004)
 3. <a id="ref-3"></a>**Bruinsma, Y., Minjarez, M. B., Schreibman, L., & Stahmer, A. C. (2020).** *Naturalistic developmental behavioral interventions for autism spectrum disorder*. Paul H. Brookes Publishing. [Brookes Publishing](https://products.brookespublishing.com/Naturalistic-Developmental-Behavioral-Interventions-for-Autism-Spectrum-Disorder-P1180.aspx)
 4. <a id="ref-4"></a>**Fusaroli, R., Lambrechts, A., Bang, D., Bowler, D. M., & Gaigg, S. B. (2017).** Is voice a marker for Autism spectrum disorder? A systematic review and meta-analysis. *Autism Research*, 10(3), 384–407. [doi:10.1002/aur.1678](https://doi.org/10.1002/aur.1678)
-5. <a id="ref-5"></a>**Goodwin, M. S., Mazefsky, C. A., Ioannidis, S., Erdogmus, D., & Siegel, M. (2019).** Predicting aggression to others in youth with autism spectrum disorder using biosensors: A mobile clinical laboratory study. *Autism Research*, 12(8), 1286–1295. [doi:10.1002/aur.2151](https://doi.org/10.1002/aur.2151)
-6. <a id="ref-6"></a>**Imbiriba, T., Demirkaya, A., Singh, P., Erdogmus, D., & Goodwin, M. S. (2023).** Biosensing to predict imminent aggression in psychiatric inpatients with autism. *JAMA Network Open*, 6(12), e2348898. [doi:10.1001/jamanetworkopen.2023.48898](https://doi.org/10.1001/jamanetworkopen.2023.48898)
+5. <a id="ref-5"></a>**Goodwin, M. S., Mazefsky, C. A., Ioannidis, S., Erdogmus, D., & Siegel, M. (2019).** Predicting aggression to others in youth with autism using a wearable biosensor. *Autism Research*, 12(8), 1286–1296. [doi:10.1002/aur.2151](https://doi.org/10.1002/aur.2151)
+6. <a id="ref-6"></a>**Imbiriba, T., Demirkaya, A., Singh, P., Erdogmus, D., & Goodwin, M. S. (2023).** Wearable biosensing to predict imminent aggressive behavior in psychiatric inpatient youths with autism. *JAMA Network Open*, 6(12), e2348898. [doi:10.1001/jamanetworkopen.2023.48898](https://doi.org/10.1001/jamanetworkopen.2023.48898)
 7. <a id="ref-7"></a>**Johnson, K. T., Narain, J., Quatieri, T., Maes, P., & Picard, R. (2023).** ReCANVo: A database of real-world communicative and affective nonverbal vocalizations. *Scientific Data*, 10(1), 523. [doi:10.1038/s41597-023-02405-7](https://doi.org/10.1038/s41597-023-02405-7)
 8. <a id="ref-8"></a>**Light, J., & McNaughton, D. (2014).** Communicative competence for individuals who require augmentative and alternative communication: A new definition for a new era of communication? *Augmentative and Alternative Communication*, 30(1), 1–18. [doi:10.3109/07434618.2014.885080](https://doi.org/10.3109/07434618.2014.885080)
 9. <a id="ref-9"></a>**McLean, J. E., & Snyder-McLean, L. K. (1978).** *A transactional approach to early language training*. Charles E. Merrill Publishing. [ERIC: ED172561](https://eric.ed.gov/?id=ED172561)
 10. <a id="ref-10"></a>**Millar, D. C., Light, J. C., & Schlosser, R. W. (2006).** The impact of augmentative and alternative communication intervention on speech production of individuals with developmental disabilities: A research review. *Journal of Speech, Language, and Hearing Research*, 49(2), 248–264. [doi:10.1044/1092-4388(2006/021)](https://doi.org/10.1044/1092-4388(2006/021))
-11. <a id="ref-11"></a>**Mondal, A., & Washington, P. (2026).** Evaluating the effect of frame rate in sequence-based classification of autism-related self-stimulatory hand idiosyncrasies. *arXiv preprint arXiv:2607.07957*. [doi:10.48550/arXiv.2607.07957](https://doi.org/10.48550/arXiv.2607.07957)
-12. <a id="ref-12"></a>**Narain, J., Johnson, K. T., Quatieri, T., Picard, R., & Maes, P. (2022).** Modeling real-world affective and communicative nonverbal vocalizations from minimally speaking individuals. *IEEE Transactions on Affective Computing*, 14(4), 3122–3135. [doi:10.1109/TAFFC.2022.3208233](https://doi.org/10.1109/TAFFC.2022.3208233)
-13. <a id="ref-13"></a>**National Autism Center. (2026).** *Position statement on Facilitated Communication and Rapid Prompting Method*. Published June 23, 2026. [nationalautismcenter.org](https://nationalautismcenter.org/position-statements/)
+11. <a id="ref-11"></a>**Mondal, R., & Washington, P. (2026).** Evaluating the effect of frame rate in sequence-based classification of autism-related self-stimulatory hand idiosyncrasies. *arXiv preprint arXiv:2607.07957*. [doi:10.48550/arXiv.2607.07957](https://doi.org/10.48550/arXiv.2607.07957)
+12. <a id="ref-12"></a>**Narain, J., Johnson, K. T., Quatieri, T., Picard, R., & Maes, P. (2022).** Modeling Real-World Affective and Communicative Nonverbal Vocalizations From Minimally Speaking Individuals. *IEEE Transactions on Affective Computing*, 13(4), 2238–2253. [doi:10.1109/TAFFC.2022.3208233](https://doi.org/10.1109/TAFFC.2022.3208233)
+13. <a id="ref-13"></a>**National Autism Center. (2026).** *Position statement on Spelling to Communicate, Rapid Prompting Method, and Facilitated Communication.* Published June 23, 2026. [nationalautismcenter.org](https://nationalautismcenter.org/news/national-autism-center-releases-position-statement-on-spelling-to-communicate-rapid-prompting-method-and-facilitated-communication/)
 14. <a id="ref-14"></a>**Prizant, B. M., Wetherby, A. M., Rubin, E., & Laurent, A. C. (2006).** *The SCERTS model: A comprehensive educational approach for children with autism spectrum disorders*. Paul H. Brookes Publishing. [scerts.com](https://scerts.com/)
 15. <a id="ref-15"></a>**Rajagopalan, S. S., Dhall, A., & Goecke, R. (2013).** Self-stimulatory behaviours in the wild for autism diagnosis. *IEEE International Conference on Computer Vision Workshops (ICCVW)*, 755–761. [doi:10.1109/ICCVW.2013.103](https://doi.org/10.1109/ICCVW.2013.103)
 16. <a id="ref-16"></a>**Sameroff, A. J. (1975).** Transactional models in early social relations. *Human Development*, 18(1-2), 65–79. [doi:10.1159/000271476](https://doi.org/10.1159/000271476)
@@ -314,3 +317,4 @@ We warmly invite speech-language pathologists, occupational therapists, assistiv
 18. <a id="ref-18"></a>**Tager-Flusberg, H., & Kasari, C. (2013).** Minimally verbal school-aged children with autism spectrum disorder: The neglected end of the spectrum. *Autism Research*, 6(6), 468–478. [doi:10.1002/aur.1329](https://doi.org/10.1002/aur.1329)
 19. <a id="ref-19"></a>**Van de Cruys, S., Evers, K., Van der Hallen, R., Van Eylen, L., Boets, B., de-Wit, L., & Wagemans, J. (2014).** Precise minds in uncertain worlds: Predictive coding in autism. *Psychological Review*, 121(4), 649–675. [doi:10.1037/a0037665](https://doi.org/10.1037/a0037665)
 20. <a id="ref-20"></a>**Wetherby, A. M., & Prizant, B. M. (2000).** *Autism spectrum disorders: A transactional developmental perspective*. Paul H. Brookes Publishing. [Brookes Publishing](https://products.brookespublishing.com/Autism-Spectrum-Disorders-P198.aspx)
+21. <a id="ref-21"></a><a id="ref-shamseer-2015"></a>**Shamseer, L., Sampson, M., Bukutu, C., Schmid, C. H., Nikles, J., Tate, R., Johnston, B. C., Zucker, D., Shadish, W. R., Kravitz, R., Guyatt, G., Altman, D. G., Moher, D., & Vohra, S. (2015).** CONSORT extension for reporting N-of-1 trials (CENT) 2015: Explanation and elaboration. *BMJ*, 350, h1793. [doi:10.1136/bmj.h1793](https://doi.org/10.1136/bmj.h1793)

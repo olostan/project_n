@@ -34,7 +34,7 @@ sequenceDiagram
     Note over Partner: Partner observes context & captures clip via mobile client
     Partner->>Engine: Uploads clip with situational antecedents
     Engine->>Engine: Computes pitch contour (F0), pose kinematics & holistic movement
-    Engine->>Engine: Evaluates Medical Safety Gate (NCCPC-PV triage first)
+    Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Matches against Child N's historical verified episodes (128-dim metric space)
     Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
     opt Optional Child Authorship
