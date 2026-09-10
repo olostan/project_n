@@ -7,6 +7,11 @@
 [![Clients: Flutter (Android/iOS) + React Dashboard](https://img.shields.io/badge/Clients-Flutter%20%2B%20React%20SPA-blueviolet?style=flat-square)]()
 [![Docs: Live Research Site](https://img.shields.io/badge/Docs-olostan.github.io%2Fproject__n-blue?style=flat-square)](https://olostan.github.io/project_n/)
 
+> [!IMPORTANT]
+> 🌐 **Interactive Documentation & Scientific Research Website:**  
+> **[https://olostan.github.io/project_n/](https://olostan.github.io/project_n/)**  
+> *Explore interactive system diagrams, zoomable architectures, clinical evaluation protocols, and technical specifications.*
+
 ---
 
 ## A Note from the Founder
@@ -35,135 +40,92 @@
 
 ---
 
-## 2. Interactive Architecture Visualizations
+## 2. The Dyadic Transactional Loop
 
-### 2.1 The Dyadic Transactional Communication Loop
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Child as Child N (Completely Non-Verbal)
-    actor Partner as Communication Partner (Parent / SLP / OT)
-    participant Engine as Project N Local Assistant (Apple Silicon)
-    participant AAC as Child's AAC Speech Device
+    actor Child as Child N
+    actor Partner as Communication Partner
+    participant Engine as Project N Assistant
+    participant AAC as Child AAC Device
 
-    Child->>Partner: Vocal inflection + rhythmic wrist stim (Natural bid)
-    Note over Partner: Partner observes & scaffolds:<br/>"Do you need a sensory break?"
-    Partner->>Engine: Captures episode via mobile app (or ambient camera)
-    Engine->>Engine: Computes pitch contour (F0), pose landmarks & physiological arousal
-    Engine->>Engine: Matches against Child N's historical verified episodes (128-dim metric space)
-    Engine->>AAC: Dispatches candidate options ([Water], [Deep Pressure], [Quiet Break])
-    Child->>AAC: Directly selects [Deep Pressure] icon
-    AAC-->>Partner: Speaks aloud: "Deep Pressure"
-    Partner->>Child: Provides weighted blanket / joint compression
-    Note over Child,Partner: Regulation restored; latency & outcome logged
+    Child->>Partner: Natural communication bid (vocalization and movement)
+    Note over Partner: Partner scaffolds and observes
+    Partner->>Engine: Captures episode via mobile app
+    Engine->>Engine: Extracts acoustic, kinematic and physiological signals
+    Engine->>Engine: Matches against confirmed episodes in metric space
+    Engine->>AAC: Proposes candidate tiles ([Water], [Pressure], [Break])
+    Child->>AAC: Selects desired icon directly
+    AAC-->>Partner: Speaks aloud: Deep Pressure
+    Partner->>Child: Provides requested co-regulation support
+    Note over Child, Partner: Regulation restored and outcome logged
     Engine->>Engine: Stores child-confirmed resolution as ground truth
 ```
 
-### 2.2 End-to-End System Ingestion & Processing Pipeline
-```mermaid
-graph TD
-    subgraph Mobile Capture [1. Mobile & Ambient Sensing]
-        A1[Phone Camera 30fps 720p] --> M1[Flutter Companion App]
-        A2[48kHz Studio Mic] --> M1
-        A3[Wearable Sensor EDA/HRV] -.->|Optional| M1
-        M1 -->|Offline at Playground/OT| O1[(Encrypted SQLite Outbox)]
-        O1 -->|Home Wi-Fi Connect| T1[mTLS Encrypted Sync]
-    end
-
-    subgraph Mac Vault [2. Local Mac M5 Pro Vault]
-        T1 --> V1[Signed LaunchAgent Helper]
-        V1 --> V2[Data Protection Keychain]
-        V2 --> V3[(AES-256 Encrypted Raw Media Vault)]
-    end
-
-    subgraph Sensory Extraction [3. Tripartite Sensory Extraction on Metal]
-        V3 --> S1[Acoustic Engine: F0, Jitter, Shimmer, CQT 84-bin, Log-Mel]
-        V3 --> S2[Kinematic Engine: MediaPipe 75 Landmarks + RAFT Optical Flow]
-        V3 -.-> S3[Physiological Engine: Tonic/Phasic EDA + HRV RMSSD]
-    end
-
-    subgraph Metric Space [4. Metric Learning & Retrieval]
-        S1 & S2 & S3 --> MH[Metric Projection Head R^128]
-        MH --> CH[(ChromaDB: Historical Confirmed Episodes)]
-        CH --> AB{Abstention Check<br/>Distance > 0.35?}
-        AB -->|Yes| ABS[Emit: 'Unrecognized Pattern' - Suggest AAC Check-in]
-        AB -->|No| R1[Retrieve Matching Historical Precedents & Outcomes]
-    end
-
-    subgraph Safety & Grounding [5. Safety Gate & Clinical Grounding]
-        R1 --> NC{NCCPC-R Pain Score >= 6?}
-        NC -->|Yes| MED[RED FLAG: Medical Escalation Card Issued]
-        NC -->|No| CR[(ChromaDB: Clinical Evidence Library)]
-        CR --> L4[Retrieve Cited Research Excerpts: FBA, HIPPEA, Interoception]
-    end
-
-    subgraph Delivery [6. Dual-Interface Delivery]
-        L4 --> AAC_DEV[Pre-populate AAC Speech Board for Child N]
-        L4 --> QWEN[Qwen2.5-14B-Instruct Frozen LLM Renderer]
-        QWEN --> UI[Local React + Tailwind Dashboard http://localhost:8080]
-    end
-
-    style MED fill:#ff4d4f,color:#fff,stroke:#333,stroke-width:2px
-    style AAC_DEV fill:#52c41a,color:#fff,stroke:#333,stroke-width:2px
-    style UI fill:#1890ff,color:#fff,stroke:#333,stroke-width:2px
-```
-
 ---
 
-## 3. Technology Stack Summary
+## 3. Comprehensive Documentation & Research Portal
 
-| Component | Selected Technology | Architecture Rationale |
+All detailed technical architectures, clinical protocols, interactive zoomable diagrams, and formal specifications are hosted on the interactive documentation portal:
+
+| Document | Focus & Target Audience | Live Link |
 | :--- | :--- | :--- |
-| **Machine Learning Core** | **Apple MLX 0.22+** | Native Metal Performance Shaders (MPS) running directly inside Apple Silicon unified memory. |
-| **Backend Daemon** | **Python 3.11+ / FastAPI** | Zero-copy in-memory tensor access to MLX arrays. Eliminates IPC serialization bottlenecks. |
-| **Caregiver Dashboard** | **React 18 + Tailwind CSS** | Local single-page application bundled with FastAPI. Zero cloud CDNs or external web tracking. |
-| **Live Streaming Bus** | **Server-Sent Events (SSE)** | Sub-millisecond unidirectional event stream pushing live pipeline stages, unified memory telemetry, and text cards. |
-| **Mobile Companion App** | **Flutter 3.24+ (Dart)** | Native cross-platform client for Android and iOS. Hardware-backed security via Android Keystore and iOS Keychain. |
-| **Offline Mobile Outbox** | **SQLite (Encrypted)** | Captures clips at playgrounds, parks, and OT sessions without network, auto-flushing over mTLS upon returning home. |
-| **Vector Database** | **ChromaDB (Persistent)** | Embedded HNSW cosine indexing for 128-dimensional metric vectors and 768-dimensional clinical literature chunks. |
-| **Base Language Model** | **Qwen2.5-14B-Instruct** | 4-bit quantized format (~9.0 GB VRAM), 100% frozen (`model.freeze()`). Used strictly for schema-constrained rendering. |
+| 📄 **Scientific Whitepaper** | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. | [Read Whitepaper](https://olostan.github.io/project_n/WHITE_PAPER/) |
+| 🧠 **Engineering Architecture** | Detailed theoretical design, sensory feature extraction, metric learning, episodic retrieval, and interactive diagrams. | [Explore Architecture](https://olostan.github.io/project_n/design/) |
+| 📐 **Technical Specifications** | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and UI layout wireframe. | [View Specifications](https://olostan.github.io/project_n/specs/) |
+| 📋 **Evaluation Protocol** | Single-case (N-of-1) study design, leave-one-day-out splits, locked safety holdouts, and model promotion criteria. | [Inspect Protocol](https://olostan.github.io/project_n/evaluation_protocol/) |
+| 🛡️ **System & Safety Invariants** | Non-negotiable safety rules: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. | [Check Invariants](https://olostan.github.io/project_n/invariants/) |
+| 🤖 **Autonomous Agent Directives** | Development standards, Apple MLX memory management conventions, and documentation synchronization rules. | [Read Directives](https://olostan.github.io/project_n/agents/) |
 
 ---
 
-## 4. Hardware Budget (Measured Envelope: ~17.2 GB)
+## 4. Technology Stack At a Glance
 
-Project N is engineered specifically for Apple Silicon hardware with 48 GB Unified Memory (parameterized for 64GB/128GB workstations).
+| Layer | Technology | Role in Project N |
+| :--- | :--- | :--- |
+| **ML Engine** | **Apple MLX 0.22+** | Metal-accelerated sensory encoders, metric projection, and local inference. |
+| **Backend Daemon** | **Python 3.11+ / FastAPI** | High-performance local server with zero-copy in-memory tensor access. |
+| **Caregiver Dashboard** | **React 18 + Tailwind CSS** | Local web application bundled with FastAPI (zero external CDNs or trackers). |
+| **Live Event Bus** | **Server-Sent Events (SSE)** | Unidirectional streaming of pipeline stages, memory telemetry, and cards. |
+| **Mobile Client** | **Flutter 3.24+ (Dart)** | Cross-platform app (Android & iOS) with encrypted offline outbox for capture at playgrounds or OT sessions. |
+| **Vector Storage** | **ChromaDB (Persistent)** | Embedded HNSW indexing for 128-dim metric embeddings and clinical RAG library. |
+| **Base Language Model** | **Qwen2.5-14B-Instruct** | 4-bit quantized, 100% frozen model used strictly for schema-constrained rendering. |
 
-```mermaid
-graph LR
-    subgraph RAM["48.0 GB Apple Silicon Unified Memory Envelope"]
-        direction TB
-        subgraph RUNTIME["Project N Runtime Footprint (~17.2 GB Peak)"]
-            direction LR
-            LLM["<b>Base LLM 14B</b><br/>4-bit Quantized<br/>9.0 GB (Frozen W₀)"]
-            KV["<b>KV Cache</b><br/>8k Context (GQA)<br/>1.6 GB"]
-            ENC["<b>Encoders & Metric</b><br/>BEATs / Pose / MLP<br/>2.2 GB (MLX Metal)"]
-            DB["<b>Episodic DB</b><br/>ChromaDB HNSW<br/>0.4 GB"]
-            REFIT["<b>Re-Fit Workspace</b><br/>Adapter Fine-Tuning<br/>4.0 GB (Metal)"]
-        end
-        subgraph HEADROOM["Available System Headroom (30.8 GB)"]
-            OS["<b>macOS & System Services</b><br/>WindowServer, Audio Core, Metal OS Cache<br/>≥ 8.0 GB Dedicated Headroom<br/><i>(Safe from OOM eviction)</i>"]
-        end
-    end
+---
 
-    classDef run fill:#e8f4fd,stroke:#2b6cb0,stroke-width:2px;
-    classDef head fill:#edf2f7,stroke:#718096,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef comp fill:#ffffff,stroke:#3182ce,stroke-width:1.5px;
-    classDef os fill:#ffffff,stroke:#4a5568,stroke-width:1.5px;
+## 5. Getting Started & Local Development
 
-    class RUNTIME run;
-    class HEADROOM head;
-    class LLM,KV,ENC,DB,REFIT comp;
-    class OS os;
+### Prerequisites
+
+- **Hardware:** Apple Silicon Mac (M-series with 32 GB+ Unified Memory; 48 GB recommended).
+- **Operating System:** macOS 14.0 (Sonoma) or newer.
+- **Python Environment:** Python 3.11+ with [`uv`](https://github.com/astral-sh/uv) package manager.
+
+### Serving Documentation Locally
+
+To browse the complete documentation site with interactive diagrams, full-screen lightbox zoom, and search:
+
+```bash
+# Clone repository
+git clone https://github.com/olostan/project_n.git
+cd project_n
+
+# Serve documentation with live reload
+uv run --with mkdocs --with mkdocs-material mkdocs serve
 ```
 
----
+Then open `http://localhost:8000` in your web browser.
 
-## 5. Formal Documentation & Research Papers
+### Project Roadmap & Implementation Status
 
-- 📄 **[Scientific Whitepaper (`docs/WHITE_PAPER.md`)](https://github.com/olostan/project_n/blob/main/docs/WHITE_PAPER.md):** Formal clinical paper for Speech-Language Pathologists, OTs, and autism researchers explaining the dyadic transactional model, SCERTS framework, bioacoustics, and AAC authorship.
-- 📋 **[Preregistered Evaluation Protocol (`docs/evaluation_protocol.md`)](https://github.com/olostan/project_n/blob/main/docs/evaluation_protocol.md):** Single-case (N-of-1) study design with leave-one-day-out splits, mandatory baselines B1–B4, and safety metrics.
-- 📐 **[Technical Specifications (`SPECS.md`)](https://github.com/olostan/project_n/blob/main/SPECS.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
-- 🧠 **[Theoretical Architecture & Design (`DESIGN.md`)](https://github.com/olostan/project_n/blob/main/DESIGN.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
-- 🛡️ **[System & Safety Invariants (`INVARIANTS.md`)](https://github.com/olostan/project_n/blob/main/INVARIANTS.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
-- 🤖 **[Agent Directives (`AGENTS.md`)](https://github.com/olostan/project_n/blob/main/AGENTS.md):** Engineering standards, MLX memory conventions, and mandatory documentation synchronization protocol.
+Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion Foundations)**:
+- [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
+- [x] Architecture, system invariants, and technical specifications formalized.
+- [x] Preregistered evaluation protocol and safety promotion gates established.
+- [ ] Phase 1: Local Mac backend daemon (FastAPI), encrypted vault, and acoustic feature pipeline.
+- [ ] Phase 2: Metric projection head, episodic prototype retrieval, and ChromaDB integration.
+- [ ] Phase 3: Flutter companion app with offline outbox and pairing.
+- [ ] Phase 4: Local React dashboard and AAC integration.
+- [ ] Phase 5: Controlled clinical trial and N-of-1 prospective evaluation.
+
