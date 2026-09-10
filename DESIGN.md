@@ -258,6 +258,47 @@ A common pitfall in assistive technology is presenting either fabricated narrati
 
 The caregiver can switch between perspectives with a single click (`view_mode: "parent" | "therapist"`). Both views are derived from the exact same deterministic underlying record (L1–L4), guaranteeing that simplification in Parent View never introduces ungrounded clinical claims.
 
+### 4.4 The Clinic-to-Home Dyadic Knowledge Store (Personal & Therapist RAG)
+
+In pediatric developmental therapy, a major barrier is the **"clinic silo"**: groundbreaking co-regulatory techniques discovered by an Occupational Therapist (OT) or Speech-Language Pathologist (SLP) during a weekly 45-minute clinic session are difficult to transfer into the living room during weekend behavioral crises.
+
+Project N bridges this gap through a dedicated, local **Clinic-to-Home Knowledge Store** (`personal_dyadic_knowledge`):
+
+```mermaid
+graph TD
+    subgraph ClinicInput ["Clinic Sessions (OT / SLP)"]
+        OT_Clip["Therapy Session Video / Debrief Note<br/>e.g., 'Forearm compression settled vocal tension in 2 min'"]
+    end
+
+    subgraph HomeInput ["Home Daily Routines"]
+        Parent_Clip["Living Room Note & Outcome<br/>e.g., 'Red squishy dinosaur toy comforted him'"]
+    end
+
+    subgraph Extraction ["Local Fact Extraction (Apple Silicon)"]
+        Extract["Local LLM extracts structured facts & techniques with provenance:<br/>• Category: therapist_technique | Source: ot_session (Sarah, OT)<br/>• Category: comfort_object | Source: home_observation"]
+    end
+
+    subgraph Vault ["Local Encrypted Knowledge Store (ChromaDB + SQLite)"]
+        Store[("personal_dyadic_knowledge Collection<br/>(100% Offline, Device-Only)")]
+    end
+
+    subgraph LivingRoomDelivery ["Real-Time Parent Support at Home"]
+        NewEpisode["Child N Dysregulates at Home<br/>(High acoustic tension + pacing)"] --> QueryEngine["Query Matching Episodes + Personal Fact Store"]
+        Store --> QueryEngine
+        QueryEngine --> ParentCard["Parent View Advice:<br/>'💡 Technique from Thursday OT with Sarah: Try firm joint compression<br/>on forearms and offer his favorite red squishy toy.'"]
+    end
+
+    OT_Clip & Parent_Clip --> Extract
+    Extract --> Store
+
+    style Store fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style ParentCard fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+```
+
+1. **Ingestion & Attribution:** Clips and debrief notes recorded during clinical sessions are tagged with `source_type: "ot_session" | "slp_session"` and therapist attribution (`therapist_name: "Sarah (OT)"`).
+2. **Technique Extraction:** The local pipeline extracts specific physical scaffolding (e.g., joint compression, sensory swing protocols, weighted input) and communication strategies (e.g., visual schedule cues, 10-second wait-time).
+3. **Living Room Scaffolding:** When matching behavioral patterns arise at home, the assistant surfaces specific, familiar strategies demonstrated by trusted therapists, empowering parents with professional techniques without requiring clinical jargon.
+
 ---
 
 ## 5. Clinical Evidence Ingestion & Grounding Pipeline

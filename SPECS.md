@@ -244,6 +244,21 @@ CREATE TABLE model_checkpoints (
     promoted_at TEXT,
     notes TEXT
 );
+
+CREATE TABLE child_profile_facts (
+    id TEXT PRIMARY KEY,               -- UUIDv4
+    category TEXT NOT NULL,            -- 'comfort_object' | 'calming_cue' | 'sensory_trigger' | 'therapist_technique' | 'communication_routine'
+    fact_title TEXT NOT NULL,          -- e.g. 'Red squishy dinosaur toy', 'Forearm joint compression'
+    description TEXT NOT NULL,         -- e.g. 'Provides rapid tactile grounding within 2-4 min during auditory overload'
+    source_type TEXT NOT NULL,         -- 'home_observation' | 'ot_session' | 'slp_session' | 'school'
+    therapist_name TEXT,               -- e.g. 'Sarah (OT)' if technique demonstrated during clinical therapy
+    provenance_episode_id TEXT,        -- Foreign key to episodes.id
+    times_helpful INTEGER DEFAULT 1,   -- Success counter incremented on verified resolution
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_fact_category ON child_profile_facts(category);
+CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 ```
 
 ### 4.3 ChromaDB Collections
@@ -255,6 +270,10 @@ CREATE TABLE model_checkpoints (
    - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
    - Distance metric: `cosine`.
    - Metadata: `source_title`, `author`, `year`, `framework`, `study_population`, `evidence_level`, `license_status`.
+3. **`personal_dyadic_knowledge` (Personal & Clinic-to-Home RAG):**
+   - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
+   - Distance metric: `cosine`.
+   - Metadata: `fact_id`, `category`, `source_type`, `therapist_name`, `provenance_episode_id`, `times_helpful`.
 
 ---
 
@@ -569,6 +588,7 @@ def execute_inference_cycle(
     matcher: EpisodicPrototypeMatcher,
     confirmed_collection: Any,
     evidence_collection: Any,
+    personal_knowledge_collection: Optional[Any],  # Personal facts & clinic-learned OT/SLP techniques
     llm_renderer: Any,
     tokenizer: Any,
     view_mode: str = "parent"             # "parent" (default) or "therapist"
@@ -610,11 +630,20 @@ def execute_inference_cycle(
             "optional_aac_candidates": ["open_choice_board", "check_in"]
         }
 
-    # 4. CLINICAL EVIDENCE RETRIEVAL (L4)
+    # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
     top_action = match_result["candidates"][0]["action_taken"]
     evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
     evidence_text = lit_results["documents"][0][0] if lit_results["documents"] else "Evidence library guidelines on file."
+
+    # Retrieve personalized child anchors and professional techniques learned in OT/SLP clinic sessions
+    personal_facts = []
+    if personal_knowledge_collection is not None:
+        fact_query = f"{top_action} comfort toy calming phrase sensory trigger OT technique"
+        fact_results = personal_knowledge_collection.query(query_texts=[fact_query], n_results=3)
+        if fact_results.get("documents") and fact_results["documents"][0]:
+            personal_facts = fact_results["documents"][0]
+    personal_facts_str = "; ".join(personal_facts) if personal_facts else "No specific personal anchors or clinic techniques recorded yet."
 
     # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY
     f0_mean = measured_features.get("f0_mean_hz", "N/A")
@@ -643,12 +672,13 @@ def execute_inference_cycle(
         f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
         f"Translate the four-layer technical evidence into warm, accessible everyday language without clinical jargon:\n"
         f"1. Explain in simple terms what Nolan might be experiencing right now (e.g., overwhelmed by ambient noise, excited, or fatigued; clarify he is not angry at parents).\n"
-        f"2. Suggest 2-3 gentle, practical, low-risk things parents can try right now based on past co-regulatory successes (e.g., offering a favorite comfort toy, quiet space, water, or gentle deep pressure).\n"
+        f"2. Suggest 2-3 gentle, practical, low-risk things parents can try right now based on past co-regulatory successes, known comfort items (e.g., favorite toys, calming phrases), and techniques demonstrated by his OT or SLP in clinic sessions.\n"
         f"3. Frame ideas as gentle hypotheses to investigate rather than dogmatic claims. Include a brief reminder that these are supportive exploratory ideas, not medical advice.\n\n"
         f"[L1 Measured]: {l1}\n"
         f"[L2 History]: {l2}\n"
         f"[L3 Context]: {l3}\n"
         f"[L4 Evidence]: {l4}\n"
+        f"[Personal Anchors & Clinic-Learned Techniques]: {personal_facts_str}\n"
     )
 
     # 2. Therapist View: Formal sensory processing, bioacoustic, and SCERTS clinical telemetry
