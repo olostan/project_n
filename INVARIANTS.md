@@ -16,11 +16,15 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 ### Invariant 1: Privacy, Offline Execution & Encryption Vault
 **Zero external network telemetry. All media, features, embeddings, and clinical records MUST process strictly offline on local hardware.**
 - **No Cloud AI APIs:** Inclusion or invocation of remote cloud AI APIs (OpenAI, Anthropic, Google Cloud Vertex/Gemini, AWS Bedrock, HuggingFace Inference API, or any remote telemetry collector) is strictly prohibited across all modules.
+- **Zero-Cloud Dashboard:** The local Caregiver Web Dashboard (React + Tailwind) must bundle all JavaScript, CSS, font, and asset dependencies locally. Loading remote CDNs or external web resources is forbidden.
 - **Two-Key Vault Posture:** 
   - Media, features, and metadata are encrypted at rest using per-clip random AES-256-GCM Data Encryption Keys (DEKs).
   - Background ingestion and processing while the Mac screen is locked are executed via a signed per-user LaunchAgent helper using Apple's Data Protection Keychain (`SecItem` with `kSecUseDataProtectionKeychain=true`).
-  - Sensitive operations (revealing raw video, exporting data, viewing timelines, altering retention, pairing new devices) require explicit Touch ID / user-presence authentication via a separate private key.
-- **Transport Security:** Companion apps communicate with the Mac helper over mutual TLS (mTLS) with per-request signatures and nonces over local Wi-Fi. mDNS discovery or LAN IP address presence alone is never treated as authentication.
+  - Sensitive operations (revealing raw video, exporting data, viewing timelines, altering retention, pairing new devices) require explicit Touch ID / user-presence authentication via a separate private review key.
+- **Transport & Mobile Outbox Security:** 
+  - Companion apps (Flutter Android & iOS) communicate with the Mac helper over mutual TLS (mTLS) with per-request signatures and nonces over local Wi-Fi. mDNS discovery or LAN IP address presence alone is never treated as authentication.
+  - Device credentials must reside in hardware-backed storage: **Android Keystore** on Android devices and **iOS Keychain** on iOS devices (never in application preferences or shared storage).
+  - Clips captured offline away from home (playgrounds, outdoor parks, OT clinic sessions) are encrypted locally using AES-256 in the client SQLite outbox before being flushed to the Mac.
 - **Child Assent & Dissent:** The capture system must respect behavioral dissent (e.g., turning away or covering the camera immediately terminates recording). Camera-free private zones (bathrooms, bedrooms) are enforced in software. Untagged footage is automatically purged after a configurable retention window.
 - **De-Identification:** In public and committed code/documentation, the child is strictly de-identified (referred to as Child N). No identifiable personal health information (PHI) is committed to Git.
 
@@ -39,10 +43,11 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
 - **Acoustic Front End:** The system must preserve raw acoustic dynamics. Explicit pitch tracking (F0), voice quality metrics (jitter, shimmer, HNR, spectral tilt), harmonic filterbanks (CQT/ERB), and broadband log-mel representations are permitted and required. Pitch tracking is an acoustic measurement, not an ASR phoneme decoder.
 - **Pretrained Encoders as Experimental Arms:** Pretrained acoustic representations (e.g., BEATs, AudioMAE, or frozen intermediate encoder layers) and pretrained vision backbones may be evaluated as competing experimental arms against custom-trained encoders. The ban applies to *phonemic transcription and text-only intermediate bottlenecks*, not to pretrained acoustic representations.
 - **Kinematic Extraction:** Pixel differencing alone must not be relied upon due to camera motion vulnerability. Pose/keypoint landmarks (e.g., MediaPipe Holistic, BlazePose) form the primary motion substrate, complemented by optical flow and context.
+- **Optional Physiological Sensing:** Wearable physiological telemetry (EDA, HRV) is an optional auxiliary channel. The metric learning head must support graceful degradation (modal masking) when sensors are absent.
 
 ### Invariant 5: No Autonomous Model Deployment (Gated Promotion)
 **No model checkpoint or adapter may be deployed to caregiver-facing inference automatically or via unverified overnight gradient updates.**
-- Continuous adaptation requires an explicit promotion gate:
+- Continuous adaptation requires an explicit promotion gate conforming to [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
   1. Candidate models are trained on accumulated, verified records.
   2. Candidates are evaluated against time-separated and context-stratified holdout sets plus a locked "never-train" safety set.
   3. Predeclared criteria must be satisfied: improved calibration error, coverage, and per-class precision/recall, with **zero safety regressions**.

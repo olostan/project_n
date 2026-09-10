@@ -1,12 +1,11 @@
-# Project N: Architectural, Neurobiological & Epistemic Design Document
-## Multimodal Communication Support, Epistemic Validity, and Retrieval-First Architecture
+# Project N: Architectural, Neurobiological & Systems Engineering Design Document
 
 ---
 
 ## 1. Biological and Neurological Foundations
 
 ### 1.1 Neurobiology & Communication in Minimally Speaking Individuals
-Autism Spectrum Disorder (ASD) represents a heterogeneous spectrum of neurodevelopmental profiles. For non-verbal or minimally speaking children—specifically conceptualized around Child N, a 7-year-old minimally speaking child—expressive spoken language is limited. Childhood apraxia of speech (CAS), atypical oral-motor coordination, or motor-planning challenges frequently co-occur, dissociating cognitive capacity from phonetic articulation.
+Autism Spectrum Disorder (ASD) encompasses heterogeneous neurodevelopmental profiles. For non-verbal or minimally speaking children—specifically conceptualized around Child N, a 7-year-old minimally speaking child—expressive spoken language is severely limited. Childhood apraxia of speech (CAS), atypical oral-motor coordination, or motor-planning challenges frequently co-occur, dissociating cognitive capacity from phonetic articulation.
 
 Crucially, **the absence of verbal speech does not indicate the absence of language, cognition, agency, or communicative intent**. The scientific grounding for Project N rests on several foundational principles:
 - **Heterogeneous Connectivity Profiles:** Classical models proposed local hyper-connectivity coupled with long-range hypo-connectivity. Contemporary neuroimaging indicates that functional and structural connectivity alterations are highly heterogeneous; long-range underconnectivity is reasonably supported, while local microcircuit hyper-reactivity varies widely across individuals. Project N rejects one-size-fits-all neurological assumptions, adopting an individualized (N-of-1) measurement posture.
@@ -27,7 +26,7 @@ In the absence of phonemic speech, communicative and affective states are convey
 
 ---
 
-## 2. The "Rosetta Stone" Fallacy, Epistemics & Grounding
+## 2. Epistemic Validity, the "Rosetta Stone" Fallacy & Grounding
 
 ### 2.1 The Emotion-Inference Critique & Epistemic Traps
 A core risk in automated affective computing is the assumption that facial movements or vocal acoustic properties map uniformly to internal emotional states. As established by Barrett et al. (2019), emotional expressions are profoundly context-dependent; observer agreement does not establish ground truth.
@@ -48,29 +47,29 @@ Standard foundation models impose severe neurotypical inductive biases:
 
 ---
 
-## 3. Latent Space Geometry & Sensory Extraction Architecture
+## 3. Sensory Extraction, Physics & Feature Determination
 
 Project N deploys a modular, multi-pathway sensory extraction architecture combining acoustics, kinematics, and direct physiology.
 
 ```text
-RAW ACOUSTIC STREAM (48 kHz)
-├─ Dedicated Pitch Track ────► F0, Jitter, Shimmer, HNR (~10ms hop) ──────┐
-├─ Harmonic Filterbank   ────► Constant-Q Transform (CQT) / ERB Filters   ├─► Acoustic Latent (X_a)
+RAW ACOUSTIC STREAM (48 kHz WAV)
+├─ Dedicated Pitch Track ────► F0, Jitter, Shimmer, HNR, CPP (~10ms hop) ─┐
+├─ Harmonic Filterbank   ────► Constant-Q Transform (CQT) 84 bins         ├─► Acoustic Latent (X_a)
 └─ Broadband Texture     ────► 128 Log-Mel Spectrogram Bands              │
                                                                            │
-KINEMATIC STREAM (30 fps)                                                  │
-├─ Body-Relative Pose   ────► MediaPipe Holistic / BlazePose Landmarks   ├─► Kinematic Latent (X_k)
-├─ Dense Optical Flow   ────► RAFT Motion Vector Field                     │
-└─ Visual Context       ────► Low-Rate Context / TD-ViT (Ablation Arm)    │
+KINEMATIC STREAM (30 fps 720p)                                             │
+├─ Body-Relative Pose   ────► MediaPipe Holistic Torso-Normalized Skeletons├─► Kinematic Latent (X_k)
+├─ Dense Optical Flow   ────► RAFT Motion Displacement Vector Field       │
+└─ Visual Context       ────► Low-Rate Context / Spatial Tokens           │
                                                                            │
-PHYSIOLOGICAL STREAM (Wearable)                                            │
-├─ Electrodermal (EDA)  ────► Tonic SCL & Phasic SCR Conductance           ├─► Physiological Latent (X_p)
-├─ Cardiorespiratory    ────► Inter-Beat Intervals & Heart Rate Var (HRV)  │
-└─ Accelerometry        ────► 3-Axis Somatic Motion & Tremor Energy        │
+PHYSIOLOGICAL STREAM (Wearable, Optional)                                  │
+├─ Electrodermal (EDA)  ────► Tonic SCL & Phasic SCR Conductance (cvxEDA) ├─► Physiological Latent (X_p)
+├─ Cardiorespiratory    ────► Inter-Beat Intervals & HRV RMSSD (100 Hz PPG)│   (Masked if absent)
+└─ Accelerometry        ────► 3-Axis Somatic Tremor Energy (50 Hz)        │
                                                                            ▼
-                                                Multimodal Temporal Binding (CAV-MAE Style)
+                                                Multimodal Attention Pooling & L2-Norm
                                                                            ▼
-                                                Attention-Pooled Metric Vector: z ∈ R^128
+                                                Metric Vector: z_metric ∈ R^128 (||z||2 = 1)
 ```
 
 ### 3.1 Acoustic Front End (Resolving the Micro-Pitch Limit)
@@ -96,11 +95,13 @@ Project N establishes a robust kinematic hierarchy:
    Computes motion vector fields via RAFT to capture rapid continuous movements (e.g., clothing flutter, peripheral limb trajectories) independent of luminance shifts.
 3. **Frame Rate Specification:** Captured at $30\text{ fps}$ (or sampled at $15\text{ fps}$) at $720\text{p}$, which fully satisfies the Nyquist criterion for $3\text{ Hz}$ to $8\text{ Hz}$ motor stims while avoiding the pose-noise overfitting observed at $60\text{ fps}$.
 
-### 3.3 Physiological Front End (Direct Autonomic Correlation)
+### 3.3 Physiological Front End & Graceful Degradation
 To ground internal arousal without circular inference from video, Project N integrates wearable telemetry (e.g., Empatica EmbracePlus, or Apple Watch sensor streaming):
 1. **Electrodermal Activity (EDA):** Separates skin conductance into tonic baseline level (SCL) and rapid phasic responses (SCR), indexing sympathetic nervous system arousal.
 2. **Heart Rate Variability (HRV):** Extracts Root Mean Square of Successive Differences (RMSSD) and High-Frequency (HF) power bands reflecting vagal/parasympathetic modulation.
 3. **3-Axis Accelerometry:** Provides continuous wrist/body motion energy, maintaining context when the child moves outside the camera field of view.
+4. **Missing Modality Gating:**
+   Because wearable sensors are **completely optional**, the metric projection head substitutes a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio}$ when physiological data is absent, allowing dual-modal (Audio + Vision) operation with zero performance degradation.
 
 ---
 
@@ -160,58 +161,79 @@ Recommended Action: Observe environmental context or present AAC open choice boa
 
 ---
 
-## 5. Unsupervised Pretraining & Evaluation Protocol
+## 5. Clinical Evidence Ingestion & Grounding Pipeline
 
-### 5.1 Pretraining via Audio-Visual Temporal Correspondence
-Rather than forcing a 64-token bottleneck to reconstruct thousands of raw image patches under 75% masking (which causes severe underfitting on a single-child dataset), pretraining uses **Audio-Visual Temporal Correspondence** (CAV-MAE / AVC style):
-- **Objective:** Contrastive pairing determining whether an acoustic segment and a kinematic segment co-occurred synchronously in time versus asynchronously from different time windows.
-- **Advantage:** Requires zero manual annotations, learns individualized sensorimotor binding, and runs efficiently on local Apple Silicon hardware.
+Rather than bulk-fine-tuning LoRA on academic text (which causes hallucination and fact drift), Project N grounds its clinical knowledge via an inspectable, versioned Retrieval-Augmented Generation (RAG) store.
 
-### 5.2 Preregistered N-of-1 Evaluation Protocol
-To prevent data leakage and benchmark gaming, Project N enforces an N-of-1 evaluation protocol:
-1. **Time-Separated Splits:** Data is partitioned by **day** or by independent episode with an enforced temporal buffer. Adjacent 5-second windows from the same recording are never split across train and test sets.
-2. **Baselines Required with Every Benchmark:**
-   - *Metadata-Only Baseline:* Logistic regression on time of day, meal timing, and caregiver antecedent tags.
-   - *Shuffled Labels Baseline:* Empirical null distribution verification.
-   - *Nearest Historical Episode Baseline:* Raw feature 1-NN lookup.
-   - *No-LLM Baseline:* Direct output of retrieved structured records without narrative formatting.
-3. **Reported Metrics:** Per-class precision, recall, Macro-F1, calibration error (ECE), and abstention coverage.
+```text
+CLINICAL PDF INGESTION PIPELINE (Offline / Pre-deployment)
+┌───────────────────────────────┐
+│ Curated Academic Literature   │ (FBA, HIPPEA, Interoception, AAC, NCCPC-R, ASI)
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ PDF Extractor (PyMuPDF)       │ Preserves section hierarchy, tables & metadata
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Semantic Chunker              │ ~500 tokens / chunk with 50-token overlap
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Metadata Enricher             │ Extracts author, year, population, evidence grade
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ Local MLX Embedding Model     │ nomic-embed-text-v1.5 (768-dim metric space)
+└───────────────┬───────────────┘
+                │
+                ▼
+┌───────────────────────────────┐
+│ ChromaDB: clinical_evidence   │ Local HNSW cosine index
+└───────────────────────────────┘
+```
+
+### 5.1 Evidence Synthesis Without Hallucination
+When an episode matches historical precedents in Layer 2 (e.g., deep proprioceptive pressure resolution), the system queries the `clinical_evidence` collection using the structured outcome. The retrieved excerpt is cited directly in Layer 4 (L4) with its author, publication year, and evidence level. The LLM is strictly forbidden from adding clinical claims beyond what is cited in L4.
 
 ---
 
-## 6. Clinical Grounding, Interoception & The AAC Bridge
+## 6. Full System Architecture: Server, Storage & Client UI
 
-### 6.1 Clinical Framework Integration
-Project N balances multiple clinical and developmental lenses, recognizing each as an interpretative perspective rather than absolute causal truth:
-- **Functional Behavior Assessment (FBA):** Analyzes antecedents and behavioral functions across tangible, escape, attention, and sensory reinforcement categories.
-- **Predictive Processing (HIPPEA):** Frames repetitive movements as active strategies to minimize sensory prediction error and restore environmental predictability.
-- **Interoception:** Evaluates internal bodily signals (hunger, thirst, fatigue, temperature, digestive discomfort) as primary drivers of behavioral state.
-- **Ayres Sensory Integration (ASI):** Referenced as one therapeutic lens among several, documented with study population and evidence quality metadata.
+### 6.1 Server Architecture: Python & FastAPI
+The server executes as an asynchronous daemon under Python 3.11+ using FastAPI and Uvicorn:
+- **Metal Memory Residency:** MLX tensor arrays reside directly in Apple Silicon Unified RAM. FastAPI endpoints execute inference passes via Python C++ bindings with zero IPC overhead.
+- **Server-Sent Events (SSE) Bus:** Real-time event streaming (`/api/v1/events/stream`) pushes live progress to the web dashboard (demuxing $\to$ acoustic $\to$ kinematic $\to$ metric $\to$ retrieval $\to$ AAC routing $\to$ LLM streaming).
+- **Two-Key macOS Vault:** Background video ingestion while the Mac screen is locked uses a signed LaunchAgent helper with Apple's Data Protection Keychain (`SecItem` with `kSecAttrAccessibleAfterFirstUnlock`). Touch ID authentication is required to decrypt and view raw video files.
 
-### 6.2 The AAC Bridge: Centering Child Authorship
-The most critical defect of prior approaches is excluding the child from the communication loop. Project N integrates directly with Augmentative and Alternative Communication (AAC):
-- High-probability possibilities are automatically transferred over local Bluetooth/Wi-Fi to Child N's AAC device as candidate icons on an adaptive choice board.
-- When Child N taps an option (e.g., "water", "quiet break", "deep pressure") or explicitly rejects all options, this selection is logged as **the authoritative ground truth**, superseding all adult hypotheses.
+### 6.2 Mobile Companion Architecture (Flutter Android & iOS)
+The mobile companion app runs on Flutter, supporting both Android and iOS:
+- **Playground & Clinic Offline Mode:** When Child N is away from home Wi-Fi (e.g., at an OT therapy session or outdoor playground), the app records 30–120s clips, prompts for quick optional caregiver notes, and stores them in a local AES-encrypted SQLite queue (`offline_clips_outbox`).
+- **Store-and-Forward Background Flushing:** When the phone returns home and detects the Mac helper over local Wi-Fi, the background sync manager flushes queued clips over mutual TLS (mTLS) with SHA-256 chunk verification.
 
-### 6.3 Validated Distress & Medical Rule-Out (NCCPC-R)
-Somatic distress and pain must never be confused with behavioral or sensory preferences. Project N incorporates the **Non-Communicating Children's Pain Checklist – Revised (NCCPC-R)**:
-- Evaluates 27 observable items across 6 subscales: Vocal, Emotional, Facial, Body Language, Protective, and Physiological.
-- **Red-Flag Escalation:** If the distress score crosses the validated threshold ($\ge 6$ on observed subscales), the system generates an immediate **Medical Escalation Card**, advising caregivers to conduct a medical review for physical pain (e.g., ear infection, dental pain, gastrointestinal reflux, acute injury). Behavioral and sensory interpretations are suppressed.
+### 6.3 Local Caregiver Dashboard (React + Tailwind SPA)
+The local Mac interface is a modern React SPA served directly by the FastAPI backend at `http://127.0.0.1:8080`:
+- **Live System Telemetry:** Real-time gauge of active vs. peak Metal unified memory, thermal state, and MLX engine status.
+- **Timeline & Episode Browser:** Filterable historical diary of verified episodes.
+- **Multimodal Video Inspector:** Synchronized video player with `<canvas>` skeletal overlay, interactive audio pitch ($F_0$) waveform, and the four-layer output card.
+- **2D UMAP Lexicon Visualizer:** Interactive WebGL cluster map showing the geometry of Child N's behavioral repertoire.
+- **Candidate Model Promotion Gate:** Visual holdout calibration curves and one-click model promotion/rollback.
 
 ---
 
-## 7. Continuous Adaptation, Re-fitting & Model Governance
+## 7. Continuous Adaptation & Periodic Re-fit Protocol
 
 ### 7.1 Periodic Full Re-fit Over Nightly SGD
-Running nightly Stochastic Gradient Descent with small batches (e.g., 2 novel examples + 8 historical examples) produces high gradient variance and instability in high-dimensional space.
+Rather than running unstable nightly SGD on single batches, Project N executes a periodic **full re-fit**:
+- Upon accumulation of $K \ge 10$ new verified episodes, the 128-dimensional metric projection head and prototype cluster centers are re-fit over the entire verified historical dataset.
+- On Apple Silicon Metal shaders, re-fitting a 128-dimensional metric space over hundreds of episodes completes in seconds, making catastrophic forgetting structurally impossible.
 
-Project N replaces nightly SGD with a **periodic full re-fit**:
-- At scheduled intervals (or upon accumulation of $K$ verified examples), the lightweight 128-dimensional metric projection head and prototype clusters are re-fit over the entire verified episodic history.
-- On Apple Silicon, re-fitting a 128-dimensional metric head over hundreds of examples executes in seconds on Metal GPU arrays, making catastrophic forgetting structurally impossible.
-
-### 7.2 Model Promotion Gate
-No candidate model is deployed to caregiver-facing inference automatically. Promotion requires passing an explicit validation gate:
-1. **Holdout Evaluation:** Candidate weights are evaluated on locked, time-separated test splits.
-2. **Safety Regression Check:** Zero increase in false reassurance or missed NCCPC-R distress events.
-3. **Caregiver Review:** The caregiver reviews performance metrics and approves model promotion.
-4. **Lineage & Rollback:** All prior model weights and embedding spaces are versioned, enabling instant one-click rollback.
+### 7.2 Gated Model Promotion Pipeline
+Before any candidate model is deployed to caregiver-facing inference, it must pass the preregistered evaluation protocol in [`docs/evaluation_protocol.md`](file:///Users/olostan/code/project_n/docs/evaluation_protocol.md):
+1. **Holdout Evaluation:** Evaluated on leave-one-day-out (LODO) splits and the locked 50-episode safety holdout set.
+2. **Safety Regression Check:** Zero tolerance for missed NCCPC-R distress events.
+3. **Caregiver Sign-off:** The caregiver inspects validation metrics on the dashboard and explicitly confirms promotion.
