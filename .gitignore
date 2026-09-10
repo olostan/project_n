@@ -120,3 +120,7 @@ app/android/app/build/
 *.swo
 *~
 .cursor/
+
+# --- MkDocs & Static Site Build Artifacts ---
+site/
+.cache/

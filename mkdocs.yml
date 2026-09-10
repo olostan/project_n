@@ -1,0 +1,79 @@
+site_name: Project N
+site_description: Multimodal Communication Support & Behavioral Insight Pipeline for Minimally Speaking Autism
+site_author: Valentyn Shybanov
+site_url: https://olostan.github.io/project_n/
+
+repo_name: olostan/project_n
+repo_url: https://github.com/olostan/project_n
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Scientific Whitepaper: WHITE_PAPER.md
+  - Clinical Foundations:
+      - Evaluation Protocol: evaluation_protocol.md
+      - Multi-Reviewer Audit: REVIEW_REFINEMENTS.md
+      - Review Raw Source: report-source.md
+  - Engineering Architecture:
+      - Theoretical Design: design.md
+      - Technical Specifications: specs.md
+      - System Invariants: invariants.md
+      - Autonomous Agent Directives: agents.md
