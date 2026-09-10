@@ -368,9 +368,12 @@ graph TD
 ```
 
 ### 6.2 Key Dashboard Screens
-1. **Live Multimodal Inspector:**
+1. **Live Multimodal Inspector & Dual-Perspective Insight Card:**
    - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and Farnebäck motion vectors frame-by-frame.
    - Synchronized audio waveform with interactive pitch trace ($F_0$ curve) and CQT spectrogram heatmaps.
+   - **Perspective Switcher Toggle (`[ 🟢 Parent View (Default) ] | [ 🔬 Therapist View ]`):**
+     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Nolan sounds overwhelmed by room noise, not angry at you"*), gentle exploratory hypotheses (*"What Nolan might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
+     - **Therapist View:** Full bioacoustic figures ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck displacement), SCERTS and Ayres Sensory Integration mapping, and exact peer-reviewed literature citations.
 2. **Interactive 2D Lexicon Cluster Map:**
    - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
    - Clicking any cluster dot opens the underlying video clip and recorded caregiver outcome.
@@ -567,7 +570,8 @@ def execute_inference_cycle(
     confirmed_collection: Any,
     evidence_collection: Any,
     llm_renderer: Any,
-    tokenizer: Any
+    tokenizer: Any,
+    view_mode: str = "parent"             # "parent" (default) or "therapist"
 ) -> Dict[str, Any]:
     """
     Executes an end-to-end Project N inference cycle adhering to the four-layer output contract.
@@ -633,12 +637,26 @@ def execute_inference_cycle(
     )
     l4 = f"Research literature: {evidence_text[:140]}..."
 
-    render_prompt = (
-        f"You are a supportive, evidence-grounded communication assistant for the parents and therapists of Child N.\n"
-        f"Analyze this newly uploaded episode based on the four layers below. Present objective observations "
-        f"and historical precedents (e.g., 'In X of Y prior episodes with comparable acoustic/kinematic markers, intervention Z "
-        f"was followed by regulation within N minutes; literature note: Author Year'). Frame insights as observations "
-        f"and non-prescriptive hypotheses to explore, avoiding imperative medical commands or internal psychic assumptions:\n\n"
+    # Dual-Perspective Prompt Generation:
+    # 1. Parent View (Default): Warm, jargon-free everyday English with practical things to try
+    parent_render_prompt = (
+        f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
+        f"Translate the four-layer technical evidence into warm, accessible everyday language without clinical jargon:\n"
+        f"1. Explain in simple terms what Nolan might be experiencing right now (e.g., overwhelmed by ambient noise, excited, or fatigued; clarify he is not angry at parents).\n"
+        f"2. Suggest 2-3 gentle, practical, low-risk things parents can try right now based on past co-regulatory successes (e.g., offering a favorite comfort toy, quiet space, water, or gentle deep pressure).\n"
+        f"3. Frame ideas as gentle hypotheses to investigate rather than dogmatic claims. Include a brief reminder that these are supportive exploratory ideas, not medical advice.\n\n"
+        f"[L1 Measured]: {l1}\n"
+        f"[L2 History]: {l2}\n"
+        f"[L3 Context]: {l3}\n"
+        f"[L4 Evidence]: {l4}\n"
+    )
+
+    # 2. Therapist View: Formal sensory processing, bioacoustic, and SCERTS clinical telemetry
+    therapist_render_prompt = (
+        f"You are an interdisciplinary clinical support assistant for the SLP and Occupational Therapist of Child N.\n"
+        f"Summarize this episode using formal bioacoustic, kinematic, SCERTS, and Ayres Sensory Integration terminology.\n"
+        f"Present raw physical telemetry (F0, CPP, pose frequencies), historical precedent frequencies, "
+        f"and formal literature citations without ungrounded claims:\n\n"
         f"[L1 Measured]: {l1}\n"
         f"[L2 History]: {l2}\n"
         f"[L3 Context]: {l3}\n"
@@ -647,7 +665,8 @@ def execute_inference_cycle(
 
     # Base LLM is 100% frozen via model.freeze()
     # In MLX-LM runtime, generation is executed via mlx_lm.generate(llm_model, tokenizer, prompt=...)
-    rendered_card = f"Caregiver Analysis Card:\n{render_prompt}"
+    rendered_parent_card = f"Parent View:\n{parent_render_prompt}"
+    rendered_therapist_card = f"Therapist View:\n{therapist_render_prompt}"
 
     # Optional AAC bridge candidates (for child self-advocacy if accessible)
     aac_options = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
@@ -659,12 +678,19 @@ def execute_inference_cycle(
             "L3_context": l3,
             "L4_evidence": l4
         },
-        "caregiver_analysis_card": rendered_card,
-        "historical_precedents_and_observations": [
-            f"Precedent: In historical episodes matching this acoustic/kinematic profile, {top_action} was followed by homeostatic regulation.",
-            f"Contextual observation: Transition state noted as {caregiver_context.get('transition_state', 'activity')}."
+        "view_mode": view_mode,
+        "parent_view": rendered_parent_card,
+        "therapist_view": rendered_therapist_card,
+        "active_card": rendered_parent_card if view_mode == "parent" else rendered_therapist_card,
+        "practical_things_to_try": [
+            f"Check if child responds to previous comfort action: {top_action}",
+            f"Review environmental antecedents ({caregiver_context.get('transition_state', 'activity')})"
         ],
-        "optional_aac_candidates": aac_options
+        "optional_aac_candidates": aac_options,
+        "disclaimer": (
+            "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
+            "not a medical diagnosis. Prioritize physical comfort and consult your pediatrician for health concerns."
+        )
     }
 ```
 

@@ -250,6 +250,17 @@ graph LR
     style L4 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
 ```
 
+### 6.1 The Dual-Perspective Presentation Interface (Parent View vs. Therapist View)
+
+To ensure clinical and practical utility across different stakeholders, the structured L1–L4 evidence is rendered through a toggleable interface:
+
+1. **Parent View (Default — Warm Co-Regulatory Scaffolding):**
+   Translates dense bioacoustic physics and kinematic coordinates into accessible, compassionate, and non-pathologizing everyday language (*e.g., explaining that a high vocal hum paired with hand flapping reflects sensory overload or excitement rather than defiance or anger*). It presents concrete, low-risk co-regulatory ideas grounded in past successes (*"Offer the red squishy toy that comforted him last Tuesday", "Dim lights and provide 3 minutes of quiet space"*) with an explicit non-diagnostic notice reminding families that suggestions are gentle hypotheses to investigate, not medical directives.
+2. **Therapist View (Clinical & Bioacoustic Telemetry):**
+   Surfaces raw fundamental frequency ($F_0$), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, pose oscillation frequencies (Hz), SCERTS mutual regulation categories, and exact peer-reviewed literature citations, enabling Speech-Language Pathologists and Occupational Therapists to review objective empirical progress during therapy sessions.
+
+Both views are derived from the exact same deterministic underlying records, ensuring that plain-language translation never compromises empirical grounding.
+
 ---
 
 ## 7. Implications for Clinical Practice (SLP & OT)
