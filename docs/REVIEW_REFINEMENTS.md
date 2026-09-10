@@ -532,44 +532,50 @@ and concurrent server load.
 
 Invert the current design: **retrieval first, generation last.** The LLM leaves the inference path.
 
-```
-                     ┌─────────────────────────────────────────────┐
-   clip (30 fps,     │  L1  MEASUREMENT                            │
-   48 kHz audio,     │  ├─ acoustic: log-mel + CQT + F0/jitter/    │
-   wearable stream)  │  │            shimmer/HNR  (~10 ms hop)     │
-        │            │  ├─ kinematic: pose/keypoints + optical      │
-        ├───────────►│  │            flow + low-rate context       │
-        │            │  ├─ physiology: EDA / HRV / accelerometry    │
-        │            │  └─ capture quality gate                    │
-        │            └───────────────────┬─────────────────────────┘
-        │                                │
-        │            ┌───────────────────▼─────────────────────────┐
-        │            │  encoders (pretrained, fine-tuned)          │
-        │            │  BEATs / AudioMAE · VideoMAE / pose model   │
-        │            │  resampler trained on audio-visual          │
-        │            │  temporal correspondence   (see F-02)       │
-        │            └───────────────────┬─────────────────────────┘
-        │                                │  64-128 dim embedding
-        │            ┌───────────────────▼─────────────────────────┐
-        │            │  L2  RETRIEVAL + CALIBRATED HEAD            │
-        │            │  ├─ prototype / k-NN over confirmed episodes│
-        │            │  ├─ calibrated multi-label probabilities    │
-        │            │  └─ ABSTAIN if d(nearest) > threshold       │
-        │            └───────────────────┬─────────────────────────┘
-        │                                │  structured result object
-   ┌────▼─────────────┐  ┌───────────────▼─────────────────────────┐
-   │ L3  caregiver     │  │  L4  evidence library (versioned RAG)  │
-   │ context + outcome │  │      cited excerpts, scope, quality    │
-   └────┬─────────────┘  └───────────────┬─────────────────────────┘
-        │                                │
-        └────────────────┬───────────────┘
-                         │
-              ┌──────────▼──────────────────────────────────────────┐
-              │  RENDERING ONLY — schema-constrained LLM            │
-              │  May phrase L1-L4 into plain language.              │
-              │  May NOT add a label, cause, diagnosis, or          │
-              │  intervention absent from the structured result.    │
-              └─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    INPUT["<b>Multimodal Clip Capture</b><br/>30 fps video, 48 kHz audio, optional wearable stream"]
+
+    subgraph L1["L1: Measurement & Signal Physics"]
+        L1_DESC["• <b>Acoustic:</b> Log-mel + CQT + F₀/jitter/shimmer/HNR (~10 ms hop)<br/>• <b>Kinematic:</b> Pose/keypoints + optical flow + low-rate context<br/>• <b>Physiology:</b> EDA / HRV / accelerometry (optional)<br/>• <b>Capture Quality Gate:</b> SNR / illumination check"]
+    end
+
+    ENC["<b>Pretrained Sensory Encoders</b><br/>BEATs / AudioMAE · VideoMAE / pose model<br/>Resampler trained on audio-visual temporal correspondence"]
+
+    subgraph L2["L2: Metric Retrieval & Calibrated Classification"]
+        L2_DESC["• Prototypical / k-NN retrieval over confirmed episodes<br/>• Calibrated multi-label probabilities<br/>• <b>ABSTAIN / Unmapped</b> if d(nearest) > epistemic threshold"]
+    end
+
+    subgraph CONTEXT["Context & Literature Grounding"]
+        L3["<b>L3: Caregiver Context & Outcome</b><br/>Observed setting, immediate reaction, adult verbalization"]
+        L4["<b>L4: Evidence Library (Versioned RAG)</b><br/>Cited clinical literature excerpts, scope, evidence quality"]
+    end
+
+    subgraph RENDER["Rendering Only — Schema-Constrained LLM"]
+        LLM["<b>Schema-Constrained LLM</b><br/>• May phrase L1–L4 findings into structured plain language.<br/>• <b>FORBIDDEN:</b> May NOT invent labels, causes, diagnoses, or interventions absent from structured record."]
+    end
+
+    INPUT --> L1
+    L1 --> ENC
+    ENC -- "64–128 dim Metric Embedding" --> L2
+    INPUT -. "Environmental context" .-> L3
+    L2 -- "Structured Result Object" --> L4
+    L3 --> RENDER
+    L4 --> RENDER
+
+    classDef input fill:#f7fafc,stroke:#718096,stroke-width:1.5px;
+    classDef l1 fill:#e8f4fd,stroke:#2b6cb0,stroke-width:1.5px;
+    classDef enc fill:#edf2f7,stroke:#4a5568,stroke-width:1.5px;
+    classDef l2 fill:#e6fffa,stroke:#319795,stroke-width:1.5px;
+    classDef ctx fill:#fefcbf,stroke:#d69e2e,stroke-width:1.5px;
+    classDef render fill:#faf5ff,stroke:#805ad5,stroke-width:2px;
+
+    class INPUT input;
+    class L1 l1;
+    class ENC enc;
+    class L2 l2;
+    class L3,L4 ctx;
+    class RENDER,LLM render;
 ```
 
 Why this shape:
@@ -657,14 +663,33 @@ context and **cannot be used from a launchd daemon**; it recommends `SecItem` wi
 `kSecUseDataProtectionKeychain=true`. A locked screen is not a logged-out user, so a user-context helper
 stays available while the Mac is awake.
 
-```
-Flutter phone (paired once) --mTLS + signed request--> Mac per-user helper
-                                                        │
-                                                        ├─► per-clip random AES-256-GCM key (DEK)
-                                                        │      └─► encrypted media / features / metadata
-                                                        │
-                                                        └─► vault key in Data Protection Keychain
-                                                               └─► wraps each clip DEK
+```mermaid
+flowchart LR
+    PHONE["<b>Flutter Companion App</b><br/>Paired once via local QR"]
+    HELPER["<b>Mac Per-User Helper</b><br/>LaunchAgent in user login context"]
+    
+    subgraph VAULT["Cryptographic Storage Vault"]
+        direction TB
+        DEK["<b>Per-Clip Random AES-256-GCM Key (DEK)</b><br/>Encrypts media, features & metadata"]
+        ENC_DATA[("<b>Encrypted Filesystem</b><br/>Ciphertext media, features, ChromaDB")]
+        KEK["<b>Vault Key (KEK)</b><br/>Data Protection Keychain (device-only)"]
+    end
+
+    PHONE -- "mTLS + Signed Request" --> HELPER
+    HELPER --> DEK
+    DEK --> ENC_DATA
+    HELPER --> KEK
+    KEK -- "Wraps each clip DEK" --> DEK
+
+    classDef phone fill:#e8f4fd,stroke:#2b6cb0,stroke-width:1.5px;
+    classDef helper fill:#edf2f7,stroke:#4a5568,stroke-width:1.5px;
+    classDef vault fill:#f0fff4,stroke:#38a169,stroke-width:1.5px;
+    classDef crypto fill:#ffffff,stroke:#2f855a,stroke-width:1.5px;
+
+    class PHONE phone;
+    class HELPER helper;
+    class VAULT vault;
+    class DEK,ENC_DATA,KEK crypto;
 ```
 
 - Store encrypted media, embeddings, and metadata **outside** the Keychain; store only compact keys inside it.

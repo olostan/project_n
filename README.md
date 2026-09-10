@@ -129,18 +129,32 @@ graph TD
 
 Project N is engineered specifically for Apple Silicon hardware with 48 GB Unified Memory (parameterized for 64GB/128GB workstations).
 
-```text
-48.0 GB UNIFIED PHYSICAL RAM
-┌─────────────────────────────────────────────────────────────┬────────────────┐
-│           PROJECT N RUNTIME FOOTPRINT (~17.2 GB)             │  OS HEADROOM   │
-├──────────────┬──────────────┬──────────────┬────────┬───────┼────────────────┤
-│ Base LLM 14B │ KV Cache     │ Encoders &   │ Episodic│Refit │ macOS, Audio,  │
-│ 4-bit (9.0G) │ 8k (1.6G)    │ Metric (2.2G)│ (0.4G) │(4.0G) │ WindowServer   │
-│ (Frozen W0)  │ (GQA 8-head) │ (MLX Metal)  │ (HNSW) │(Metal)│ (≥ 8.0 GB)     │
-└──────────────┴──────────────┴──────────────┴────────┴───────┴────────────────┘
-▲                                                             ▲                ▲
-0.0 GB                                                        17.2 GB          48.0 GB
-                                                              (Measured Peak)
+```mermaid
+graph LR
+    subgraph RAM["48.0 GB Apple Silicon Unified Memory Envelope"]
+        direction TB
+        subgraph RUNTIME["Project N Runtime Footprint (~17.2 GB Peak)"]
+            direction LR
+            LLM["<b>Base LLM 14B</b><br/>4-bit Quantized<br/>9.0 GB (Frozen W₀)"]
+            KV["<b>KV Cache</b><br/>8k Context (GQA)<br/>1.6 GB"]
+            ENC["<b>Encoders & Metric</b><br/>BEATs / Pose / MLP<br/>2.2 GB (MLX Metal)"]
+            DB["<b>Episodic DB</b><br/>ChromaDB HNSW<br/>0.4 GB"]
+            REFIT["<b>Re-Fit Workspace</b><br/>Adapter Fine-Tuning<br/>4.0 GB (Metal)"]
+        end
+        subgraph HEADROOM["Available System Headroom (30.8 GB)"]
+            OS["<b>macOS & System Services</b><br/>WindowServer, Audio Core, Metal OS Cache<br/>≥ 8.0 GB Dedicated Headroom<br/><i>(Safe from OOM eviction)</i>"]
+        end
+    end
+
+    classDef run fill:#e8f4fd,stroke:#2b6cb0,stroke-width:2px;
+    classDef head fill:#edf2f7,stroke:#718096,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef comp fill:#ffffff,stroke:#3182ce,stroke-width:1.5px;
+    classDef os fill:#ffffff,stroke:#4a5568,stroke-width:1.5px;
+
+    class RUNTIME run;
+    class HEADROOM head;
+    class LLM,KV,ENC,DB,REFIT comp;
+    class OS os;
 ```
 
 ---

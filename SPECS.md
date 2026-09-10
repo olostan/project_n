@@ -6,40 +6,53 @@
 
 Project N is engineered specifically for local execution on Apple Silicon (tested on M5 Pro with 48GB Unified Memory), maintaining 100% offline privacy while serving an intuitive, rich interface for caregivers.
 
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                CLIENT INTERFACES                                       │
-├─────────────────────────────────────────────┬──────────────────────────────────────────┤
-│ MOBILE COMPANION APP (Flutter 3.24+ Dart)   │ LOCAL CAREGIVER DASHBOARD (React / Vite) │
-│ ├─ Target: Android (12+) & iOS (17+)        │ ├─ Target: macOS Desktop Browser (Local) │
-│ ├─ Offline SQLite Outbox (Encrypted Queue)  │ ├─ UI: Tailwind CSS, Lucide, Recharts    │
-│ ├─ 30 fps @ 720p/1080p + 48kHz WAV audio    │ ├─ Real-Time Telemetry: Server-Sent Events│
-│ └─ Background mTLS Home Wi-Fi Auto-Sync     │ └─ Video Inspector & UMAP Cluster Map    │
-└─────────────────────────────────────────────┴──────────────────────────────────────────┘
-                                      │
-                     ┌────────────────┴────────────────┐
-                     │ Local Wi-Fi (mTLS)              │ Loopback HTTP / SSE
-                     ▼                                 ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                     BACKEND & INGESTION DAEMON (Python 3.11+ / FastAPI)                │
-│                                                                                        │
-│ ├─ Core Daemon: FastAPI + Uvicorn (Asynchronous, Zero-Copy Shared Memory)              │
-│ ├─ SSE Event Bus: Streaming processing steps, memory metrics & training logs           │
-│ ├─ Two-Key Vault: Signed LaunchAgent + Apple Data Protection Keychain (SecItem)        │
-│ └─ Local Storage: SQLite (relational episodic metadata) + ChromaDB (128-dim vectors)   │
-└─────────────────────────────────────────────┬──────────────────────────────────────────┘
-                                              │
-                                              ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                   NEURAL ENGINE & INFERENCE CORE (Apple MLX 0.22+)                     │
-│                                                                                        │
-│ ├─ Compute Backend: Apple MLX native C++ Metal bindings via mlx.core and mlx.nn       │
-│ ├─ Sensory Feature Extractors: F0/CQT/Mel (Audio), MediaPipe/RAFT (Vision), EDA (Phys) │
-│ ├─ Multimodal Metric Head: 128-dim Attention-Pooled L2-Normalized Metric Space         │
-│ ├─ Episodic Matcher: Prototypical & k-NN matching over Child N's verified history      │
-│ ├─ Safety Module: 27-item NCCPC-R Distress Evaluator (Medical Escalation Gate)         │
-│ └─ Renderer: Qwen2.5-14B-Instruct (4-bit, 100% frozen W0) for L1–L4 text formatting    │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Clients ["Client Layer"]
+        subgraph MobileApp ["Mobile Companion Client (Flutter 3.24+ Dart)"]
+            Mobile_OS["Target: Android (12+) & iOS (17+)"]
+            Mobile_Outbox["Offline Encrypted SQLite Outbox"]
+            Mobile_Capture["30 fps 720p Video + 48 kHz WAV"]
+            Mobile_Sync["Background mTLS Auto-Sync on Home Wi-Fi"]
+            Mobile_OS --- Mobile_Outbox --- Mobile_Capture --- Mobile_Sync
+        end
+
+        subgraph DashboardApp ["Local Caregiver Dashboard (React + Tailwind SPA)"]
+            Dash_Target["Target: macOS Desktop Browser (http://127.0.0.1:8080)"]
+            Dash_UI["UI: Tailwind CSS, Lucide Icons, Recharts Visuals"]
+            Dash_SSE["Real-Time Telemetry: Server-Sent Events (SSE)"]
+            Dash_Inspector["Multimodal Video Inspector & 2D UMAP Lexicon Map"]
+            Dash_Target --- Dash_UI --- Dash_SSE --- Dash_Inspector
+        end
+    end
+
+    subgraph BackendDaemon ["Backend & Ingestion Daemon (Python 3.11+ / FastAPI)"]
+        Daemon_Core["FastAPI Daemon + Uvicorn (Zero-Copy Shared Memory)"]
+        Daemon_SSE["Server-Sent Events (SSE) Event Bus (Pipeline stages & telemetry)"]
+        Daemon_Vault["Two-Key Vault: Signed LaunchAgent + Apple Data Protection Keychain"]
+        Daemon_Storage["Local Storage: SQLite (Relational) + ChromaDB (128-dim vectors)"]
+        Daemon_Core --- Daemon_SSE --- Daemon_Vault --- Daemon_Storage
+    end
+
+    subgraph NeuralCore ["Neural Engine & Inference Core (Apple Silicon MLX 0.22+)"]
+        MLX_Metal["Apple MLX Native Metal C++ Bindings (Unified Memory)"]
+        MLX_Sensory["Sensory Extractors: F0/CQT/Mel (Audio), MediaPipe/RAFT (Kinematics), EDA (Phys)"]
+        MLX_Metric["128-dim Attention-Pooled L2-Normalized Metric Projection Head"]
+        MLX_Matcher["Prototypical & k-NN Matcher over Verified History"]
+        MLX_Safety["27-item NCCPC-R Validated Distress Evaluator (Medical Gate)"]
+        MLX_Renderer["Schema-Constrained Qwen2.5-14B-Instruct (4-bit, 100% Frozen W₀)"]
+        MLX_Metal --- MLX_Sensory --- MLX_Metric --- MLX_Matcher --- MLX_Safety --- MLX_Renderer
+    end
+
+    MobileApp -->|"Local Wi-Fi (mTLS Sync)"| BackendDaemon
+    DashboardApp -->|"Loopback HTTP & SSE (/api/v1/events/stream)"| BackendDaemon
+    BackendDaemon -->|"Native In-Memory Python/C++ Calls"| NeuralCore
+
+    style Clients fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style MobileApp fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style DashboardApp fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style BackendDaemon fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style NeuralCore fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
 ```
 
 ### 1.1 Stack Decision Rationale: Python over Go for the Server
@@ -53,17 +66,23 @@ Project N is engineered specifically for local execution on Apple Silicon (teste
 ### 2.1 Audio Feature Extraction Pipeline (48 kHz)
 A 5-second acoustic window contains exactly $S = 240,000$ discrete samples at $f_s = 48,000\text{ Hz}$.
 
-```text
-Raw Audio: s ∈ R^(240000)
-    │
-    ├─► 1. Pitch & Voice Quality Track (10ms hop): P ∈ R^(500 x 16)
-    │      [F0, Jitter, Shimmer, HNR, CPP, Spectral Tilt, Entropy]
-    │
-    ├─► 2. Constant-Q Transform (CQT Harmonic Filterbank): C ∈ R^(500 x 84)
-    │      [7 octaves, 12 bins/octave, geometrically spaced]
-    │
-    └─► 3. Log-Mel Spectrogram (N=2048, H=160, 128 bands): M ∈ R^(1488 x 128)
-           [Broadband vocal tract envelope, uncentered STFT, periodic Hann]
+```mermaid
+graph TD
+    Raw["Raw Audio: s ∈ ℝ^(240,000)<br/>(5.0s window @ 48 kHz PCM)"]
+
+    Raw --> P1["1. Pitch & Periodicity Track (10ms hop)<br/>P ∈ ℝ^(500 × 16)<br/>F0, Jitter, Shimmer, HNR, CPP, Spectral Tilt, Entropy"]
+    Raw --> P2["2. Constant-Q Transform (CQT Filterbank)<br/>C ∈ ℝ^(500 × 84)<br/>7 octaves, 12 bins/octave (32.7 Hz – 4186 Hz)"]
+    Raw --> P3["3. Broadband Log-Mel Spectrogram<br/>M ∈ ℝ^(1488 × 128)<br/>N=2048, hop H=160, periodic Hann window"]
+
+    P1 & P2 & P3 --> Concat["Linear Projection & Temporal Alignment"]
+    Concat --> Out["Acoustic Feature Latent<br/>X_audio ∈ ℝ^(B × 500 × 768)"]
+
+    style Raw fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style P1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style P2 fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style P3 fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style Concat fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Out fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
 ```
 
 1. **Short-Time Fourier Transform (STFT):**
@@ -279,25 +298,56 @@ The local web interface is built as a zero-cloud React 18+ Single-Page Applicati
 
 ### 6.1 Dashboard UI Architecture & Components
 
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│ TOP BAR: System Telemetry (Active/Peak VRAM Gauge, Metal GPU Status, Model Checkpoint) │
-├──────────────────────────┬─────────────────────────────────────────────────────────────┤
-│ NAVIGATION SIDEBAR       │ MAIN CONTENT AREA                                           │
-│ ├─ Live Stream / Status  │ ┌─────────────────────────────────────────────────────────┐ │
-│ ├─ Clip Diary & Timeline │ │ EPISODE DETAIL & MULTIMODAL INSPECTOR                   │ │
-│ ├─ Video Inspector       │ │ ┌───────────────────────┐ ┌───────────────────────────┐ │ │
-│ ├─ UMAP Lexicon Map      │ │ │ Synchronized Video    │ │ Live F0 Pitch & Spectrogram│ │ │
-│ ├─ Clinical RAG Library  │ │ │ (Pose Skeleton Layer) │ │ (Interactive Audio Wave)  │ │ │
-│ └─ Model Promotion Gate  │ │ └───────────────────────┘ └───────────────────────────┘ │ │
-│                          │ │                                                         │ │
-│                          │ │ FOUR-LAYER EVIDENCE CARD (L1–L4)                        │ │
-│                          │ │ [L1 Measured Observation] [L2 Comparable History]       │ │
-│                          │ │ [L3 Caregiver Context]    [L4 Clinical Evidence]        │ │
-│                          │ │                                                         │ │
-│                          │ │ AAC BRIDGE CONTROLS: Pre-populated icons for Child N    │ │
-│                          │ └─────────────────────────────────────────────────────────┘ │
-└──────────────────────────┴─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph TopBar ["Top Header Bar: Real-Time System Telemetry"]
+        VRAM["Metal VRAM Gauge<br/>Active: 12.4 GB / Peak: 17.2 GB (36 GB Cap)"]
+        GPU["Apple M5 Pro Status<br/>Thermal: Nominal · Metal Shaders: Active"]
+        ModelInfo["Active Model Checkpoint<br/>v1.4.2 · Production Verified"]
+    end
+
+    subgraph MainLayout ["Dashboard Viewport Layout"]
+        subgraph NavSidebar ["Navigation Sidebar"]
+            Nav1["• Live Stream & Telemetry"]
+            Nav2["• Clip Diary & Historical Diary"]
+            Nav3["• Multimodal Video Inspector"]
+            Nav4["• 2D UMAP Behavioral Map"]
+            Nav5["• Clinical RAG Library"]
+            Nav6["• Model Promotion Gate"]
+            Nav1 --- Nav2 --- Nav3 --- Nav4 --- Nav5 --- Nav6
+        end
+
+        subgraph ContentArea ["Main Content Area: Episode Inspector"]
+            subgraph MediaRow ["Synchronized Multimodal Playback"]
+                VideoBox["Synchronized Video Player<br/>MediaPipe 75 Keypoint Skeletal Canvas"]
+                WaveBox["Interactive Audio Waveform<br/>Continuous F0 Pitch Overlay & CQT Spectrogram"]
+            end
+
+            subgraph EvidenceRow ["Four-Layer Evidence Card (L1–L4)"]
+                Card1["L1: Measured Observations"]
+                Card2["L2: Comparable History"]
+                Card3["L3: Caregiver Context"]
+                Card4["L4: Clinical Citations"]
+            end
+
+            subgraph AACRow ["Child Authorship Bridge"]
+                AACBox["Pre-populated AAC Candidate Icons for Nolan<br/>[Water] · [Sensory Break] · [Deep Pressure]<br/>(Direct child selection confirms ground truth)"]
+            end
+
+            MediaRow --> EvidenceRow --> AACRow
+        end
+    end
+
+    TopBar --- MainLayout
+
+    style TopBar fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
+    style VRAM fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#fff
+    style GPU fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#fff
+    style ModelInfo fill:#1e293b,stroke:#38bdf8,stroke-width:1px,color:#fff
+    style NavSidebar fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style MediaRow fill:#f0f9ff,stroke:#0284c7,stroke-width:1px
+    style EvidenceRow fill:#fdf4ff,stroke:#c026d3,stroke-width:1px
+    style AACRow fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
 
 ### 6.2 Key Dashboard Screens
@@ -564,29 +614,48 @@ def execute_inference_cycle(
 
 ## 8. Five Implementation Phases Roadmap
 
-```text
-Phase 1: Ingestion, Two-Key Vault & Mobile Bridge
-├── 1.1 server/vault.py: Signed macOS helper with Data Protection Keychain
-├── 1.2 server/api.py: FastAPI daemon with mTLS and SSE event stream (/api/v1/events/stream)
-├── 1.3 server/dashboard/: React + Tailwind SPA bundled into local static distribution
-└── 1.4 app/: Flutter companion client (Android/iOS) with encrypted SQLite outbox queue
+```mermaid
+graph TD
+    subgraph P1 ["Phase 1: Ingestion, Two-Key Vault & Mobile Bridge"]
+        P1_1["1.1 server/vault.py: Signed LaunchAgent + Keychain"]
+        P1_2["1.2 server/api.py: FastAPI daemon with mTLS & SSE stream"]
+        P1_3["1.3 server/dashboard/: React + Tailwind SPA distribution"]
+        P1_4["1.4 app/: Flutter companion client with SQLite outbox"]
+        P1_1 --> P1_2 --> P1_3 --> P1_4
+    end
 
-Phase 2: Tripartite Sensory Extraction Engines
-├── 2.1 extraction/acoustic.py: F0/jitter/shimmer/HNR @ 10ms hop + CQT 84-bin + 128 Mel
-├── 2.2 extraction/kinematic.py: MediaPipe Holistic torso-normalized landmarks + RAFT flow
-└── 2.3 extraction/physiology.py: Wearable EDA (tonic/phasic), HRV, and 3-axis accel
+    subgraph P2 ["Phase 2: Tripartite Sensory Extraction Engines"]
+        P2_1["2.1 extraction/acoustic.py: F0/jitter/shimmer + CQT 84-bin + Log-Mel"]
+        P2_2["2.2 extraction/kinematic.py: MediaPipe 75 landmarks + RAFT flow"]
+        P2_3["2.3 extraction/physiology.py: Wearable EDA, HRV, and 3-axis accel"]
+        P2_1 --> P2_2 --> P2_3
+    end
 
-Phase 3: Audio-Visual Temporal Correspondence Pre-training
-├── 3.1 training/pretrain_av.py: CAV-MAE audio-visual temporal binding
-└── 3.2 docs/evaluation_protocol.md: Preregistered N-of-1 splits and baseline benchmarks
+    subgraph P3 ["Phase 3: Audio-Visual Temporal Correspondence Pre-training"]
+        P3_1["3.1 training/pretrain_av.py: CAV-MAE audio-visual temporal binding"]
+        P3_2["3.2 docs/evaluation_protocol.md: Preregistered N-of-1 benchmark splits"]
+        P3_1 --> P3_2
+    end
 
-Phase 4: AAC Bridge, NCCPC-R Medical Module & Evidence Library
-├── 4.1 app/lib/aac_bridge.dart: Local Bluetooth/Wi-Fi candidate option tile publisher
-├── 4.2 models/nccpc_ruleout.py: Validated 27-item checklist and red-flag escalation gate
-└── 4.3 rag/evidence_store.py: Curated academic literature parser and ChromaDB indexer
+    subgraph P4 ["Phase 4: AAC Bridge, NCCPC-R Medical Module & Evidence Library"]
+        P4_1["4.1 app/lib/aac_bridge.dart: Bluetooth/Wi-Fi candidate tile publisher"]
+        P4_2["4.2 models/nccpc_ruleout.py: Validated 27-item checklist & medical gate"]
+        P4_3["4.3 rag/evidence_store.py: Curated clinical PDF parser & ChromaDB store"]
+        P4_1 --> P4_2 --> P4_3
+    end
 
-Phase 5: Metric Re-fit Loop, Gated Model Promotion & LLM Renderer
-├── 5.1 training/refit_metric.py: Periodic full re-fit over verified episodic memory
-├── 5.2 training/promotion_gate.py: Automated holdout assertion pipeline (zero safety regression)
-└── 5.3 models/renderer.py: Schema-constrained Qwen2.5-14B-Instruct four-layer formatter
+    subgraph P5 ["Phase 5: Metric Re-fit Loop, Gated Promotion & LLM Renderer"]
+        P5_1["5.1 training/refit_metric.py: Periodic full re-fit over verified memory"]
+        P5_2["5.2 training/promotion_gate.py: Automated holdout assertion pipeline"]
+        P5_3["5.3 models/renderer.py: Schema-constrained Qwen2.5-14B four-layer formatter"]
+        P5_1 --> P5_2 --> P5_3
+    end
+
+    P1 --> P2 --> P3 --> P4 --> P5
+
+    style P1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style P2 fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style P3 fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style P4 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style P5 fill:#fff0f6,stroke:#eb2f96,stroke-width:2px
 ```

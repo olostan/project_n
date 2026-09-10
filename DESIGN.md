@@ -59,74 +59,108 @@ Project N deploys a modular, multi-pathway sensory extraction architecture combi
 
 ```mermaid
 graph TD
-    subgraph AcousticPipeline ["Acoustic Stream (48 kHz WAV)"]
-        A_Raw["Raw Audio<br/>(48 kHz WAV)"] --> A_Pitch["Dedicated Pitch Track<br/>F0, Jitter, Shimmer, HNR, CPP (~10ms)"]
-        A_Raw --> A_CQT["Harmonic Filterbank<br/>Constant-Q Transform (84 bins)"]
-        A_Raw --> A_Mel["Broadband Texture<br/>128 Log-Mel Spectrogram Bands"]
-        A_Pitch & A_CQT & A_Mel --> A_Latent["Acoustic Latent<br/>X_a ∈ ℝ^(T_a × 512)"]
+    subgraph Streams ["Sensory Input Streams"]
+        Audio["Acoustic Stream (48 kHz WAV)<br/>Micro-pitch F0, CQT 84 bins, 128 Log-Mel"]
+        Video["Kinematic Stream (30 fps 720p)<br/>75 Body/Hand Pose Landmarks, RAFT Optical Flow"]
+        Physio["Physiological Stream (Wearable)<br/>EDA Conductance, HRV Vagal Tone, Accelerometry"]
     end
 
-    subgraph KinematicPipeline ["Kinematic Stream (30 fps 720p)"]
-        K_Raw["Raw Video<br/>(30 fps 720p)"] --> K_Pose["Body-Relative Pose<br/>MediaPipe Holistic (75 Skeletons)"]
-        K_Raw --> K_Flow["Dense Optical Flow<br/>RAFT Motion Displacement Field"]
-        K_Raw --> K_Context["Spatial Context<br/>Low-Rate Context / Scene Tokens"]
-        K_Pose & K_Flow & K_Context --> K_Latent["Kinematic Latent<br/>X_k ∈ ℝ^(T_k × 512)"]
+    subgraph FrontEnds ["Sensory Latent Projections"]
+        X_a["Acoustic Latent<br/>X_a ∈ ℝ^(T_a × 512)"]
+        X_k["Kinematic Latent<br/>X_k ∈ ℝ^(T_k × 512)"]
+        X_p["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 128)<br/>(Masked via e_∅ if unmonitored)"]
     end
 
-    subgraph PhysioPipeline ["Physiological Stream (Wearable, Optional)"]
-        P_Raw["Wearable Telemetry<br/>(Optional BLE / Apple Watch)"] --> P_EDA["Electrodermal Activity (EDA)<br/>Tonic SCL & Phasic SCR (cvxEDA)"]
-        P_Raw --> P_HRV["Cardiorespiratory<br/>Inter-Beat Intervals & HRV RMSSD"]
-        P_Raw --> P_Acc["3-Axis Accelerometry<br/>Somatic Tremor Energy (50 Hz)"]
-        P_EDA & P_HRV & P_Acc --> P_Latent["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 128)<br/>(Null embedding e_∅ if absent)"]
+    subgraph Fusion ["Cross-Modal Binding (Apple Silicon MLX)"]
+        Resampler["Multimodal Perceiver Resampler<br/>Audio-Visual Correspondence (CAV-MAE)"]
+        Pool["Attention Pooling & L2 Normalization"]
+        Metric["128-dim Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
     end
 
-    subgraph Fusion ["Cross-Modal Fusion & Metric Projection (Apple MLX)"]
-        A_Latent & K_Latent & P_Latent --> Resampler["Multimodal Perceiver Resampler<br/>Cross-Attention Latent Queries"]
-        Resampler --> AttnPool["Multimodal Attention Pooling & L2 Normalization"]
-        AttnPool --> MetricVec["Normalized Metric Embedding<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
-    end
+    Audio --> X_a
+    Video --> X_k
+    Physio --> X_p
 
-    style AcousticPipeline fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
-    style KinematicPipeline fill:#f6ffed,stroke:#52c41a,stroke-width:2px
-    style PhysioPipeline fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    X_a & X_k & X_p --> Resampler
+    Resampler --> Pool
+    Pool --> Metric
+
+    style Streams fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
+    style Audio fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style Video fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Physio fill:#fffbe6,stroke:#faad14,stroke-width:2px
     style Fusion fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
-    style MetricVec fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
+    style Metric fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
 ```
 
 ### 3.1 Acoustic Front End (Resolving the Micro-Pitch Limit)
 In a 7-year-old child, fundamental phonation frequencies range from $150\text{ Hz}$ to $400\text{ Hz}$. At a $48\text{ kHz}$ sampling rate, a 128-band log-mel filterbank produces bands of approximately $27\text{ Hz}$ width near $300\text{ Hz}$, rendering $\pm 15\text{ Hz}$ micro-pitch shifts sub-bin and unresolvable.
 
-Project N resolves this with a tripartite acoustic engine:
+Project N resolves this with a dedicated tripartite acoustic engine:
 
-1. **Dedicated Voice Quality & Pitch Tracking:**
-   Computes fundamental frequency ($F_0$), local jitter (pitch perturbation), local shimmer (amplitude perturbation), Harmonics-to-Noise Ratio (HNR), and Cepstral Peak Prominence (CPP) using autocorrelation and periodicity tracking (via pYIN or CREPE) at a fine $\sim 10\text{ ms}$ hop interval. This provides $\sim 1\text{ Hz}$ frequency resolution.
-2. **Constant-Q Transform (CQT) / ERB Filterbank:**
-   Applies geometrically spaced frequency bins where filter bandwidth is proportional to center frequency ($\Delta f / f = Q$). This ensures high spectral resolution in the low-frequency fundamental and formant regions.
-3. **Broadband Log-Mel Filterbank:**
-   Maintains a 128-band log-mel spectrogram across $20\text{ Hz}$ to $24,000\text{ Hz}$ for capturing broad spectral envelope and vocal tract resonance.
+```mermaid
+graph TD
+    RawAudio["Raw Audio Input<br/>48 kHz PCM (5.0s window = 240,000 samples)"] --> Branch1["1. Dedicated Voice Quality & Pitch Track<br/>pYIN / Autocorrelation (~10ms hop)<br/>Outputs: F0 (~1 Hz res), Jitter, Shimmer, HNR, CPP"]
+    RawAudio --> Branch2["2. Constant-Q Transform (CQT) Filterbank<br/>84 geometrically spaced bins (7 octaves)<br/>Logarithmic resolution across human vocal range"]
+    RawAudio --> Branch3["3. Broadband Log-Mel Filterbank<br/>128 bands across 20 Hz – 24,000 Hz<br/>STFT N=2048, hop H=160, periodic Hann window"]
 
-   - STFT parameters: $N = 2048$ (giving $23.44\text{ Hz}$ linear bin spacing at $48\text{ kHz}$), hop length $H = 160$ ($3.333\text{ ms}$), with a periodic Hann window:
-     $$w(n) = 0.5 \left(1 - \cos\left(\frac{2\pi n}{N}\right)\right), \quad n = 0, \dots, N-1$$
+    Branch1 & Branch2 & Branch3 --> Align["Linear Alignment & Temporal Concatenation"]
+    Align --> LatentAudio["Acoustic Latent Representation<br/>X_audio ∈ ℝ^(B × 500 × 768)"]
+
+    style RawAudio fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style Branch1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style Branch2 fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Branch3 fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style Align fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style LatentAudio fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
+```
 
 ### 3.2 Kinematic Front End (Pose Over Raw Differencing)
 Raw-pixel temporal differencing ($\mathbf{\Delta}_t = \|\mathbf{Z}_t - \mathbf{Z}_{t-1}\|_1$) is highly sensitive to handheld camera shake, auto-exposure adjustments, mains flicker, and room shadows.
 
 Project N establishes a robust kinematic hierarchy:
 
-1. **Body-Relative Pose & Keypoints (Primary):**
-   Tracks 33 body landmarks, 21 hand landmarks per hand, and facial contour landmarks using MediaPipe Holistic or BlazePose. Because landmark coordinates are normalized relative to the torso and head centers, they are fundamentally invariant to camera translation, zoom, and background motion.
-2. **Dense Optical Flow (Secondary):**
-   Computes motion vector fields via RAFT to capture rapid continuous movements (e.g., clothing flutter, peripheral limb trajectories) independent of luminance shifts.
-3. **Frame Rate Specification:** Captured at $30\text{ fps}$ (or sampled at $15\text{ fps}$) at $720\text{p}$, which fully satisfies the Nyquist criterion for $3\text{ Hz}$ to $8\text{ Hz}$ motor stims while avoiding the pose-noise overfitting observed at $60\text{ fps}$.
+```mermaid
+graph TD
+    RawVideo["Raw Video Input<br/>30 fps @ 720p (5.0s window = 150 frames)"] --> PoseStream["1. Body-Relative Pose (MediaPipe Holistic)<br/>• 33 Body landmarks (torso, head, limbs)<br/>• 42 Hand keypoints (21 per hand)<br/>Total: 75 keypoints (x, y, visibility)"]
+    RawVideo --> FlowStream["2. Dense Optical Flow (RAFT)<br/>Motion displacement field (u, v)<br/>Spatially pooled to 8×8 grid (128-dim)"]
+
+    PoseStream --> TorsoNorm["Torso-Relative Normalization<br/>Scaled by inter-shoulder distance:<br/>p̃ = (p - p_midhip) / ||p_lshoulder - p_rshoulder||₂<br/>(Invariant to camera shake, zoom, and distance)"]
+
+    TorsoNorm & FlowStream --> TempTrans["Temporal Transformer Encoder"]
+    TempTrans --> LatentKinematic["Kinematic Latent Representation<br/>X_kinematic ∈ ℝ^(B × 150 × 512)"]
+
+    style RawVideo fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style PoseStream fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style FlowStream fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style TorsoNorm fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style TempTrans fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style LatentKinematic fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
+```
 
 ### 3.3 Physiological Front End & Graceful Degradation
 To ground internal arousal without circular inference from video, Project N integrates wearable telemetry (e.g., Empatica EmbracePlus, or Apple Watch sensor streaming):
 
-1. **Electrodermal Activity (EDA):** Separates skin conductance into tonic baseline level (SCL) and rapid phasic responses (SCR), indexing sympathetic nervous system arousal.
-2. **Heart Rate Variability (HRV):** Extracts Root Mean Square of Successive Differences (RMSSD) and High-Frequency (HF) power bands reflecting vagal/parasympathetic modulation.
-3. **3-Axis Accelerometry:** Provides continuous wrist/body motion energy, maintaining context when the child moves outside the camera field of view.
-4. **Missing Modality Gating:**
-   Because wearable sensors are **completely optional**, the metric projection head substitutes a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio}$ when physiological data is absent, allowing dual-modal (Audio + Vision) operation with zero performance degradation.
+```mermaid
+graph TD
+    WearableInput["Wearable Telemetry Stream<br/>(Optional BLE / Apple Watch)"] --> SensorGate{"Sensors Available?"}
+
+    SensorGate -- "Yes" --> EDA["Electrodermal Activity (EDA @ 4 Hz)<br/>cvxEDA decomposition into tonic SCL and phasic SCR"]
+    SensorGate -- "Yes" --> HRV["Cardiorespiratory (PPG @ 100 Hz)<br/>Inter-Beat Intervals (IBI) & HRV RMSSD"]
+    SensorGate -- "Yes" --> Acc["3-Axis Accelerometry (@ 50 Hz)<br/>Somatic tremor energy & gross movement"]
+
+    EDA & HRV & Acc --> PhysioLatent["Physiological Latent<br/>X_physio ∈ ℝ^(B × 50 × 64)"]
+
+    SensorGate -- "No" --> NullModality["Missing Modality Gating<br/>Substitutes learned null embedding: e_∅^physio<br/>(Zero performance drop on dual-modal operation)"]
+
+    style WearableInput fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style SensorGate fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style EDA fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style HRV fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style Acc fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style PhysioLatent fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style NullModality fill:#fff1f0,stroke:#f5222d,stroke-width:2px
+```
 
 ---
 
@@ -134,60 +168,67 @@ To ground internal arousal without circular inference from video, Project N inte
 
 Project N inverts traditional multimodal generation. The Large Language Model is removed from the primary classification loop and restricted to schema-constrained rendering.
 
+### 4.1 Metric Space & Prototypical Learning
+
 ```mermaid
 graph TD
-    subgraph L1_Block ["Layer 1: Measured Observation"]
-        L1["L1 Measured Observation<br/>• Acoustic pitch (F0), jitter/shimmer, CQT harmonic ratios<br/>• Torso-normalized pose landmarks & dense optical flow<br/>• Autonomic arousal metrics & capture quality score"]
-    end
+    L1["Layer 1: Measured Observation<br/>• Acoustic latent X_a (F0, CQT, Log-Mel)<br/>• Kinematic latent X_k (Normalized Pose, RAFT Flow)<br/>• Physiological latent X_p (EDA, HRV, Accel)"] --> Resampler["Multimodal Perceiver Resampler (Apple MLX)<br/>Cross-attention audio-visual temporal correspondence"]
 
-    subgraph Binding_Block ["Cross-Modal Binding & Metric Space (Apple MLX)"]
-        Binding["Cross-Modal Latent Resampler (CAV-MAE)<br/>Attention Pooling + L2 Normalization<br/>Maps to 128-dimensional metric vector (z ∈ ℝ^128)"]
-    end
+    Resampler --> Pooling["Attention Pooling & L2 Normalization"]
+    Pooling --> MetricVector["128-dimensional Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
 
-    subgraph L2_Block ["Layer 2: Retrieval & Calibrated Matching (ChromaDB / SQLite)"]
-        Retrieval["Historical Prototype & k-NN Retrieval<br/>Cosine similarity over Nolan's confirmed episodes"]
-        AbstainGate{"Distance > τ_abstain ?"}
-        MedGate{"NCCPC-R ≥ 6 ?"}
-        
-        Retrieval --> AbstainGate
-        AbstainGate -- "Yes (Novel)" --> Out_Abstain["Abstention: 'Unrecognized Pattern'<br/>Prompt open AAC board / environment check"]
-        AbstainGate -- "No (Familiar)" --> MedGate
-        MedGate -- "Yes (Pain/Distress)" --> Out_Med["Medical Escalation Card<br/>Immediate clinical rule-out"]
-        MedGate -- "No (Regulated/Sensory)" --> Candidates["Ranked Historical Candidates<br/>Calibrated multi-label probabilities"]
-    end
+    MetricVector --> MemoryStore["Episodic Memory Retrieval (ChromaDB / SQLite)<br/>Cosine similarity & Euclidean distance to prototypes c_k"]
+    MemoryStore --> MatchedCandidates["Ranked Historical Verified Episodes of Child N<br/>Prior physical resolutions, latency, and context"]
 
-    subgraph Outcomes ["Dual Output Pathways"]
-        subgraph PathAAC ["Child-Authored AAC Bridge"]
-            AAC["AAC Candidate Tile Dispatch<br/>Dispatches options ([Water], [Sensory Break], [Deep Pressure])<br/>directly to Nolan's speech device.<br/><b>Child direct selection is authoritative ground truth.</b>"]
-        end
-
-        subgraph PathCaregiver ["Caregiver Interface Renderer"]
-            LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Formats L1-L4 into distinct visual cards<br/>• Strictly prohibited from adding ungrounded claims"]
-        end
-    end
-
-    L1 --> Binding
-    Binding --> Retrieval
-    Candidates --> AAC
-    Candidates --> LLM
-
-    style L1_Block fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
-    style Binding_Block fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
-    style L2_Block fill:#f6ffed,stroke:#52c41a,stroke-width:2px
-    style PathAAC fill:#fffbe6,stroke:#faad14,stroke-width:2px
-    style PathCaregiver fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
-    style Out_Med fill:#fff1f0,stroke:#f5222d,stroke-width:2px
-    style Out_Abstain fill:#fff7e6,stroke:#fa8c16,stroke-width:2px
+    style L1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+    style Resampler fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Pooling fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style MetricVector fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
+    style MemoryStore fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style MatchedCandidates fill:#fffbe6,stroke:#faad14,stroke-width:2px
 ```
 
-### 4.1 Metric Space & Prototypical Learning
 The high-dimensional sensory representations are mapped into a compact, 128-dimensional metric space:
 $$\mathbf{z} = \text{L2\_Normalize}\left( \text{AttentionPool}(\mathbf{X}_{sensory}) \mathbf{W}_{proj} \right) \in \mathbb{R}^{128}$$
 
 Using a 128-dimensional metric space (rather than 4096 dimensions) prevents geometric collapse when operating with hundreds of labeled historical examples rather than hundreds of thousands. Matching is performed using cosine similarity or Euclidean distance over class prototype centers $\mathbf{c}_k$:
 $$\mathbf{c}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{z}_i$$
 
-### 4.2 Calibrated Abstention
+### 4.2 Calibrated Abstention & Epistemic Decision Gating
+
+```mermaid
+graph TD
+    Query["Query Vector z & Nearest Prototype c_nearest"] --> Gate1{"Calibrated Abstention Gate<br/>d(z, c_nearest) > τ_abstain ?"}
+
+    Gate1 -- "Yes (Novel / Unseen)" --> AbstainCard["Abstention Card<br/>'Unrecognized Pattern. Insufficient historical similarity.'<br/>Recommended Action: Present open AAC board or check environment."]
+
+    Gate1 -- "No (Familiar Episode)" --> Gate2{"Validated Medical Gate<br/>NCCPC-R Distress Score ≥ 6 ?"}
+
+    Gate2 -- "Yes (Acute Distress)" --> MedicalCard["Medical Escalation Card<br/>Warrants review for physical pain (ear, dental, GI reflux).<br/>Behavioral/sensory interpretations suppressed."]
+
+    Gate2 -- "No (Regulated / Stimming)" --> DualExec["Dual Execution Pipeline"]
+
+    subgraph AACPathway ["Child Authorship via AAC Bridge"]
+        AAC["AAC Candidate Tile Dispatch<br/>Dispatches options ([Water], [Sensory Break], [Deep Pressure])<br/>directly to Nolan's speech device.<br/><b>Child direct selection is authoritative ground truth.</b>"]
+    end
+
+    subgraph CaregiverPathway ["Caregiver Decision Support"]
+        LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Formats L1-L4 into distinct visual cards<br/>• Zero ungrounded generative narratives"]
+    end
+
+    DualExec --> AAC
+    DualExec --> LLM
+
+    style Query fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
+    style Gate1 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Gate2 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style AbstainCard fill:#fff7e6,stroke:#fa8c16,stroke-width:2px
+    style MedicalCard fill:#fff1f0,stroke:#f5222d,stroke-width:2px
+    style DualExec fill:#f6ffed,stroke:#52c41a,stroke-width:2px
+    style AACPathway fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style CaregiverPathway fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
+```
+
 If the distance between the query vector $\mathbf{z}$ and the nearest historical prototype exceeds a calibrated threshold $\tau_{abstain}$:
 $$d(\mathbf{z}, \mathbf{c}_{nearest}) > \tau_{abstain}$$
 the system **abstains from classification**. It outputs:

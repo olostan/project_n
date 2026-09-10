@@ -88,42 +88,37 @@ The model promotion gate evaluates three critical safety failure modes:
 
 ## 5. Model Promotion & Rollback Protocol
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           CANDIDATE MODEL RETRAINING                            │
-│   Triggered periodically upon accumulation of ≥ 10 verified novel episodes      │
-└────────────────────────────────────────┬────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                         AUTOMATED VALIDATION PIPELINE                           │
-│   1. Evaluate candidate on LODO cross-validation splits                         │
-│   2. Evaluate candidate on Locked Safety Holdout Set (50 episodes)              │
-│   3. Compute: Macro-F1, ECE, Coverage, and Critical Safety Errors               │
-└────────────────────────────────────────┬────────────────────────────────────────┘
-                                         │
-                                         ▼
-                               [Passes All Gates?]
-                               ├─ Macro-F1 improves over Production Model
-                               ├─ ECE ≤ 0.12 (well-calibrated)
-                               ├─ Zero safety regressions (0 missed red flags)
-                               │
-                ┌──────────────┴──────────────┐
-                │ YES                         │ NO
-                ▼                             ▼
-┌───────────────────────────────┐ ┌───────────────────────────────────────────────┐
-│     CAREGIVER REVIEW CARD     │ │               CANDIDATE REJECTED              │
-│  Caregiver inspects holdout   │ │ Candidate weights discarded; production model │
-│  performance & approves       │ │ remains active. Detailed diagnostic log saved.│
-└───────────────┬───────────────┘ └───────────────────────────────────────────────┘
-                │
-                ▼ Approved by Caregiver
-┌───────────────────────────────┐
-│       PROMOTION TO PROD       │
-│  Atomic pointer swap; prior   │
-│  checkpoint archived for      │
-│  instant one-click rollback.  │
-└───────────────────────────────┘
+```mermaid
+flowchart TD
+    RETRAIN["<b>Candidate Model Retraining</b><br/>Triggered periodically upon accumulation of ≥ 10 verified novel episodes"]
+    
+    VALIDATE["<b>Automated Validation Pipeline</b><br/>• Evaluate candidate on LODO cross-validation splits<br/>• Evaluate candidate on Locked Safety Holdout Set (50 episodes)<br/>• Compute: Macro-F1, ECE (≤ 0.12), Coverage, and Critical Safety Errors"]
+
+    GATE{"<b>Validation Gate</b><br/>• Macro-F1 ≥ Production Model<br/>• ECE ≤ 0.12 (Well-calibrated)<br/>• Zero safety regressions (0 missed red flags)?"}
+
+    REVIEW["<b>Caregiver Review Card</b><br/>Dashboard presents comparison vs. production baseline.<br/>Caregiver explicitly inspects & confirms promotion."]
+
+    REJECT["<b>Candidate Rejected</b><br/>Weights discarded; production model remains active.<br/>Diagnostic error log saved for clinical review."]
+
+    PROMO["<b>Atomic Promotion to Production</b><br/>Atomic symlink pointer swap.<br/>Prior checkpoint archived for instant 1-click rollback."]
+
+    RETRAIN --> VALIDATE
+    VALIDATE --> GATE
+    GATE -- "Pass (All Criteria Met)" --> REVIEW
+    GATE -- "Fail (Any Regression)" --> REJECT
+    REVIEW -- "Approved by Caregiver" --> PROMO
+
+    classDef normal fill:#f7fafc,stroke:#4a5568,stroke-width:1.5px;
+    classDef gate fill:#ebf8ff,stroke:#3182ce,stroke-width:2px;
+    classDef pass fill:#f0fff4,stroke:#38a169,stroke-width:2px;
+    classDef fail fill:#fff5f5,stroke:#e53e3e,stroke-width:2px;
+    classDef prod fill:#fefcbf,stroke:#d69e2e,stroke-width:2px;
+
+    class RETRAIN,VALIDATE normal;
+    class GATE gate;
+    class REVIEW pass;
+    class REJECT fail;
+    class PROMO prod;
 ```
 
 ### 5.1 Gated Promotion Checklist
