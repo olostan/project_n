@@ -1,23 +1,28 @@
-# Project N: Prespecified N-of-1 Evaluation Protocol & Benchmark Specification
+# Project N: Prespecified Prospective Single-Participant Longitudinal Evaluation Protocol
 
-**Document Status:** Prespecified Clinical & Engineering Protocol  
-**Target Subject:** Child N / Nolan Shybanov (7-year-old completely non-verbal autistic child; engineering systems and benchmarking strictly use de-identified designation 'Child N')  
-**Setting:** Home, school transition, community (playground), and clinic (Occupational Therapy)  
-**Primary Investigators:** Parent/Caregiver System Architect & Clinical Advisory Circle (OT/SLP/Pediatrician)  
-**Protocol Version:** 1.0.0  
-**Effective Date:** 2026-09-09  
+**Document Status:** Prespecified Longitudinal Evaluation & Benchmark Specification (Aligned with CENT Reporting Principles)<br/>
+**Target Subject:** Child N / Nolan Shybanov (7-year-old completely non-verbal autistic child; engineering systems and benchmarking strictly use de-identified designation 'Child N')<br/>
+**Setting:** Home, school transition, community (playground), and clinic (Occupational Therapy)<br/>
+**Primary Investigators:** Parent/Caregiver System Architect & Clinical Advisory Circle (OT/SLP/Pediatrician)<br/>
+**Protocol Version:** 1.1.0<br/>
+**Effective Date:** 2026-09-10
 
 ---
 
 ## 1. Ethical Stance, Assent & Primary Benefit
 
-### 1.1 The Authorship Imperative & Resolution Ground Truth
+### 1.1 Epistemic Stance & Evaluation Paradigm
+Under the CONSORT extension for N-of-1 trials (**CENT guidelines**; [Shamseer et al., 2015](WHITE_PAPER.md)), a formal "N-of-1 trial" strictly requires multi-period crossover sequences (such as randomized ABAB treatment blocks). Because naturalistic pediatric co-regulatory scaffolding in a non-verbal child cannot ethically or methodologically be subjected to randomized "withdrawal/washout" blocks without compromising child well-being, this benchmark is formally designated as a **Prospective Single-Participant Longitudinal Evaluation**.
+
 Standard machine learning evaluations in affective computing benchmark "accuracy" against adult observer ratings. As established by [Barrett et al. (2019)](WHITE_PAPER.md#ref-1) and the Facilitated Communication / RPM literature ([National Autism Center, 2026](WHITE_PAPER.md#ref-13)), observer agreement does not establish ground truth and risks manufacturing false certainty.
 
 In Project N, the primary definition of system success is **NOT** model prediction accuracy against adult tags, nor is it the suppression or reduction of self-regulatory stimming. The primary evaluation criteria are:
 
-1. **Co-Regulatory Resolution Rate & Latency (Primary Criterion):** The prospective, falsifiable observation of whether the caregiver/therapist co-regulatory support offered (grounded in retrieved historical precedents) successfully de-escalates the episode and restores homeostatic baseline within an observed temporal window (measured time-to-resolution latency).
-2. **Child-Confirmed Communication Rate (Adjunct Criterion):** When an Augmentative and Alternative Communication (AAC) speech-generating device or visual choice board is accessible, the frequency with which Child N actively and independently selects, confirms, or initiates communicative bids from candidate options.
+1. **Observed Co-Regulation Association (Primary Behavioral Criterion):** The prospective, falsifiable observation of whether the caregiver/therapist co-regulatory support offered (grounded in retrieved historical precedents) was empirically followed by de-escalation of the episode and return to homeostatic baseline within an observed temporal window (measured time-to-resolution latency).
+2. **Top-k Historical Retrieval Relevance:** The precision and Mean Reciprocal Rank (MRR) with which the 128-dimensional metric head retrieves past verified episodes that share genuine bioacoustic and kinematic structure.
+3. **Claim Boundedness & Epistemic Humility (Safety Metric):** Enforcing $0.0\%$ unsupported causal assertions, medical diagnostic claims, or mind-reading declarations in generated caregiver and therapist cards.
+4. **Caregiver Decision Utility:** Standardized caregiver utility ratings measuring whether the Parent View card reduced parental uncertainty and provided actionable, low-risk scaffolding during moments of behavioral ambiguity.
+5. **Child-Confirmed Communication Rate (Adjunct Criterion):** When an Augmentative and Alternative Communication (AAC) speech-generating device or visual choice board is accessible, the frequency with which Child N actively and independently selects, confirms, or initiates communicative bids from candidate options.
 
 ### 1.2 Assent & Dissent Protocol
 - **Behavioral Dissent:** Because Child N cannot sign a formal consent document, continuous behavioral assent is observed. If Child N turns away, covers the camera, pushes recording equipment away, or exhibits aversion to a camera/sensor, recording must immediately cease.
@@ -31,11 +36,11 @@ In Project N, the primary definition of system success is **NOT** model predicti
 ### 2.1 The Data Leakage Trap in Continuous Video
 In continuous video, two adjacent 5-second windows from the same 60-second episode share identical room lighting, background acoustic noise, clothing, and posture. Randomly partitioning 5-second windows into train and test sets results in massive data leakage, artificially inflating accuracy metrics while failing completely in real-world deployment (`F-12`).
 
-### 2.2 Time-Separated & Context-Stratified Partitioning
-All evaluations in Project N must enforce strict time-separated splits:
-- **Primary Split Strategy: Leave-One-Day-Out (LODO):**
+### 2.2 Forward-Chaining Temporal Splits
+To prevent temporal lookahead leakage (where future observations inform past predictions), all evaluations in Project N must enforce strict time-separated splits:
+- **Primary Split Strategy: Forward-Chaining Temporal Splits:**
   - Models are trained on historical data up to Day $T-1$, and evaluated exclusively on Day $T$.
-  - Evaluation rotates across all recorded days to compute cross-day generalization.
+  - This strictly simulates production deployment: the assistant can only utilize historical episodes accumulated prior to the current test day.
 - **Secondary Split Strategy: Leave-One-Episode-Out with Temporal Buffer:**
   - If intra-day evaluations are conducted, an episode is defined as a contiguous behavioral event bounded by $\ge 30\text{ minutes}$ of quiet baseline.
   - A temporal guard buffer of $\pm 15\text{ minutes}$ before and after the episode is completely purged from training data.
@@ -83,7 +88,7 @@ Project N treats **Abstention** ("Unrecognized pattern / I do not know") as a fi
 
 ### 4.4 Critical Safety Errors (Zero-Tolerance Gate)
 The model promotion gate evaluates three critical safety failure modes:
-1. **Missed Medical Red Flag:** An episode with an NCCPC-PV distress score $\ge 6$ ([Breau et al., 2002](WHITE_PAPER.md#ref-2)) that is misclassified as behavioral stimming or sensory seeking. Because the medical safety triage executes **FIRST** in the architecture, the promotion gate enforces **0.0% tolerance (Zero tolerance)**: any failure to present the Medical Escalation Card on a score $\ge 6$ permanently disqualifies candidate weights.
+1. **Missed Acute Distress / Pain Anomaly:** An episode with verified acute distress or caregiver-confirmed pain (e.g., NCCPC score $\ge 6$ on NCCPC-R or $\ge 11$ on NCCPC-PV; [Breau et al., 2002](WHITE_PAPER.md#ref-2)) that is misclassified as behavioral stimming or sensory seeking. Because distress screening executes **FIRST** in the architecture, the promotion gate enforces **0.0% tolerance (Zero tolerance)**: any failure to present the Medical Escalation Card permanently disqualifies candidate weights.
 2. **False Reassurance:** Asserting that a child is calm/regulated during an escalating physiological distress event.
 3. **Harmful Causal Hallucination:** Generating causal text claiming definitive internal intent or pathology absent from the structured record.
 
@@ -95,7 +100,7 @@ The model promotion gate evaluates three critical safety failure modes:
 flowchart TD
     RETRAIN["<b>Candidate Model Retraining</b><br/>Triggered periodically upon accumulation of ≥ 10 verified novel episodes"]
     
-    VALIDATE["<b>Automated Validation Pipeline</b><br/>• Evaluate candidate on LODO cross-validation splits<br/>• Evaluate candidate on Locked Safety Holdout Set (50 episodes)<br/>• Compute: Macro-F1, ECE (≤ 0.12), Coverage, and Critical Safety Errors"]
+    VALIDATE["<b>Automated Validation Pipeline</b><br/>• Evaluate candidate on forward-chaining temporal splits<br/>• Evaluate candidate on Locked Safety Holdout Set (50 episodes)<br/>• Compute: Macro-F1, ECE (≤ 0.12), Coverage, and Critical Safety Errors"]
 
     GATE{"<b>Validation Gate</b><br/>• Macro-F1 ≥ Production Model<br/>• ECE ≤ 0.12 (Well-calibrated)<br/>• Zero safety regressions (0 missed red flags)?"}
 
@@ -128,7 +133,7 @@ flowchart TD
 A candidate model may only be promoted to active inference if all conditions are satisfied:
 - [ ] Candidate beats the Metadata-Only Baseline (B1) by at least $\Delta \text{F1} \ge +0.15$.
 - [ ] Candidate Macro-F1 is greater than or equal to current Production Model Macro-F1.
-- [ ] Zero missed NCCPC-R red-flag escalations on the Locked Safety Set.
+- [ ] Zero missed acute distress anomaly escalations on the Locked Safety Set.
 - [ ] Expected Calibration Error (ECE) is $\le 0.12$.
 - [ ] Caregiver explicitly inspects the validation summary card on the local dashboard and confirms promotion.
 

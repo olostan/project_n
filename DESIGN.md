@@ -24,8 +24,8 @@ Sensory processing in autistic individuals frequently diverges across auditory, 
 ### 1.3 Paralinguistic Structure of Idiosyncratic Vocalizations
 In the absence of phonemic speech, communicative and affective states are conveyed through non-verbal acoustic signals:
 
-- **Continuous Tonal Hums & Pitch Dynamics:** Sustained vocalizations contain measurable fundamental frequency ($F_0$), harmonic spacing, jitter, and shimmer. Within an individual child, shifts in pitch trajectory and vocal effort correlate with internal homeostatic state and communicative intent.
-- **Harmonic Decay & Voice Quality:** Micro-pitch variations, harmonic-to-noise ratio (HNR), and spectral tilt carry affective valence. However, as established in the scientific audit (`docs/REVIEW_REFINEMENTS.md`), standard filterbanks cannot resolve fine micro-pitch without specialized acoustic tracking.
+- **Continuous Tonal Hums & Pitch Dynamics:** Sustained vocalizations contain measurable fundamental frequency ($F_0$), harmonic spacing, jitter, and shimmer. Within an individual child, shifts in pitch trajectory and vocal effort correlate with internal homeostatic state and communicative bids.
+- **Periodic Energy & Voice Quality (CPP):** Micro-pitch variations, harmonic-to-noise ratio (HNR), and Cepstral Peak Prominence (CPP) carry paralinguistic valence. In standard acoustic protocols (e.g., ASHA consensus), CPP quantifies the ratio of periodic harmonic energy relative to background aperiodic noise—providing a robust objective measure of vocal quality/dysphonia across variable recording conditions, rather than functioning as a direct or specific clinical indicator of internal glottal strain or pain.
 
 ---
 
@@ -38,11 +38,11 @@ Project N avoids two critical epistemic traps:
 
 1. **The Facilitated Communication (FC) / RPM Authorship Trap:**
    Facilitated Communication, Rapid Prompting Method (RPM), and Spelling to Communicate (S2C) all failed blinded message-passing tests ([National Autism Center, 2026](WHITE_PAPER.md#ref-13)) because the facilitator or observer unknowingly authored the message. If an AI system is trained solely on a caregiver's interpretation (`parent_tag`) and then outputs that same interpretation back to the caregiver, it creates a closed confirmation loop that manufactures false certainty. The child is excluded as an active author.
-2. **The Truth Criterion (Actionable Resolution & Child Communication):**
-   Project N establishes an objective, falsifiable evaluation framework:
+2. **Epistemic Humility & Longitudinal Co-Regulatory Associations:**
+   Automated models do not have privileged access to a non-verbal child's private internal cognitive or affective state. Project N avoids claiming to discover "objective causal truth" or "translating mind states." Instead, the system tracks prospective, falsifiable behavioral associations:
 
-   - **Behavioral Resolution Truth Criterion:** Documenting whether an offered caregiver co-regulatory support (e.g., offering water, deep proprioceptive pressure, sensory break, or wait time) successfully resolved the observed distress episode and restored homeostatic baseline within an observed temporal window.
-   - **Child Communication Alignment:** When the child communicates directly via an AAC device, visual choice board, or clear intentional gestures (physical reach, nodding, pushing away), that child-authored choice is logged as high-confidence ground truth in the longitudinal memory.
+   - **Behavioral Resolution Association:** Documenting whether an offered caregiver co-regulatory support (e.g., offering water, deep proprioceptive pressure, sensory break, or wait time) was empirically followed by the resolution of observed distress and a return to homeostatic baseline within an observed temporal window.
+   - **Child Communication Priority:** When the child communicates directly via an AAC device, visual choice board, or clear intentional gestures (physical reach, nodding, pushing away), that child-authored choice is logged as the highest-fidelity behavioral record in the longitudinal memory, outranking adult post-hoc interpretations.
 
 ### 2.2 Failure of Commercial Foundation Encoders & Unconstrained LLMs
 Standard foundation models impose severe neurotypical inductive biases:
@@ -105,7 +105,7 @@ graph TD
     RawAudio --> Branch3["3. Broadband Log-Mel Filterbank<br/>128 bands across 20 Hz – 24,000 Hz<br/>STFT N=2048, hop H=160, periodic Hann window"]
 
     Branch1 & Branch2 & Branch3 --> Align["Linear Alignment & Temporal Concatenation"]
-    Align --> LatentAudio["Acoustic Latent Representation<br/>X_audio ∈ ℝ^(B × 500 × 768)"]
+    Align --> LatentAudio["Acoustic Latent Representation<br/>X_audio ∈ ℝ^(B × 500 × 512)"]
 
     style RawAudio fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style Branch1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
@@ -122,10 +122,10 @@ Project N establishes a robust kinematic hierarchy:
 
 ```mermaid
 graph TD
-    RawVideo["Raw Video Input<br/>30 fps @ 720p (5.0s window = 150 frames)"] --> PoseStream["1. Body-Relative Pose (MediaPipe Holistic)<br/>• 33 Body landmarks (x, y, z, visibility)<br/>• 42 Hand keypoints (21 per hand: x, y, z)<br/>Total: 75 keypoints (225 kinematic features)"]
+    RawVideo["Raw Video Input<br/>30 fps @ 720p (5.0s window = 150 frames)"] --> PoseStream["1. Body-Relative Pose (MediaPipe Holistic)<br/>• 33 Body landmarks (x, y, z, visibility: 132 features)<br/>• 42 Hand keypoints (21 per hand: x, y, z: 126 features)<br/>Total: 75 keypoints (258 kinematic features)"]
     RawVideo --> FlowStream["2. Dense Optical Flow (OpenCV Farnebäck)<br/>Motion displacement field (u, v)<br/>Spatially pooled to 8×8 grid (128-dim)"]
 
-    PoseStream --> TorsoNorm["Torso-Relative Normalization<br/>Scaled by inter-shoulder distance:<br/>p̃ = (p - p_midhip) / ||p_lshoulder - p_rshoulder||₂<br/>(Invariant to camera shake, zoom, and distance)"]
+    PoseStream --> TorsoNorm["Torso-Relative Normalization<br/>Scaled by inter-shoulder distance:<br/>p̃ = (p - p_midhip) / ||p_lshoulder - p_rshoulder||₂<br/>(Reduces distance and zoom variation; monocular limits apply)"]
 
     TorsoNorm & FlowStream --> TempTrans["Temporal Transformer Encoder"]
     TempTrans --> LatentKinematic["Kinematic Latent Representation<br/>X_kinematic ∈ ℝ^(B × 150 × 512)"]
@@ -199,9 +199,9 @@ Decision triage enforces a strict safety hierarchy: **Medical Safety Triage exec
 
 ```mermaid
 graph TD
-    Query["Incoming Episode<br/>Acoustic, Kinematic, Context Features"] --> Gate1{"Validated Medical Safety Gate (Triage First)<br/>NCCPC-PV Distress Score ≥ 6<br/>or Automated Sensory Distress Alert?"}
+    Query["Incoming Episode<br/>Acoustic, Kinematic, Context Features"] --> Gate1{"Medical Distress Screener (Triage First)<br/>Acute Acoustic / Kinematic Distress Anomaly?"}
 
-    Gate1 -- "Yes (Acute Distress / Pain)" --> MedicalCard["Medical Escalation Card<br/>Warrants review for physical pain (ear, dental, GI reflux).<br/>Behavioral/sensory interpretations suppressed."]
+    Gate1 -- "Yes (Acute Distress / Pain Anomaly)" --> MedicalCard["Caregiver Medical Prompt Card<br/>Prompts caregiver to conduct pediatrician-approved comfort check<br/>(e.g., 27-item NCCPC checklist; Breau et al., 2002).<br/>Behavioral/sensory interpretations suppressed."]
 
     Gate1 -- "No (Regulated / Non-Pain)" --> Embed["Metric Projection & Prototype Search<br/>Compute z ∈ ℝ^128, find c_nearest"]
 
@@ -364,6 +364,6 @@ Rather than running unstable nightly SGD on single batches, Project N executes a
 ### 7.2 Gated Model Promotion Pipeline
 Before any candidate model is deployed to caregiver-facing inference, it must pass the prespecified evaluation protocol in [`evaluation_protocol.md`](evaluation_protocol.md):
 
-1. **Holdout Evaluation:** Evaluated on leave-one-day-out (LODO) splits and the locked 50-episode safety holdout set.
-2. **Safety Regression Check:** Zero tolerance for missed NCCPC-PV distress events ([Breau et al., 2002](WHITE_PAPER.md#ref-2)).
+1. **Temporal Holdout Evaluation:** Evaluated on forward-chaining temporal splits (train Days $1..T-1$, evaluate Day $T$) and the locked 50-episode safety holdout set.
+2. **Safety Regression Check:** Zero tolerance for missed acute distress anomalies (caregiver-verified distress episodes).
 3. **Caregiver Sign-off:** The caregiver inspects validation metrics on the dashboard and explicitly confirms promotion.

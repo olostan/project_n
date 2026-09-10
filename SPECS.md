@@ -39,7 +39,7 @@ graph TD
         MLX_Sensory["Sensory Extractors: F0/CQT/Mel (Audio), MediaPipe/Farnebäck (Kinematics), EDA (Phys)"]
         MLX_Metric["128-dim Attention-Pooled L2-Normalized Metric Projection Head"]
         MLX_Matcher["Prototypical & k-NN Matcher over Verified History"]
-        MLX_Safety["27-item NCCPC-PV Validated Distress Evaluator (Medical Gate)"]
+        MLX_Safety["Medical Distress Screener & Caregiver Comfort Prompt"]
         MLX_Renderer["Schema-Constrained Qwen2.5-14B-Instruct (4-bit, 100% Frozen W₀)"]
         MLX_Metal --- MLX_Sensory --- MLX_Metric --- MLX_Matcher --- MLX_Safety --- MLX_Renderer
     end
@@ -75,7 +75,7 @@ graph TD
     Raw --> P3["3. Broadband Log-Mel Spectrogram<br/>M ∈ ℝ^(1488 × 128)<br/>N=2048, hop H=160, periodic Hann window"]
 
     P1 & P2 & P3 --> Concat["Linear Projection & Temporal Alignment"]
-    Concat --> Out["Acoustic Feature Latent<br/>X_audio ∈ ℝ^(B × 500 × 768)"]
+    Concat --> Out["Acoustic Feature Latent<br/>X_audio ∈ ℝ^(B × 500 × 512)"]
 
     style Raw fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style P1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
@@ -98,10 +98,10 @@ graph TD
    - **Local Jitter:** Relative period-to-period perturbation $\frac{\frac{1}{T-1} \sum |T_i - T_{i+1}|}{\frac{1}{T} \sum T_i}$.
    - **Local Shimmer:** Amplitude perturbation $\frac{\frac{1}{T-1} \sum |A_i - A_{i+1}|}{\frac{1}{T} \sum A_i}$.
    - **Harmonics-to-Noise Ratio (HNR):** $10 \log_{10} \frac{E_{harmonic}}{E_{noise}}$ (in dB).
-   - **Cepstral Peak Prominence (CPP):** Prominence of the highest quefrency peak normalized by linear regression baseline, measuring glottal strain.
+   - **Cepstral Peak Prominence (CPP):** Prominence of the highest quefrency peak normalized by linear regression baseline, measuring periodic-to-aperiodic energy ratio (correlate of overall vocal quality/dysphonia).
 3. **CQT Harmonic Filterbank:**
    Applies 84 geometrically spaced filters across 7 octaves ($f_{min} = 32.7\text{ Hz}$, 12 bins/octave), delivering logarithmic frequency resolution in the human voice range.
-4. **Acoustic Projection:** $\mathbf{X}_{audio} = \text{LinearAlign}([\mathbf{P} \;\|\; \mathbf{C} \;\|\; \text{Downsample}(\mathbf{M})]) \in \mathbb{R}^{B \times 500 \times 768}$.
+4. **Acoustic Projection:** $\mathbf{X}_{audio} = \text{LinearAlign}([\mathbf{P} \;\|\; \mathbf{C} \;\|\; \text{Downsample}(\mathbf{M})]) \in \mathbb{R}^{B \times 500 \times 512}$.
 
 ### 2.2 Kinematic Feature Extraction Pipeline (30 fps @ 720p)
 A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
@@ -112,7 +112,7 @@ A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
    - Total landmarks: $K = 75$ keypoints (258 features per frame).
    - **Torso-Relative Normalization:** Coordinates are normalized relative to shoulder-hip center and scaled by inter-shoulder width:
      $$\tilde{\mathbf{p}}_k = \frac{\mathbf{p}_k - \mathbf{p}_{mid\_hip}}{\|\mathbf{p}_{left\_shoulder} - \mathbf{p}_{right\_shoulder}\|_2}$$
-     This eliminates camera translation, zoom, and distance artifacts.
+     This reduces distance, zoom, and scale variations (though monocular depth and severe 3D rotation limits apply).
 
    - Landmark matrix: $\mathbf{K} \in \mathbb{R}^{B \times 150 \times 258}$.
 2. **Dense Optical Flow (OpenCV Farnebäck):**
@@ -161,32 +161,26 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 
 - The system offers open AAC exploration or caregiver observational check-in rather than guessing.
 
-### 3.3 NCCPC-PV Validated Medical Rule-Out (Triage First)
-Distress is evaluated using the validated Non-Communicating Children's Pain Checklist – Postoperative Version (**NCCPC-PV**; [Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00007) across 27 items scored on a 4-point scale ($0=\text{not at all}, 1=\text{just a little}, 2=\text{fairly often}, 3=\text{very often}$):
+### 3.3 Medical Safety Protocol & Distress Screening (Triage First)
+Physical distress and somatic pain must always take absolute priority over behavioral or sensory interpretations. In clinical practice, pain in non-communicating children is evaluated using validated instruments:
 
-- **Six Validated Subscales:**
-  - **Vocal (items 1–5):** Moaning, whining, crying, screaming, idiosyncratic distress sounds.
-  - **Social (items 6–9):** Seeking comfort, withdrawn, less responsive, difficult to distract.
-  - **Facial (items 10–13):** Furrowed brow, clenching teeth, wincing, distressed expression.
-  - **Activity (items 14–17):** Not moving around, jumpy, restless, unusual stillness.
-  - **Body and Limbs (items 18–23):** Guarding, stiff, flinching, pulling legs up, gesturing to body part.
-  - **Physiological (items 24–27):** Pale/flushed, sweating, tears, rapid breathing.
-  Total composite score: $0 \le S_{NCCPC} \le 81$ (standardized over a 10-minute structured observation).
-
-- **Clinical Cut-off & Cost Asymmetry Rationale:**
-  - $S_{NCCPC} \ge 6$: Validated cut-off for **mild pain** (ROC sensitivity $0.88$, specificity $0.81$ for caregiver ratings).
-  - $S_{NCCPC} \ge 11$: Validated cut-off for **moderate-to-severe pain**.
-  - **Conservative Escalation Policy:** The automated safety gate triggers at the *mild* cut-off ($S_{NCCPC} \ge 6$). This is an intentional clinical design choice: the cost asymmetry heavily favors over-escalation (a false-positive prompts a benign caregiver physical check-in, whereas a false-negative risks overlooking acute medical emergencies such as otitis media, dental abscess, GI reflux, or acute abdomen).
-
-- **Dual Scoring Provenance:**
-  - **Caregiver Gold Standard:** The full 27-item checklist is completed by caregivers via the mobile companion app or dashboard UI during observed distress episodes.
-  - **Automated Sensory Distress Alert:** At inference time, the MLX sensory extractors compute an automated distress alert (monitoring vocal strain/CPP, shrieks/spikes in $F_0$, rapid guarding/flinching kinematics). If the automated alert fires, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to complete the formal NCCPC-PV checklist:
+- **The Validated Clinical Instruments (Caregiver Gold Standard):**
+  - **NCCPC-PV** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00007): Evaluated across 24 children postoperatively; cut-off $S_{NCCPC} \ge 11$ indicates moderate-to-severe pain.
+  - **NCCPC-R** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1016/S0304-3959(02)00179-3): Evaluated in home/residential settings; cut-off $S_{NCCPC} \ge 6$ indicates presence of pain.
+  - Both instruments comprise 27 items scored across 6 subscales (Vocal, Social, Facial, Activity, Body/Limbs, Physiological) over a **10-minute structured human caregiver observation** ($0 \le S_{NCCPC} \le 81$).
+- **Decoupling Automated Inference from Clinical Checklists:**
+  A 5-second computer vision and audio clip cannot compute a 10-minute clinical checklist. Project N therefore strictly separates automated inference from clinical diagnosis:
+  - **Automated Acute Distress Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for acute acoustic spikes ($F_0 > 450\text{ Hz}$ shriek excursions, severe CPP periodic-to-aperiodic drops $< 4.0\text{ dB}$) and rapid guarding/flinching kinematics.
+  - **Caregiver Safety Prompt:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check (or complete the 10-minute NCCPC observation):
   ```text
   [MEDICAL ESCALATION REQUIRED]
-  Observable distress indicators exceed clinical threshold (Score: 8/81).
-  Warrants review for physical pain (ear infection, dental pain, gastrointestinal reflux, injury).
-  Behavioral and sensory interpretations are suppressed.
+  Acoustic and kinematic signals indicate acute distress / potential pain anomaly.
+  Prompt: Examine child for physical injury, illness, or acute somatic discomfort.
+  Follow your family pediatrician-approved medical escalation protocol.
+  All behavioral, sensory, and communication interpretations are suppressed.
   ```
+- **Cost Asymmetry Rationale:**
+  The safety gate triggers aggressively on sensory distress anomalies. This conservative posture is deliberate: a false-positive prompt causes a harmless 2-minute physical check by a loving parent, whereas a false-negative risks mistaking acute otitis media, dental abscess, GI reflux, or acute abdomen for a sensory stim or behavioral bid.
 
 ---
 
@@ -297,33 +291,13 @@ Clients subscribe to `GET /api/v1/events/stream`. Events are formatted as standa
 
 ```text
 event: processing_progress
-data: {
-  "task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-  "stage": "acoustic_extraction",
-  "progress": 0.45,
-  "metrics": { "f0_current_hz": 268.4, "cpp_db": 4.1 },
-  "timestamp": "2026-09-09T20:45:00.123Z"
-}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "stage": "acoustic_extraction", "progress": 0.45, "metrics": {"f0_current_hz": 268.4, "cpp_db": 4.1}, "timestamp": "2026-09-09T20:45:00.123Z"}
 
 event: system_telemetry
-data: {
-  "active_vram_gb": 12.4,
-  "peak_vram_gb": 17.2,
-  "memory_ceiling_gb": 36.0,
-  "thermal_state": "nominal",
-  "mlx_device": "Apple M5 Pro (Metal GPU)"
-}
+data: {"active_vram_gb": 12.4, "peak_vram_gb": 17.2, "memory_ceiling_gb": 36.0, "thermal_state": "nominal", "mlx_device": "Apple M5 Pro (Metal GPU)"}
 
 event: four_layer_card
-data: {
-  "task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
-  "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.",
-  "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).",
-  "L3_context": "Caregiver noted post-school fatigue, 45 min since water.",
-  "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.",
-  "aac_candidate_options": ["water", "deep_pressure", "quiet_break"],
-  "abstained": false
-}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Nolan sounds overwhelmed by room noise or fatigue, not angry; try deep pressure or water.", "abstained": false}
 ```
 
 ---
@@ -404,7 +378,7 @@ graph TD
 
 ## 7. Architectural Reference Sketch & Component Signatures
 
-Below is an illustrative architectural specification and pseudo-code sketch outlining the component interfaces: the multimodal metric projection head with missing-modality gating, episodic prototype retrieval, NCCPC-PV distress rule-out, and schema-constrained Qwen2.5-14B rendering.
+Below is an illustrative architectural specification and pseudo-code sketch outlining the component interfaces: the multimodal metric projection head with missing-modality gating, episodic prototype retrieval, acute distress anomaly screening, and schema-constrained Qwen2.5-14B rendering.
 
 > [!NOTE]
 > **Implementation Scope Note**  
@@ -552,28 +526,56 @@ class EpisodicPrototypeMatcher:
         }
 
 
-class NCCPCRuleOut:
+class AcuteDistressAnomalyDetector:
     """
-    Evaluates observed distress behaviors against the Non-Communicating
-    Children's Pain Checklist – Postoperative Version (NCCPC-PV) 27-item instrument.
+    Automated acoustic and kinematic anomaly screener executing on raw 5s sensory frames.
+    Screens for acute acoustic spikes (F0 pitch shriek excursions, severe CPP drops)
+    and rapid guarding/flinching kinematics. Prompts caregiver to conduct their family
+    pediatrician-approved comfort check (such as conducting an NCCPC 10-minute observation).
     """
-    # Validated clinical cut-off for mild pain (sensitivity 0.88, specificity 0.81).
-    # Triggered conservatively at mild threshold due to high clinical cost of false negatives.
-    RED_FLAG_CUTOFF = 6
+    @classmethod
+    def evaluate(cls, measured_features: Dict[str, Any]) -> Dict[str, Any]:
+        f0_mean = measured_features.get("f0_mean_hz")
+        cpp_val = measured_features.get("cpp_db")
+        flinch_guarding = measured_features.get("acute_guarding_detected", False)
+
+        f0_spike = bool(isinstance(f0_mean, (int, float)) and f0_mean > 450.0)
+        cpp_strain = bool(isinstance(cpp_val, (int, float)) and cpp_val < 4.0)
+
+        is_anomaly = bool(f0_spike or cpp_strain or flinch_guarding)
+        return {
+            "distress_anomaly": is_anomaly,
+            "indicators": {
+                "f0_spike": f0_spike,
+                "cpp_strain": cpp_strain,
+                "flinch_guarding": flinch_guarding
+            },
+            "recommendation": (
+                "ACUTE DISTRESS ANOMALY DETECTED: Acoustic or kinematic signals indicate acute distress. "
+                "Prompt caregiver to perform pediatrician-approved comfort/safety check (e.g. NCCPC checklist). "
+                "Behavioral and sensory interpretations are suppressed."
+                if is_anomaly else "Normal operational baseline."
+            )
+        }
+
+
+class NCCPCChecklist:
+    """
+    Caregiver-completed Non-Communicating Children's Pain Checklist (Breau et al., 2002).
+    Standardized over a 10-minute structured human observation across 27 items (0 to 81).
+    - NCCPC-PV (Breau et al., 2002, Anesthesiology): cut-off >= 11 indicates moderate-to-severe pain.
+    - NCCPC-R (Breau et al., 2002, Pain): cut-off >= 6 indicates presence of pain in home settings.
+    """
+    MODERATE_SEVERE_CUTOFF = 11
+    MILD_HOME_CUTOFF = 6
 
     @classmethod
-    def evaluate(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
+    def score(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
         total_score = sum(item_scores.values())
-        is_red_flag = total_score >= cls.RED_FLAG_CUTOFF
-
         return {
-            "nccpc_total": total_score,
-            "is_red_flag": is_red_flag,
-            "recommendation": (
-                "MEDICAL ESCALATION REQUIRED: Observable distress indicators exceed threshold. "
-                "Warrants medical review for physical pain. Behavioral/sensory inferences suppressed."
-                if is_red_flag else "Normal operational baseline."
-            )
+            "total_score": total_score,
+            "exceeds_mild_cutoff": total_score >= cls.MILD_HOME_CUTOFF,
+            "exceeds_moderate_severe_cutoff": total_score >= cls.MODERATE_SEVERE_CUTOFF
         }
 
 
@@ -583,7 +585,7 @@ def execute_inference_cycle(
     raw_physio: Optional[mx.array],
     measured_features: Dict[str, Any],    # Extracted L1 features (F0, CPP, motion freq, etc.)
     caregiver_context: Dict[str, Any],    # L3 antecedents (time elapsed, transition state, etc.)
-    nccpc_scores: Dict[str, int],
+    caregiver_nccpc_scores: Optional[Dict[str, int]],  # Optional caregiver 10-min observation scores
     metric_head: MetricProjectionHead,
     matcher: EpisodicPrototypeMatcher,
     confirmed_collection: Any,
@@ -598,16 +600,28 @@ def execute_inference_cycle(
     Returns a comprehensive caregiver analysis card with observational insights, historical
     precedents, antecedent context, and grounded hypotheses to support parent decision-making.
     """
-    # 1. MEDICAL SAFETY RULE-OUT (NCCPC-PV Triage First)
-    safety_check = NCCPCRuleOut.evaluate(nccpc_scores)
-    if safety_check["is_red_flag"]:
+    # 1. MEDICAL SAFETY RULE-OUT & DISTRESS SCREENING (Triage First)
+    anomaly_check = AcuteDistressAnomalyDetector.evaluate(measured_features)
+    caregiver_pain_flag = False
+    nccpc_total = None
+    if caregiver_nccpc_scores is not None:
+        nccpc_result = NCCPCChecklist.score(caregiver_nccpc_scores)
+        nccpc_total = nccpc_result["total_score"]
+        caregiver_pain_flag = nccpc_result["exceeds_mild_cutoff"]
+
+    if anomaly_check["distress_anomaly"] or caregiver_pain_flag:
         return {
             "layer": "SAFETY_ESCALATION",
-            "nccpc_score": safety_check["nccpc_total"],
-            "escalation_card": safety_check["recommendation"],
+            "anomaly_detected": anomaly_check["distress_anomaly"],
+            "caregiver_nccpc_score": nccpc_total,
+            "escalation_card": (
+                "MEDICAL ESCALATION REQUIRED: Distress anomaly detected or caregiver pain checklist threshold exceeded. "
+                "Examine child for acute illness, dental pain, otitis media, or GI reflux. "
+                "Behavioral and sensory interpretations are suppressed."
+            ),
             "actionable_hints": [
-                "Examine child for physical symptoms or acute somatic discomfort",
-                "Follow family pediatrician-approved escalation protocol"
+                "Examine child for physical symptoms, temperature, or acute somatic discomfort",
+                "Follow family pediatrician-approved comfort and escalation protocol"
             ],
             "optional_aac_candidates": ["medical_attention", "caregiver_comfort"]
         }
@@ -634,7 +648,7 @@ def execute_inference_cycle(
     top_action = match_result["candidates"][0]["action_taken"]
     evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
-    evidence_text = lit_results["documents"][0][0] if lit_results["documents"] else "Evidence library guidelines on file."
+    evidence_text = lit_results["documents"][0][0] if (lit_results.get("documents") and lit_results["documents"][0]) else None
 
     # Retrieve personalized child anchors and professional techniques learned in OT/SLP clinic sessions
     personal_facts = []
@@ -645,26 +659,30 @@ def execute_inference_cycle(
             personal_facts = fact_results["documents"][0]
     personal_facts_str = "; ".join(personal_facts) if personal_facts else "No specific personal anchors or clinic techniques recorded yet."
 
-    # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY
-    f0_mean = measured_features.get("f0_mean_hz", "N/A")
-    cpp_val = measured_features.get("cpp_db", "N/A")
-    motion_type = measured_features.get("dominant_motion", "rhythmic movement")
-    motion_freq = measured_features.get("motion_freq_hz", "N/A")
+    # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY (Without Fabricated Defaults)
+    f0_mean = measured_features.get("f0_mean_hz")
+    cpp_val = measured_features.get("cpp_db")
+    motion_type = measured_features.get("dominant_motion", "unspecified motion")
+    motion_freq = measured_features.get("motion_freq_hz")
+    signal_qual = measured_features.get("signal_quality", "unspecified")
+
+    f0_str = f"{f0_mean:.1f} Hz" if isinstance(f0_mean, (int, float)) else "not detected"
+    cpp_str = f"{cpp_val:.2f} dB" if isinstance(cpp_val, (int, float)) else "not computed"
+    freq_str = f"{motion_freq:.1f} Hz" if isinstance(motion_freq, (int, float)) else "not computed"
 
     l1 = (
-        f"Acoustic: F0 mean {f0_mean} Hz, Cepstral Peak Prominence {cpp_val} dB. "
-        f"Kinematic: {motion_type} at {motion_freq} Hz. Signal quality: Adequate."
+        f"Acoustic: F0 mean {f0_str}, Cepstral Peak Prominence {cpp_str}. "
+        f"Kinematic: {motion_type} at {freq_str}. Signal quality: {signal_qual}."
     )
     l2 = (
         f"Matched {len(match_result['candidates'])} prior episodes in historical vault. "
         f"Most frequent co-regulatory resolution: {top_action}."
     )
-    l3 = (
-        f"Antecedents: {caregiver_context.get('transition_state', 'routine activity')}, "
-        f"{caregiver_context.get('elapsed_min_since_hydration', 'unknown')} min since water, "
-        f"ambient noise: {caregiver_context.get('noise_level', 'moderate')}."
-    )
-    l4 = f"Research literature: {evidence_text[:140]}..."
+    transition = caregiver_context.get("transition_state", "unknown")
+    hydration = caregiver_context.get("elapsed_min_since_hydration", "unknown")
+    noise = caregiver_context.get("noise_level", "unknown")
+    l3 = f"Antecedents: transition={transition}, elapsed_min_since_water={hydration}, ambient_noise={noise}."
+    l4 = f"Research literature: {evidence_text[:140]}..." if evidence_text else "Research literature: No direct literature match found."
 
     # Dual-Perspective Prompt Generation:
     # 1. Parent View (Default): Warm, jargon-free everyday English with practical things to try
@@ -714,7 +732,7 @@ def execute_inference_cycle(
         "active_card": rendered_parent_card if view_mode == "parent" else rendered_therapist_card,
         "practical_things_to_try": [
             f"Check if child responds to previous comfort action: {top_action}",
-            f"Review environmental antecedents ({caregiver_context.get('transition_state', 'activity')})"
+            f"Review environmental antecedents (transition={transition}, noise={noise})"
         ],
         "optional_aac_candidates": aac_options,
         "disclaimer": (
@@ -747,14 +765,14 @@ graph TD
 
     subgraph P3 ["Phase 3: Audio-Visual Temporal Correspondence Pre-training"]
         P3_1["3.1 training/pretrain_av.py: CAV-MAE audio-visual temporal binding"]
-        P3_2["3.2 docs/evaluation_protocol.md: Preregistered N-of-1 benchmark splits"]
+        P3_2["3.2 docs/evaluation_protocol.md: Prospective longitudinal evaluation protocol"]
         P3_1 --> P3_2
     end
 
-    subgraph P4 ["Phase 4: AAC Bridge, NCCPC-R Medical Module & Evidence Library"]
-        P4_1["4.1 app/lib/aac_bridge.dart: Bluetooth/Wi-Fi candidate tile publisher"]
-        P4_2["4.2 models/nccpc_ruleout.py: Validated 27-item checklist & medical gate"]
-        P4_3["4.3 rag/evidence_store.py: Curated clinical PDF parser & ChromaDB store"]
+    subgraph P4 ["Phase 4: Caregiver Dashboard, Distress Screening & Clinic-to-Home Engine"]
+        P4_1["4.1 app/lib/dashboard_sync.dart: Dual-perspective sync & optional AAC publisher"]
+        P4_2["4.2 models/distress_screener.py: Acute distress screener & pediatrician comfort prompt"]
+        P4_3["4.3 rag/evidence_store.py: Curated clinical PDF parser & personal_dyadic_knowledge store"]
         P4_1 --> P4_2 --> P4_3
     end
 

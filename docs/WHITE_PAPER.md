@@ -44,7 +44,7 @@ sequenceDiagram
     Note over Partner: Partner observes context & captures clip via mobile client
     Partner->>Engine: Uploads clip with situational antecedents
     Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
-    Engine->>Engine: Evaluates Medical Safety Gate (NCCPC-PV triage first)
+    Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
     Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
     opt Optional Child Authorship
@@ -131,7 +131,7 @@ Early artificial intelligence approaches to non-verbal autism conceptualized the
 In naturalistic pediatric communication, a vocalization or movement does not have an invariant, one-to-one semantic translation. A 350 Hz vocalization paired with hand flapping may represent intense joy during water play, severe vestibular seeking during room transitions, or overwhelming autonomic distress when ambient noise exceeds threshold. Identical surface behaviors arise from divergent internal needs, while a single functional need can manifest through varied behavioral expressions (by analogy with the context-dependent emotion-inference critique of [Barrett et al., 2019](#ref-1)).
 
 ### 3.2 The SCERTS Framework & Interpersonal Scaffolding
-To achieve clinical validity, Project N is architected around the **SCERTS Model** ([Prizant et al., 2006](#ref-14)), an internationally recognized, evidence-based multidisciplinary framework focusing on:
+Grounded in the clinical principles of the **SCERTS Model** ([Prizant et al., 2006](#ref-14)), an internationally recognized, evidence-based multidisciplinary framework focusing on:
 - **SC (Social Communication):** Developing spontaneous, functional communication and emotional expression across non-verbal and aided modalities.
 - **ER (Emotional Regulation):** Supporting self-regulation and mutual regulation to maintain optimal arousal states for learning and interaction.
 - **TS (Transactional Support):** The interpersonal supports, environmental modifications, and learning tools provided by communication partners.
@@ -195,8 +195,8 @@ Project N builds directly upon and synthesizes several empirical research bodies
 
 ### 5.2 Wearable Biosensing & Autonomic Forecasting
 - **Biosensing in Minimally Verbal Autistic Youth ([Goodwin et al., 2019](#ref-5); [Imbiriba et al., 2023](#ref-6)):**
-  In a foundational inpatient study of 20 youth with autism spectrum disorder (85% minimally verbal) across 1,000+ hours of continuous wearable biosensing (electrodermal activity, accelerometry), Goodwin et al. ([2019](#ref-5)) demonstrated that imminent aggressive distress episodes could be predicted 1 minute in advance with an AUROC of **0.84** using person-dependent time-series models (versus 0.71 for population models). 
-  Subsequently, in a larger cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead (population AUROC 0.87 vs. person-dependent 0.74), highlighting that effective longitudinal deployment requires continuous personal calibration to match individual autonomic baselines.
+  In a foundational mobile clinical laboratory study of 20 youth with autism spectrum disorder (85% minimally verbal) across 87 observation hours (drawn from 1,000+ total recorded hours), Goodwin et al. ([2019](#ref-5)) demonstrated that imminent aggressive distress episodes could be predicted 1 minute in advance with an AUROC of **0.84** using person-dependent time-series models (versus 0.71 for population models).
+  Subsequently, in a cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba, Demirkaya, Singh, et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead, reporting a mean AUROC of **0.80** (population AUROC 0.80), demonstrating that while population models provide a useful starting baseline, longitudinal calibration remains essential for individual autonomic profiles.
   - *Engineering Implication:* Direct autonomic sensing breaks the circularity of guessing internal arousal from surface behaviors alone, providing objective somatic telemetry to substantiate behavioral escalation.
 
 ### 5.3 Motor Stimming, Kinematics & Predictive Coding
@@ -207,14 +207,14 @@ Project N builds directly upon and synthesizes several empirical research bodies
 
 ### 5.4 Augmentative and Alternative Communication (AAC)
 - **Speech Production Outcomes in Aided AAC ([Millar et al., 2006](#ref-10)):**
-  A systematic review of 23 empirical studies across 67 individuals demonstrated that introducing aided AAC resulted in increased speech production for **89% of participants**, with 11% showing no change, and **0% exhibiting any speech decrease**. A subsequent meta-analysis by Schlosser & Wendt (2008) corroborated these findings, firmly disproving the clinical myth that AAC inhibits natural vocal development.
+  A systematic review of 23 empirical studies across 67 individuals with developmental disabilities (including autism) demonstrated that introducing aided AAC resulted in increased speech production for **89% of participants**, with 11% showing no change, and **0% exhibiting any speech decrease**. A subsequent meta-analysis by Schlosser & Wendt (2008) corroborated these findings, firmly disproving the clinical myth that AAC inhibits natural vocal development.
 - **Naturalistic Developmental Behavioral Interventions (NDBI; [Schreibman et al., 2015](#ref-17); [Bruinsma et al., 2020](#ref-3)):**
   Consensus clinical guidelines demonstrate that communication development accelerates when embedded within shared, child-led everyday routines with contingent partner responsiveness.
   - *Clinical & Epistemic Implication:* Communication development is transactional and partner-supported. Where accessible, AAC serves as an empowering bridge for child-directed authorship; simultaneously, partner scaffolding and timely co-regulatory interventions—measured through prospective behavioral resolution—form the primary dyadic engine for communicative connection and de-escalation.
 
 ### 5.5 Somatic Distress & Pain Evaluation
 - **Non-Communicating Children’s Pain Checklist – Postoperative Version (NCCPC-PV; [Breau et al., 2002](#ref-2)):**
-  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed specifically for caregivers and clinicians to detect physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute observation window). The ROC-derived cut-off of $\ge 6$ indicates mild pain (sensitivity 0.88, specificity 0.81), while scores $\ge 11$ indicate moderate-to-severe pain. Project N explicitly adopts $\ge 6$ as its mandatory medical escalation threshold: clinical cost asymmetry dictates that a false alarm (prompting a physical pain check when distress is communicative) carries minimal risk, whereas misclassifying acute somatic pain as communicative distress risks severe patient harm.
+  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed for caregivers and clinicians to evaluate postoperative physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute structured observation). In its validation cohort of 24 children postoperatively, a cut-off of $\ge 11$ indicated moderate-to-severe pain (while in home settings, NCCPC-R establishes $\ge 6$ as indicative of pain). Project N strictly separates automated 5-second sensory anomaly screening from this 10-minute clinical checklist: real-time acoustic/kinematic distress anomalies immediately prompt caregivers to execute their family pediatrician-approved physical comfort protocol, while suppressing behavioral interpretations.
 
 ---
 
@@ -303,8 +303,8 @@ We warmly invite speech-language pathologists, occupational therapists, assistiv
 7. <a id="ref-7"></a>**Johnson, K. T., Narain, J., Quatieri, T., Maes, P., & Picard, R. (2023).** ReCANVo: A database of real-world communicative and affective nonverbal vocalizations. *Scientific Data*, 10(1), 523. [doi:10.1038/s41597-023-02405-7](https://doi.org/10.1038/s41597-023-02405-7)
 8. <a id="ref-8"></a>**Light, J., & McNaughton, D. (2014).** Communicative competence for individuals who require augmentative and alternative communication: A new definition for a new era of communication? *Augmentative and Alternative Communication*, 30(1), 1–18. [doi:10.3109/07434618.2014.885080](https://doi.org/10.3109/07434618.2014.885080)
 9. <a id="ref-9"></a>**McLean, J. E., & Snyder-McLean, L. K. (1978).** *A transactional approach to early language training*. Charles E. Merrill Publishing. [ERIC: ED172561](https://eric.ed.gov/?id=ED172561)
-10. <a id="ref-10"></a>**Millar, D. C., Light, J. C., & Schlosser, R. W. (2006).** The impact of augmentative and alternative communication intervention on speech production of individuals with autism: A research review. *Journal of Speech, Language, and Hearing Research*, 49(2), 248–264. [doi:10.1044/1092-4388(2006/021)](https://doi.org/10.1044/1092-4388(2006/021))
-11. <a id="ref-11"></a>**Mondal, A., & Washington, P. (2026).** Frame rate ablation in video-based autism behavior detection. *arXiv preprint arXiv:2607.07957*. [doi:10.48550/arXiv.2607.07957](https://doi.org/10.48550/arXiv.2607.07957)
+10. <a id="ref-10"></a>**Millar, D. C., Light, J. C., & Schlosser, R. W. (2006).** The impact of augmentative and alternative communication intervention on speech production of individuals with developmental disabilities: A research review. *Journal of Speech, Language, and Hearing Research*, 49(2), 248–264. [doi:10.1044/1092-4388(2006/021)](https://doi.org/10.1044/1092-4388(2006/021))
+11. <a id="ref-11"></a>**Mondal, A., & Washington, P. (2026).** Evaluating the effect of frame rate in sequence-based classification of autism-related self-stimulatory hand idiosyncrasies. *arXiv preprint arXiv:2607.07957*. [doi:10.48550/arXiv.2607.07957](https://doi.org/10.48550/arXiv.2607.07957)
 12. <a id="ref-12"></a>**Narain, J., Johnson, K. T., Quatieri, T., Picard, R., & Maes, P. (2022).** Modeling real-world affective and communicative nonverbal vocalizations from minimally speaking individuals. *IEEE Transactions on Affective Computing*, 14(4), 3122–3135. [doi:10.1109/TAFFC.2022.3208233](https://doi.org/10.1109/TAFFC.2022.3208233)
 13. <a id="ref-13"></a>**National Autism Center. (2026).** *Position statement on Facilitated Communication and Rapid Prompting Method*. Published June 23, 2026. [nationalautismcenter.org](https://nationalautismcenter.org/position-statements/)
 14. <a id="ref-14"></a>**Prizant, B. M., Wetherby, A. M., Rubin, E., & Laurent, A. C. (2006).** *The SCERTS model: A comprehensive educational approach for children with autism spectrum disorders*. Paul H. Brookes Publishing. [scerts.com](https://scerts.com/)

@@ -1,7 +1,7 @@
 # Project N: Multimodal Communication Support for Non-Verbal Autism
 
 <p align="center">
-  <em>An open-source, local-first intelligence architecture designed to support completely non-verbal autistic children through high-resolution acoustic physics, body-relative kinematics, transactional adult partner scaffolding, and child-authored AAC communication.</em>
+  <em>An open-source, local-first observation and decision-support assistant designed to support completely non-verbal autistic children through high-resolution acoustic physics, body-relative kinematics, dyadic partner scaffolding, and personalized caregiver insights.</em>
 </p>
 
 ---
@@ -69,14 +69,14 @@ graph LR
 1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking via pYIN/autocorrelation, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
 2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** ([Prizant et al., 2006](WHITE_PAPER.md#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](WHITE_PAPER.md#ref-16); [Wetherby & Prizant, 2000](WHITE_PAPER.md#ref-20)), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
 3. **Dual-Perspective Insights (Parent View & Therapist View):** The primary goal is helping parents and therapists (OTs, SLPs) understand the child's communicative bids through a dual-perspective toggle. **Parent View (Default)** translates dense bioacoustic and kinematic data into warm, accessible everyday language (*e.g., "Nolan sounds overwhelmed by room noise, not angry; try offering his favorite red toy, a quiet break, or water"*) with low-risk things to try based on past co-regulation; **Therapist View** provides the full clinical telemetry ($F_0$, CPP, CQT harmonics, pose frequencies, Ayres sensory categories) and cited literature for clinical sessions. Where accessible, candidate possibilities can also bridge to an AAC choice board for direct child self-advocacy.
-4. **Medical Safety Gate (NCCPC-PV):** Acute distress is evaluated using the validated 27-item Non-Communicating Children’s Pain Checklist – Postoperative Version ([Breau et al., 2002](WHITE_PAPER.md#ref-2)), immediately triggering medical review escalations for physical pain (ear infections, dental abscesses, GI reflux).
+4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic anomalies and immediately prompt the caregiver to conduct their pediatrician-approved physical health check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](WHITE_PAPER.md#ref-2)), prioritizing physical comfort and medical rule-out over behavioral inferences.
 
 ---
 
 ## Documentation Roadmap
 
-- 📄 **[Scientific Whitepaper](WHITE_PAPER.md):** Formal clinical paper for Speech-Language Pathologists, OTs, and autism researchers detailing the transactional paradigm, bioacoustics, and AAC authorship.
-- 📋 **[Prespecified Evaluation Protocol](evaluation_protocol.md):** Single-case (N-of-1) study design with leave-one-day-out splits, mandatory baselines B1–B4, and safety metrics.
+- 📄 **[Scientific & Architectural Whitepaper](WHITE_PAPER.md):** Clinical and computational foundations paper for Speech-Language Pathologists, OTs, and autism researchers detailing the transactional paradigm, bioacoustics, and dyadic co-regulation support.
+- 📋 **[Prespecified Evaluation Protocol](evaluation_protocol.md):** Prospective single-participant longitudinal evaluation design with forward-chaining temporal splits, mandatory baselines B1–B4, and safety metrics.
 - 📐 **[Technical Specifications](specs.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
 - 🧠 **[Theoretical Architecture & Design](design.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
 - 🛡️ **[System & Safety Invariants](invariants.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
