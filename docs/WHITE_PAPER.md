@@ -198,22 +198,22 @@ Project N builds directly upon and synthesizes several empirical research bodies
 
 ### 5.2 Wearable Biosensing & Autonomic Forecasting
 - **Biosensing in Minimally Verbal Autistic Youth ([Goodwin et al., 2019](#ref-5); [Imbiriba et al., 2023](#ref-6)):**
-  In a foundational mobile clinical laboratory study of 20 youth with autism spectrum disorder (85% minimally verbal) across 87 observation hours (drawn from 1,000+ total recorded hours), Goodwin et al. ([2019](#ref-5)) demonstrated that imminent aggressive distress episodes could be predicted 1 minute in advance with an AUROC of **0.84** using person-dependent time-series models (versus 0.71 for population models).
-  Subsequently, in a cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba, Demirkaya, Singh, et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead, reporting a mean AUROC of **0.80** (population AUROC 0.80), demonstrating that while population models provide a useful starting baseline, longitudinal calibration remains essential for individual autonomic profiles.
+  In a foundational mobile clinical laboratory study of 20 youth with autism spectrum disorder (85% minimally verbal) across 69 sessions totaling 87 observation hours, Goodwin et al. ([2019](#ref-5)) demonstrated that imminent aggressive distress episodes could be predicted 1 minute in advance with an AUROC of **0.84** using person-dependent time-series models (versus 0.71 for population models).
+  Subsequently, in a cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba, Demirkaya, Singh, et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead, reporting a mean AUROC of **0.80** (with person-dependent models outperforming population models), demonstrating that while population models provide a useful starting baseline, longitudinal calibration remains essential for individual autonomic profiles.
   - *Engineering Implication:* Direct autonomic sensing breaks the circularity of guessing internal arousal from surface behaviors alone, providing objective somatic telemetry to substantiate behavioral escalation.
 
 ### 5.3 Motor Stimming, Kinematics & Predictive Coding
 - **Self-Stimulatory Behavior Dataset (SSBD; [Rajagopalan et al., 2013](#ref-15)):**
-  Rajagopalan et al. established the SSBD benchmark for video-based detection of repetitive motor behaviors (arm flapping, head banging, spinning). Subsequent temporal ablation studies by Mondal & Washington ([2026](#ref-11)) evaluated classification performance across subsampled video rates, demonstrating that model accuracy remained resilient when subsampling at intervals of every 15 frames (~2 effective fps) for rhythmic motor behaviors, confirming that hyper-dense frame rates (60+ fps) overfit to high-frequency sensor noise without improving kinematic classification.
+  Rajagopalan et al. established the SSBD benchmark for video-based detection of repetitive motor behaviors (arm flapping, head banging, spinning). Subsequent temporal ablation studies by Mondal & Washington ([2026](#ref-11)) evaluated classification performance across subsampled video rates, demonstrating that periodic motor classification remained effective at subsampled frame rates (~2 effective fps), indicating that high frame rates are not strictly required for rhythmic stimming classification.
 - **The HIPPEA Framework (High Inflexible Precision of Prediction Errors; [Van de Cruys et al., 2014](#ref-19)):**
   Reframes repetitive motor stims not as meaningless pathology, but as adaptive cognitive strategies to generate predictable sensory feedback in an overwhelming, high-prediction-error world.
 
 ### 5.4 Augmentative and Alternative Communication (AAC)
 - **Speech Production Outcomes in Aided AAC ([Millar et al., 2006](#ref-10)):**
-  A systematic review of 23 empirical studies across 67 individuals with developmental disabilities (including autism) demonstrated that introducing aided AAC resulted in increased speech production for **89% of participants**, with 11% showing no change, and **0% exhibiting any speech decrease**. A subsequent meta-analysis by Schlosser & Wendt (2008) corroborated these findings, firmly disproving the clinical myth that AAC inhibits natural vocal development.
+  A systematic review of 23 empirical studies across 67 individuals with developmental disabilities (including autism) demonstrated that among the 27 cases in the 6 methodologically strongest studies evaluated, introducing aided AAC was followed by increased speech production in **89% of cases**, no change in 11%, and **0% exhibited any speech decrease**. A subsequent meta-analysis by Schlosser & Wendt (2008) corroborated these findings, firmly disproving the clinical myth that AAC inhibits natural vocal development.
 - **Naturalistic Developmental Behavioral Interventions (NDBI; [Schreibman et al., 2015](#ref-17); [Bruinsma et al., 2020](#ref-3)):**
   Consensus clinical guidelines demonstrate that communication development accelerates when embedded within shared, child-led everyday routines with contingent partner responsiveness.
-  - *Clinical & Epistemic Implication:* Communication development is transactional and partner-supported. Where accessible, AAC serves as an empowering bridge for child-directed authorship; simultaneously, partner scaffolding and timely co-regulatory interventions—measured through prospective behavioral resolution—form the primary dyadic engine for communicative connection and de-escalation.
+  - *Clinical & Epistemic Implication:* Communication development is transactional and partner-supported. Where accessible, AAC serves as an empowering channel for independent child-directed authorship; simultaneously, partner scaffolding and timely co-regulatory interventions—measured through prospective behavioral resolution—form the primary dyadic engine for communicative connection and de-escalation.
 
 ### 5.5 Somatic Distress & Pain Evaluation
 - **Non-Communicating Children’s Pain Checklist – Postoperative Version (NCCPC-PV; [Breau et al., 2002](#ref-2)):**
@@ -258,8 +258,8 @@ graph LR
 To ensure clinical and practical utility across different stakeholders, the structured L1–L4 evidence is rendered through a toggleable interface:
 
 1. **Parent View (Default — Warm Co-Regulatory Scaffolding):**
-   Translates dense bioacoustic physics and kinematic coordinates into accessible, compassionate, and non-pathologizing everyday language (*e.g., explaining that a high vocal hum paired with hand flapping reflects sensory overload or excitement rather than defiance or anger*). It presents concrete, low-risk co-regulatory ideas grounded in past successes (*"Offer the red squishy toy that comforted him last Tuesday", "Dim lights and provide 3 minutes of quiet space"*) with an explicit non-diagnostic notice reminding families that suggestions are gentle hypotheses to investigate, not medical directives.
-2. **Therapist View (Clinical & Bioacoustic Telemetry):**
+   Translates dense bioacoustic physics and kinematic coordinates into accessible, compassionate, and non-pathologizing everyday observations (*e.g., explaining that elevated vocal pitch and rhythmic wrist movement often reflect physiological or sensory arousal rather than intentional defiance*). It presents concrete, low-risk possibilities to explore grounded in past successes (*"In 2 of 3 similar past episodes, offering his favorite red squishy toy or providing 3 minutes of quiet space was followed by calming"*), accompanied by an explicit reminder that sensor signals reflect physical arousal rather than internal subjective thoughts and that suggestions are gentle possibilities to explore, not medical diagnoses.
+2. **Therapist View (Bioacoustic & Motion Telemetry):**
    Surfaces raw fundamental frequency ($F_0$), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, pose oscillation frequencies (Hz), SCERTS mutual regulation categories, and exact peer-reviewed literature citations, enabling Speech-Language Pathologists and Occupational Therapists to review objective empirical progress during therapy sessions.
 
 Both views are derived from the exact same deterministic underlying records, ensuring that plain-language translation never compromises empirical grounding.
@@ -270,7 +270,7 @@ Both views are derived from the exact same deterministic underlying records, ens
 
 ### 7.1 For Speech-Language Pathologists (SLPs)
 1. **Ecologically Valid Longitudinal Repertoire:** Rather than relying on 45-minute weekly clinic sessions, SLPs gain access to a continuous, objective timeline of naturalistic vocalizations and communicative bids across home and community settings.
-2. **Personalized AAC Target Identification:** Identifies which situations exhibit high child-initiated communication, enabling targeted design of AAC vocabulary boards that match the child's actual lived experiences.
+2. **Personalized Communication Support:** Identifies which naturalistic environments exhibit high child engagement, enabling therapists to support authentic dyadic interaction.
 3. **Tracking Dyadic Interaction & Scaffolding:** Allows therapists to review how different communication partner styles (wait time, simplified linguistic modeling, visual cues) correlate with child engagement and vocal variety.
 
 ### 7.2 For Occupational Therapists (OTs)
@@ -287,7 +287,7 @@ In pediatric therapy, a persistent clinical challenge is the generalization gap:
 
 ## 8. Conclusion & Collaborative Invitation
 
-Project N redefines the role of artificial intelligence in neurodivergent communication: **shifting from an extractive intent translator to a dyadic, transactional, and partner-empowering behavioral insight assistant with optional child-authored AAC communication.** 
+Project N redefines the role of artificial intelligence in neurodivergent communication: **shifting from an extractive intent translator to a dyadic, transactional, and partner-empowering behavioral observation and insight assistant.**
 
 By uniting speech-language pathology principles, occupational therapy sensory frameworks, high-resolution acoustic and kinematic physics, and rigorous privacy engineering on local Apple Silicon hardware, Project N offers a path toward understanding non-verbal communication that honors the child's autonomy, empowers families, and respects scientific integrity.
 

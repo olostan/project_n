@@ -28,7 +28,6 @@ sequenceDiagram
     actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / OT / SLP)
     participant Engine as Project N Local Assistant (Apple Silicon)
-    participant AAC as Child's AAC Speech Device (Optional)
 
     Child->>Partner: Vocal inflection + rhythmic wrist stim (Natural bid)
     Note over Partner: Partner observes context & captures clip via mobile client
@@ -36,15 +35,14 @@ sequenceDiagram
     Engine->>Engine: Computes pitch contour (F0), pose kinematics & holistic movement
     Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Matches against Child N's historical verified episodes (128-dim metric space)
-    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
-    opt Optional Child Authorship
-        Engine->>AAC: Pre-populates candidate tiles ([Deep Pressure], [Sensory Break])
-        Child->>AAC: Directly selects icon or gestures
-        AAC-->>Partner: Speaks aloud child's choice
-    end
+    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques & low-risk things to try
     Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
-    Note over Child,Partner: Co-regulation restored; latency & outcome recorded
-    Engine->>Engine: Updates local N-of-1 episodic memory with verified outcome
+    opt Independent Child Communication
+        Child->>Partner: Child communicates response (independent AAC, gesture, reach)
+    end
+    Note over Child,Partner: Co-regulation observed; latency & outcome recorded
+    Partner->>Engine: Logs observed resolution & child feedback
+    Engine->>Engine: Updates local episodic memory with verified outcome
 ```
 
 ---
@@ -66,10 +64,10 @@ graph LR
     style P4 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
 ```
 
-1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking via pYIN/autocorrelation, jitter, shimmer, harmonic overtones via CQT, and glottal strain via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
+1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using raw bioacoustic physics (fundamental frequency $F_0$ pitch tracking via pYIN/autocorrelation, jitter, shimmer, harmonic overtones via CQT, and periodic-to-aperiodic energy ratio via CPP). Sounds are matched directly to past verified episodes without forcing them into clumsy English descriptions.
 2. **The Dyadic Transactional Loop:** Communication is an evolving interaction loop between the child and their communication partner (parent, therapist). Grounded in the **SCERTS Model** ([Prizant et al., 2006](WHITE_PAPER.md#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](WHITE_PAPER.md#ref-16); [Wetherby & Prizant, 2000](WHITE_PAPER.md#ref-20)), the system analyzes what the adult said, what physical scaffolding was offered, and how the child responded.
-3. **Dual-Perspective Insights (Parent View & Therapist View):** The primary goal is helping parents and therapists (OTs, SLPs) understand the child's communicative bids through a dual-perspective toggle. **Parent View (Default)** translates dense bioacoustic and kinematic data into warm, accessible everyday language (*e.g., "Nolan sounds overwhelmed by room noise, not angry; try offering his favorite red toy, a quiet break, or water"*) with low-risk things to try based on past co-regulation; **Therapist View** provides the full clinical telemetry ($F_0$, CPP, CQT harmonics, pose frequencies, Ayres sensory categories) and cited literature for clinical sessions. Where accessible, candidate possibilities can also bridge to an AAC choice board for direct child self-advocacy.
-4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic anomalies and immediately prompt the caregiver to conduct their pediatrician-approved physical health check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](WHITE_PAPER.md#ref-2)), prioritizing physical comfort and medical rule-out over behavioral inferences.
+3. **Dual-Perspective Insights (Parent View & Therapist View):** The primary goal is helping parents and therapists (OTs, SLPs) understand the child's communicative bids through a dual-perspective toggle. **Parent View (Default)** translates dense bioacoustic and kinematic data into warm, accessible everyday language (*e.g., "Nolan's vocal tension and wrist motion are elevated, indicating heightened sensory arousal; in similar past episodes, offering his favorite red toy or a 3-minute quiet break was followed by calming"*), presenting concrete, low-risk possibilities to explore based on past co-regulation; **Therapist View** provides the full bioacoustic and motion telemetry ($F_0$, CPP, CQT harmonics, pose frequencies, Ayres sensory categories) and cited literature for clinical sessions.
+4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic anomalies (deviation from Nolan's baseline) and immediately prompt the caregiver to conduct their pediatrician-approved physical health check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](WHITE_PAPER.md#ref-2)), prioritizing physical comfort and medical rule-out over behavioral inferences.
 
 ---
 

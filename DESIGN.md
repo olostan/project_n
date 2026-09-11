@@ -207,7 +207,7 @@ graph TD
 
     Embed --> Gate2{"Calibrated Abstention Gate<br/>d(z, c_nearest) > τ_abstain ?"}
 
-    Gate2 -- "Yes (Novel / Unseen)" --> AbstainCard["Abstention Card<br/>'Unrecognized Pattern. Insufficient historical similarity.'<br/>Recommended Action: Present open AAC board or check environment."]
+    Gate2 -- "Yes (Novel / Unseen)" --> AbstainCard["Abstention Card<br/>'Unrecognized Pattern. Insufficient historical similarity.'<br/>Recommended Action: Observe environmental context, offer preferred comfort items, or check physical comfort."]
 
     Gate2 -- "No (Familiar Episode)" --> InsightSynthesis["Synthesized Behavioral Analysis & Insight Engine"]
 
@@ -215,12 +215,12 @@ graph TD
         LLM["Schema-Constrained LLM (Qwen2.5-14B)<br/>• 100% Frozen Base Weights (W₀)<br/>• Dual-Perspective Switchable Card:<br/>  - <b>Parent View:</b> Plain-English co-regulatory hints & warm translations<br/>  - <b>Therapist View:</b> Full acoustic/kinematic telemetry & cited literature<br/>• Zero ungrounded generative narratives"]
     end
 
-    subgraph AACPathway ["Complementary: Optional Child Authorship"]
-        AAC["AAC Candidate Tile Dispatch (Optional)<br/>Pre-populates candidate options ([Water], [Break], [Pressure])<br/>directly on child's speech device if accessible.<br/><b>Child direct choice or gesture refines truth record.</b>"]
+    subgraph ChildAgency ["Child Observational Record"]
+        ChildAgencyBox["Independent Child Response Record<br/>Caregiver logs independent child choices,<br/>PECS/AAC selections, or intentional gestures.<br/><b>Child-confirmed outcome refines truth record.</b>"]
     end
 
     InsightSynthesis --> LLM
-    InsightSynthesis -.-> AAC
+    LLM -.-> ChildAgency
 
     style Query fill:#f0f5ff,stroke:#2f54eb,stroke-width:2px
     style Gate1 fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
@@ -230,7 +230,7 @@ graph TD
     style MedicalCard fill:#fff1f0,stroke:#f5222d,stroke-width:2px
     style InsightSynthesis fill:#f6ffed,stroke:#52c41a,stroke-width:2px
     style CaregiverPathway fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
-    style AACPathway fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style ChildAgency fill:#fffbe6,stroke:#faad14,stroke-width:2px
 ```
 
 If the distance between the query vector $\mathbf{z}$ and the nearest historical prototype exceeds a calibrated threshold $\tau_{abstain}$:
@@ -238,7 +238,7 @@ $$d(\mathbf{z}, \mathbf{c}_{nearest}) > \tau_{abstain}$$
 the system **abstains from classification**. It outputs:
 ```text
 Unrecognized Pattern. Insufficient historical similarity to classify.
-Recommended Action: Observe environmental context or present AAC open choice board.
+Recommended Action: Observe environmental context, offer preferred comfort items, or check physical comfort.
 ```
 
 ### 4.3 Dual-Perspective Interaction & Rendering Architecture (Parent View vs. Therapist View)
@@ -246,17 +246,17 @@ Recommended Action: Observe environmental context or present AAC open choice boa
 A common pitfall in assistive technology is presenting either fabricated narratives ("mind-reading") or dense clinical jargon that is alienating to parents during moments of acute behavioral distress. Project N implements a **Dual-Perspective Interaction Model** governed by schema-constrained prompt templating over the four-layer evidence foundation:
 
 1. **Parent View (Default — Accessible, Empathetic Co-Regulatory Support):**
-   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday language (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation indicating autonomic hyper-arousal"* into *"Nolan seems overwhelmed by ambient room noise or school fatigue; he sounds over-stimulated and excited, not angry at you"*).
+   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday observations (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation indicating autonomic hyper-arousal"* into plain-English observations: *"Nolan's vocal tension and wrist movement are elevated, indicating heightened sensory arousal (often triggered by ambient room noise or transition fatigue, rather than intentional defiance); gentle possibilities to explore: quiet space, hydration, or his favorite comfort toy"*).
    - **Actionable, Low-Risk Co-Regulatory Ideas:** Rather than issuing dogmatic medical directives, the system surfaces 2–3 practical, non-invasive strategies based on what has historically comforted Child N (e.g., offering his favorite red squishy toy, dimming room lights, offering water, or providing gentle deep pressure if he leans in).
-   - **Hypothesis-Testing Framing:** Candidate interpretations are explicitly framed as gentle hypotheses to investigate (*"What Nolan might be experiencing..."*), acknowledging that even a 30% plausible lead provides vital scaffolding for parents navigating moments of uncertainty.
+   - **Hypothesis-Testing Framing:** Candidate interpretations are explicitly framed as gentle hypotheses to investigate (*"Possibilities to explore..."*), acknowledging that even a 30% plausible lead provides vital scaffolding for parents navigating moments of uncertainty, while clearly clarifying that sensors do not reveal internal subjective experience.
    - **Prominent Non-Diagnostic Notice:** Every card prominently displays: *"These are supportive co-regulatory hypotheses based on past verified episodes and sensory literature, not medical diagnoses. Always prioritize physical comfort and consult your pediatrician for medical concerns."*
 
-2. **Therapist View (Clinical & Bioacoustic Telemetry):**
+2. **Therapist View (Bioacoustic & Motion Telemetry):**
    - **Full Sensor Precision:** Surfaces raw fundamental frequency ($F_0$ mean, trajectory, jitter, shimmer), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, and 3D pose/optical flow oscillation frequencies.
-   - **Interdisciplinary Framework Alignment:** Maps patterns directly to Ayres Sensory Integration (sensory defensiveness, vestibular/proprioceptive seeking) and the SCERTS model (Mutual Regulation, Social Communication).
+   - **Interdisciplinary Framework Alignment:** Maps patterns directly to Ayres Sensory Integration categories (sensory defensiveness, vestibular/proprioceptive seeking) and the SCERTS model (Mutual Regulation, Social Communication).
    - **Direct Literature Citations:** Cites peer-reviewed literature (e.g., Schaaf et al., 2018; Van de Cruys et al., 2014) with evidence levels for review during formal Occupational Therapy and Speech-Language Pathology sessions.
 
-The caregiver can switch between perspectives with a single click (`view_mode: "parent" | "therapist"`). Both views are derived from the exact same deterministic underlying record (L1–L4), guaranteeing that simplification in Parent View never introduces ungrounded clinical claims.
+The caregiver can switch between perspectives with a single click (`view_mode: "parent" | "therapist"`). Both views are derived from the exact same deterministic underlying record (L1–L4), designed to strictly constrain the LLM to facts present in the deterministic L1–L4 records and prevent unsupported causal assertions.
 
 ### 4.4 The Clinic-to-Home Dyadic Knowledge Store (Personal & Therapist RAG)
 

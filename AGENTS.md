@@ -18,17 +18,17 @@ Agents operate under the persona of **Principal Systems Architect and Apple Sili
 Whenever an agent introduces modifications that alter:
 
 1. **Tensor Dimensions & Pipeline Shapes** (e.g., changes to STFT parameters, pitch hop intervals, pose landmarks, resampler query counts, metric projection dimensions):
-   - The agent **MUST** update Section 1 of [`SPECS.md`](specs.md).
-   - The agent **MUST** update Section 3 of [`DESIGN.md`](design.md).
+   - The agent **MUST** update Section 3 of [`SPECS.md`](specs.md).
+   - The agent **MUST** update Section 4 of [`DESIGN.md`](design.md).
 2. **Hyperparameters & Training Ratios** (e.g., re-fit schedules, metric learning margins, masking ratios, clustering thresholds):
    - The agent **MUST** update Section 2 of [`INVARIANTS.md`](invariants.md).
-   - The agent **MUST** update Section 5 of [`SPECS.md`](specs.md).
+   - The agent **MUST** update Section 7 of [`SPECS.md`](specs.md).
    - The agent **MUST** update Section 7 of [`DESIGN.md`](design.md).
 3. **Hardware Budgets & VRAM Envelopes** (e.g., model quantization, context buffer size, measured peak memory):
-   - The agent **MUST** update Section 3 of [`README.md`](index.md).
-   - The agent **MUST** update Section 2 of [`SPECS.md`](specs.md).
-4. **Database Schemas & Data Layer Definitions** (e.g., ChromaDB schema changes, NCCPC-PV distress fields, provenance metadata):
+   - The agent **MUST** update Section 1 of [`README.md`](index.md).
    - The agent **MUST** update Section 3 of [`SPECS.md`](specs.md).
+4. **Database Schemas & Data Layer Definitions** (e.g., ChromaDB schema changes, NCCPC-PV distress fields, provenance metadata):
+   - The agent **MUST** update Section 4 of [`SPECS.md`](specs.md).
    - The agent **MUST** update Section 6 of [`DESIGN.md`](design.md).
 
 ---

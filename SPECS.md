@@ -297,7 +297,7 @@ event: system_telemetry
 data: {"active_vram_gb": 12.4, "peak_vram_gb": 17.2, "memory_ceiling_gb": 36.0, "thermal_state": "nominal", "mlx_device": "Apple M5 Pro (Metal GPU)"}
 
 event: four_layer_card
-data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Nolan sounds overwhelmed by room noise or fatigue, not angry; try deep pressure or water.", "abstained": false}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Nolan's vocal pitch and wrist movement are elevated, which in past episodes occurred during noise overload or fatigue; you might explore offering deep pressure or water.", "abstained": false}
 ```
 
 ---
@@ -340,11 +340,11 @@ graph TD
                 Card4["L4: Clinical Citations"]
             end
 
-            subgraph AACRow ["Child Authorship Bridge"]
-                AACBox["Pre-populated AAC Candidate Icons for Nolan<br/>[Water] · [Sensory Break] · [Deep Pressure]<br/>(Direct child selection confirms ground truth)"]
+            subgraph ResponseRow ["Caregiver Logging & Child Response Bridge"]
+                ResponseBox["Outcome Recording & Child Response Logger<br/>• Observed Child Reaction (spontaneous vocalization, self-directed gesture, AAC choice if used)<br/>• Co-Regulatory Outcome (resolved / unassisted / escalation)"]
             end
 
-            MediaRow --> EvidenceRow --> AACRow
+            MediaRow --> EvidenceRow --> ResponseRow
         end
     end
 
@@ -357,7 +357,7 @@ graph TD
     style NavSidebar fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
     style MediaRow fill:#f0f9ff,stroke:#0284c7,stroke-width:1px
     style EvidenceRow fill:#fdf4ff,stroke:#c026d3,stroke-width:1px
-    style AACRow fill:#fefce8,stroke:#ca8a04,stroke-width:2px
+    style ResponseRow fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
 
 ### 6.2 Key Dashboard Screens
@@ -365,7 +365,7 @@ graph TD
    - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and Farnebäck motion vectors frame-by-frame.
    - Synchronized audio waveform with interactive pitch trace ($F_0$ curve) and CQT spectrogram heatmaps.
    - **Perspective Switcher Toggle (`[ 🟢 Parent View (Default) ] | [ 🔬 Therapist View ]`):**
-     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Nolan sounds overwhelmed by room noise, not angry at you"*), gentle exploratory hypotheses (*"What Nolan might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
+     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Nolan's vocal pitch and wrist movement are elevated, similar to past fatigue episodes"*), gentle exploratory hypotheses (*"What Nolan might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
      - **Therapist View:** Full bioacoustic figures ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck displacement), SCERTS and Ayres Sensory Integration mapping, and exact peer-reviewed literature citations.
 2. **Interactive 2D Lexicon Cluster Map:**
    - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
@@ -391,6 +391,7 @@ Targeted natively for Apple Silicon Metal Unified Memory (mlx >= 0.22.0).
 """
 
 from typing import Dict, Any, List, Optional, Tuple
+from collections import Counter
 import mlx.core as mx
 import mlx.nn as nn
 import numpy as np
@@ -407,6 +408,7 @@ class AttentionPool(nn.Module):
 
     def __call__(self, x: mx.array, mask: Optional[mx.array] = None) -> mx.array:
         # x: (B, T, D)
+        # mask convention: 1 = masked/ignored, 0 = valid (additive bias of -1e9 applied to masked tokens)
         scores = self.attn_vector(x)  # (B, T, 1)
         if mask is not None:
             scores = scores + (mask * -1e9)
@@ -423,7 +425,7 @@ class MetricProjectionHead(nn.Module):
     """
     def __init__(
         self,
-        d_audio: int = 768,
+        d_audio: int = 512,
         d_kinematic: int = 512,
         d_physio: int = 64,
         d_hidden: int = 512,
@@ -627,14 +629,14 @@ def execute_inference_cycle(
             "caregiver_nccpc_score": nccpc_total,
             "escalation_card": (
                 "MEDICAL ESCALATION REQUIRED: Distress anomaly detected or caregiver pain checklist threshold exceeded. "
-                "Examine child for acute illness, dental pain, otitis media, or GI reflux. "
+                "Prompt caregiver to conduct pediatrician-approved physical comfort check. "
                 "Behavioral and sensory interpretations are suppressed."
             ),
             "actionable_hints": [
                 "Examine child for physical symptoms, temperature, or acute somatic discomfort",
                 "Follow family pediatrician-approved comfort and escalation protocol"
             ],
-            "optional_aac_candidates": ["medical_attention", "caregiver_comfort"]
+            "suggested_observations": ["physical_comfort_check", "pediatrician_protocol"]
         }
 
     # 2. METRIC PROJECTION (128-dim L2 space)
@@ -652,11 +654,12 @@ def execute_inference_cycle(
                 "Observe child without immediate intervention",
                 "Offer open-ended visual schedule or preferred comfort object"
             ],
-            "optional_aac_candidates": ["open_choice_board", "check_in"]
+            "suggested_observations": ["open_choice_board", "check_in"]
         }
 
     # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
-    top_action = match_result["candidates"][0]["action_taken"]
+    actions = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
+    top_action = Counter(actions).most_common(1)[0][0] if actions else "supportive co-regulation"
     evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
     evidence_text = lit_results["documents"][0][0] if (lit_results.get("documents") and lit_results["documents"][0]) else None
@@ -700,8 +703,8 @@ def execute_inference_cycle(
     parent_render_prompt = (
         f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
         f"Translate the four-layer technical evidence into warm, accessible everyday language without clinical jargon:\n"
-        f"1. Explain in simple terms what Nolan might be experiencing right now (e.g., overwhelmed by ambient noise, excited, or fatigued; clarify he is not angry at parents).\n"
-        f"2. Suggest 2-3 gentle, practical, low-risk things parents can try right now based on past co-regulatory successes, known comfort items (e.g., favorite toys, calming phrases), and techniques demonstrated by his OT or SLP in clinic sessions.\n"
+        f"1. Explain in simple terms what physical and sensory patterns are observed (e.g., vocal tension or rhythmic movement) and explore what Nolan might be experiencing (e.g., sound overload, fatigue, or excitement), avoiding dogmatic claims about internal mental states.\n"
+        f"2. Suggest 2-3 gentle, practical, low-risk things parents can explore right now based on past co-regulatory successes, known comfort items (e.g., favorite toys, calming phrases), and techniques demonstrated by his OT or SLP in clinic sessions.\n"
         f"3. Frame ideas as gentle hypotheses to investigate rather than dogmatic claims. Include a brief reminder that these are supportive exploratory ideas, not medical advice.\n\n"
         f"[L1 Measured]: {l1}\n"
         f"[L2 History]: {l2}\n"
@@ -727,8 +730,8 @@ def execute_inference_cycle(
     rendered_parent_card = f"Parent View:\n{parent_render_prompt}"
     rendered_therapist_card = f"Therapist View:\n{therapist_render_prompt}"
 
-    # Optional AAC bridge candidates (for child self-advocacy if accessible)
-    aac_options = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
+    # Observed historical child responses recorded during past similar episodes
+    child_responses = [c.get("child_response") for c in match_result["candidates"] if c.get("child_response")]
 
     return {
         "structured_data": {
@@ -745,7 +748,7 @@ def execute_inference_cycle(
             f"Check if child responds to previous comfort action: {top_action}",
             f"Review environmental antecedents (transition={transition}, noise={noise})"
         ],
-        "optional_aac_candidates": aac_options,
+        "historical_child_responses": child_responses,
         "disclaimer": (
             "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
             "not a medical diagnosis. Prioritize physical comfort and consult your pediatrician for health concerns."
@@ -781,7 +784,7 @@ graph TD
     end
 
     subgraph P4 ["Phase 4: Caregiver Dashboard, Distress Screening & Clinic-to-Home Engine"]
-        P4_1["4.1 app/lib/dashboard_sync.dart: Dual-perspective sync & optional AAC publisher"]
+        P4_1["4.1 app/lib/dashboard_sync.dart: Dual-perspective sync & observation logger"]
         P4_2["4.2 models/distress_screener.py: Acute distress screener & pediatrician comfort prompt"]
         P4_3["4.3 rag/evidence_store.py: Curated clinical PDF parser & personal_dyadic_knowledge store"]
         P4_1 --> P4_2 --> P4_3

@@ -35,10 +35,9 @@
 1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using high-resolution bioacoustic physics (fundamental frequency $F_0$ pitch tracking, jitter, shimmer, harmonic overtones via CQT, and periodic-to-aperiodic energy ratio via CPP). The system matches acoustic signals directly to past verified episodes without forcing sounds into clumsy English descriptions.
 2. **The Dyadic Transactional Loop:** Communication is not an isolated broadcast. Grounded in the **SCERTS framework** ([Prizant et al., 2006](https://olostan.github.io/project_n/WHITE_PAPER/#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](https://olostan.github.io/project_n/WHITE_PAPER/#ref-16); [Wetherby & Prizant, 2000](https://olostan.github.io/project_n/WHITE_PAPER/#ref-20)), the system models the interactive dance between the child and the adult communication partner (what the parent/therapist said, what physical scaffolding was offered, and how the child responded).
 3. **Dual-Perspective Insights (Parent View & Therapist View):** The primary goal is helping parents and therapists understand the child's communicative bids through a perspective-switchable interface:
-   - **Parent View (Default):** Translates complex acoustic physics and motion kinematics into warm, accessible, everyday language (*e.g., "Nolan sounds overwhelmed by room noise or fatigue, not angry; try offering his favorite red squishy toy, dimming lights, or a gentle arm squeeze"*), presenting concrete, low-risk things to try based on past co-regulatory successes with an explicit non-diagnostic parental notice.
+   - **Parent View (Default):** Translates complex acoustic physics and motion kinematics into warm, accessible, everyday language (*e.g., "Nolan's vocal tension and wrist movement are elevated, indicating heightened sensory arousal; in similar past episodes, offering his favorite red squishy toy or a 3-minute quiet break was followed by calming"*), presenting concrete, low-risk possibilities to explore based on past co-regulatory successes with an explicit non-diagnostic parental notice.
    - **Therapist View:** Surfaces full bioacoustic telemetry ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck optical flow), SCERTS framework mapping, and cited clinical evidence ready for Occupational Therapy and Speech sessions.
-   - Where accessible, candidate possibilities also bridge to an AAC choice board for direct child self-advocacy.
-4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic distress anomalies and immediately prompt caregivers to conduct their family pediatrician-approved comfort check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](https://olostan.github.io/project_n/WHITE_PAPER/#ref-2)), prioritizing physical comfort and medical rule-out over behavioral interpretations.
+4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic distress anomalies (deviation from Nolan's baseline) and immediately prompt caregivers to conduct their family pediatrician-approved comfort check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](https://olostan.github.io/project_n/WHITE_PAPER/#ref-2)), prioritizing physical comfort and medical rule-out over behavioral interpretations.
 5. **100% Offline & Two-Key Encrypted:** Runs locally on an Apple Silicon Mac (M5 Pro) with zero cloud network telemetry. Video and audio recordings are encrypted with unique per-clip keys.
 
 ---
@@ -51,7 +50,6 @@ sequenceDiagram
     actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / OT / SLP)
     participant Engine as Project N Local Assistant (Apple Silicon)
-    participant AAC as Child AAC Device (Optional)
 
     Child->>Partner: Natural communication bid (Pitch glide + 4Hz wrist stim)
     Note over Partner: Partner observes context & captures clip via mobile app
@@ -59,15 +57,14 @@ sequenceDiagram
     Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
     Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
-    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
-    opt Optional Child Authorship
-        Engine->>AAC: Pre-populates candidate tiles ([Deep Pressure], [Sensory Break])
-        Child->>AAC: Directly selects icon or gestures
-        AAC-->>Partner: Speaks aloud child's choice
+    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques & low-risk things to try
+    Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet break)
+    opt Independent Child Communication
+        Child->>Partner: Child communicates response (independent AAC, gesture, reach)
     end
-    Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
-    Note over Child,Partner: Co-regulation restored; latency & outcome recorded
-    Engine->>Engine: Updates local N-of-1 episodic memory with verified outcome
+    Note over Child,Partner: Co-regulation observed; latency & outcome recorded
+    Partner->>Engine: Logs observed resolution & child feedback
+    Engine->>Engine: Updates local episodic memory with verified outcome
 ```
 
 ---
@@ -133,6 +130,6 @@ Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion F
 - [ ] Phase 1: Local Mac backend daemon (FastAPI), encrypted vault, and acoustic feature pipeline.
 - [ ] Phase 2: Metric projection head, episodic prototype retrieval, and ChromaDB integration.
 - [ ] Phase 3: Flutter companion app with offline outbox and pairing.
-- [ ] Phase 4: Local React dashboard and AAC integration.
-- [ ] Phase 5: Controlled clinical trial and N-of-1 prospective evaluation.
+- [ ] Phase 4: Local React dashboard and clinic-to-home knowledge transfer.
+- [ ] Phase 5: Controlled clinical evaluation and prospective single-participant longitudinal benchmark.
 

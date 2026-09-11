@@ -928,7 +928,7 @@ association prospectively.
 - <a id="ref-barrett-2019"></a>**Barrett, L. F., Adolphs, R., Marsella, S., Martinez, A. M., & Pollak, S. D. (2019).** *Emotional Expressions Reconsidered: Challenges to Inferring Emotion from Human Facial Movements.* Psychological Science in the Public Interest 20(1):1–68. [doi:10.1177/1529100619832930](https://doi.org/10.1177/1529100619832930)
 - <a id="ref-nac-2026"></a>**National Autism Center. (2026).** *Position statement on Spelling to Communicate, Rapid Prompting Method, and Facilitated Communication.* Published June 23, 2026. [nationalautismcenter.org](https://nationalautismcenter.org/news/national-autism-center-releases-position-statement-on-spelling-to-communicate-rapid-prompting-method-and-facilitated-communication/)
 - <a id="ref-tandf-2025"></a>*Safeguarding the communication rights of minimally- or non-speaking people.* (2025). [Taylor & Francis](https://www.tandfonline.com/doi/full/10.1080/23297018.2025.2544116)
-- <a id="ref-ghassemi-2020"></a>**Ghassemi, M., Oakden-Rayner, L., & Beam, A. L. (2020).** *Second opinion needed: communicating uncertainty in medical machine learning.* npj Digital Medicine 3:127. [doi:10.1038/s41746-020-00367-3](https://doi.org/10.1038/s41746-020-00367-3)
+- <a id="ref-kompa-2021"></a><a id="ref-ghassemi-2020"></a>**Kompa, B., Snoek, J., & Beam, A. L. (2021).** *Second opinion needed: communicating uncertainty in medical machine learning.* npj Digital Medicine 4:4. [doi:10.1038/s41746-020-00367-3](https://doi.org/10.1038/s41746-020-00367-3)
 - <a id="ref-nist-ai"></a>**NIST.** *AI Risk Management Framework Core.* [NIST AIRC](https://airc.nist.gov/airmf-resources/airmf/5-sec-core/)
 
 **Clinical frameworks**
