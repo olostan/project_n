@@ -159,7 +159,7 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 - **Calibrated Abstention Rule:** If $\min_k d(\mathbf{z}, \mathbf{c}_k) > \tau_{abstain}$ (where default $\tau_{abstain} = 0.35$, tuned to 95th percentile holdout distance):
   $$\text{Decision} = \text{ABSTAIN} \implies \text{"Unrecognized behavioral pattern; insufficient historical similarity."}$$
 
-- The system offers open AAC exploration or caregiver observational check-in rather than guessing.
+- The system offers open-ended caregiver observation or environmental check-in rather than guessing.
 
 ### 3.3 Medical Safety Protocol & Distress Screening (Triage First)
 Physical distress and somatic pain must always take absolute priority over behavioral or sensory interpretations. In clinical practice, pain in non-communicating children is evaluated using validated instruments:
@@ -411,6 +411,8 @@ class AttentionPool(nn.Module):
         # mask convention: 1 = masked/ignored, 0 = valid (additive bias of -1e9 applied to masked tokens)
         scores = self.attn_vector(x)  # (B, T, 1)
         if mask is not None:
+            if mask.ndim == 2:
+                mask = mask[:, :, None]  # Expand (B, T) -> (B, T, 1) to match score dimensions
             scores = scores + (mask * -1e9)
         weights = mx.softmax(scores, axis=1)  # (B, T, 1)
         pooled = mx.sum(x * weights, axis=1)  # (B, D)
@@ -517,7 +519,9 @@ class EpisodicPrototypeMatcher:
             candidates.append({
                 "action_taken": meta.get("action_taken"),
                 "resolution_outcome": meta.get("resolution_outcome"),
-                "child_confirmed": meta.get("child_confirmed_aac"),
+                "child_response": meta.get("child_response"),
+                "response_channel": meta.get("response_channel", "unspecified"),
+                "child_confirmed": bool(meta.get("child_response")),
                 "distance": dist
             })
 
@@ -531,18 +535,26 @@ class EpisodicPrototypeMatcher:
 class AcuteDistressAnomalyDetector:
     """
     Automated acoustic and kinematic anomaly screener executing on raw 5s sensory frames.
-    Screens for acute acoustic spikes (F0 pitch shriek excursions, severe CPP drops)
-    and rapid guarding/flinching kinematics. Prompts caregiver to conduct their family
-    pediatrician-approved comfort check (such as conducting an NCCPC 10-minute observation).
+    Screens for acute acoustic excursions and flinching/guarding kinematics relative to
+    the child's established personal baseline (or clinical fallback distributions).
+    Prompts caregiver to conduct their family pediatrician-approved comfort check.
     """
     @classmethod
-    def evaluate(cls, measured_features: Dict[str, Any]) -> Dict[str, Any]:
+    def evaluate(
+        cls,
+        measured_features: Dict[str, Any],
+        baseline_stats: Optional[Dict[str, float]] = None
+    ) -> Dict[str, Any]:
         f0_mean = measured_features.get("f0_mean_hz")
         cpp_val = measured_features.get("cpp_db")
         flinch_guarding = measured_features.get("acute_guarding_detected", False)
 
-        f0_spike = bool(isinstance(f0_mean, (int, float)) and f0_mean > 450.0)
-        cpp_strain = bool(isinstance(cpp_val, (int, float)) and cpp_val < 4.0)
+        # Personal baseline thresholds (e.g. mean + 3*std from calibration) or safe fallbacks
+        f0_thresh = baseline_stats.get("f0_upper_limit_hz", 450.0) if baseline_stats else 450.0
+        cpp_thresh = baseline_stats.get("cpp_lower_limit_db", 4.0) if baseline_stats else 4.0
+
+        f0_spike = bool(isinstance(f0_mean, (int, float)) and f0_mean > f0_thresh)
+        cpp_strain = bool(isinstance(cpp_val, (int, float)) and cpp_val < cpp_thresh)
 
         is_anomaly = bool(f0_spike or cpp_strain or flinch_guarding)
         return {
@@ -553,10 +565,10 @@ class AcuteDistressAnomalyDetector:
                 "flinch_guarding": flinch_guarding
             },
             "recommendation": (
-                "ACUTE DISTRESS ANOMALY DETECTED: Acoustic or kinematic signals indicate acute distress. "
-                "Prompt caregiver to perform pediatrician-approved comfort/safety check (e.g. NCCPC checklist). "
+                "ACUTE DISTRESS ANOMALY DETECTED: Acoustic or kinematic signals show acute deviation from baseline. "
+                "Prompt caregiver to perform pediatrician-approved comfort check. "
                 "Behavioral and sensory interpretations are suppressed."
-                if is_anomaly else "Normal operational baseline."
+                if is_anomaly else "No acute distress anomaly detected in current sensory window."
             )
         }
 
@@ -658,7 +670,14 @@ def execute_inference_cycle(
         }
 
     # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
-    actions = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
+    # Filter candidates by verified successful resolution to avoid recommending actions that failed in past episodes
+    successful_candidates = [
+        c for c in match_result["candidates"]
+        if c.get("resolution_outcome") == "resolved" and c.get("action_taken")
+    ]
+    actions = [c["action_taken"] for c in successful_candidates]
+    if not actions:
+        actions = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
     top_action = Counter(actions).most_common(1)[0][0] if actions else "supportive co-regulation"
     evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
@@ -703,7 +722,7 @@ def execute_inference_cycle(
     parent_render_prompt = (
         f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
         f"Translate the four-layer technical evidence into warm, accessible everyday language without clinical jargon:\n"
-        f"1. Explain in simple terms what physical and sensory patterns are observed (e.g., vocal tension or rhythmic movement) and explore what Nolan might be experiencing (e.g., sound overload, fatigue, or excitement), avoiding dogmatic claims about internal mental states.\n"
+        f"1. Describe the measured physical patterns in plain language relative to recent baseline (e.g., vocal pitch or rhythmic movement) and present gentle possibilities to explore (e.g., environmental factors like sound or transition fatigue), explicitly avoiding dogmatic claims about internal mental states or intent.\n"
         f"2. Suggest 2-3 gentle, practical, low-risk things parents can explore right now based on past co-regulatory successes, known comfort items (e.g., favorite toys, calming phrases), and techniques demonstrated by his OT or SLP in clinic sessions.\n"
         f"3. Frame ideas as gentle hypotheses to investigate rather than dogmatic claims. Include a brief reminder that these are supportive exploratory ideas, not medical advice.\n\n"
         f"[L1 Measured]: {l1}\n"
@@ -725,10 +744,22 @@ def execute_inference_cycle(
         f"[L4 Evidence]: {l4}\n"
     )
 
-    # Base LLM is 100% frozen via model.freeze()
-    # In MLX-LM runtime, generation is executed via mlx_lm.generate(llm_model, tokenizer, prompt=...)
-    rendered_parent_card = f"Parent View:\n{parent_render_prompt}"
-    rendered_therapist_card = f"Therapist View:\n{therapist_render_prompt}"
+    # 6. FROZEN LLM RENDERING VIA MLX-LM (Base LLM 100% frozen via model.freeze())
+    if llm_renderer is not None and tokenizer is not None:
+        try:
+            import mlx_lm
+            rendered_parent_card = mlx_lm.generate(
+                llm_renderer, tokenizer, prompt=parent_render_prompt, max_tokens=350, verbose=False
+            )
+            rendered_therapist_card = mlx_lm.generate(
+                llm_renderer, tokenizer, prompt=therapist_render_prompt, max_tokens=350, verbose=False
+            )
+        except Exception:
+            rendered_parent_card = f"[Parent View Rendered]\nObservation: {l1}\nHistory: {l2}\nContext: {l3}\nGuidance: Consider {top_action}."
+            rendered_therapist_card = f"[Therapist View Rendered]\nMeasured: {l1}\nPrecedents: {l2}\nLiterature: {l4}"
+    else:
+        rendered_parent_card = f"[Parent View Rendered]\nObservation: {l1}\nHistory: {l2}\nContext: {l3}\nGuidance: Consider {top_action}."
+        rendered_therapist_card = f"[Therapist View Rendered]\nMeasured: {l1}\nPrecedents: {l2}\nLiterature: {l4}"
 
     # Observed historical child responses recorded during past similar episodes
     child_responses = [c.get("child_response") for c in match_result["candidates"] if c.get("child_response")]

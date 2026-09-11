@@ -43,12 +43,11 @@ def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
     print(f"\n--- Verifying citations in {file_path.name} ---")
     for line in lines:
         line_s = line.strip()
-        # Find lines with DOI markdown link
-        m_doi = re.search(r"\[doi:(10\.\d{4,9}/[^\]]+)\]", line_s)
-        if not m_doi:
+        # Find all DOI markdown links on the line
+        dois = re.findall(r"\[doi:(10\.\d{4,9}/[^\]]+)\]", line_s)
+        if not dois:
             continue
 
-        doi = m_doi.group(1)
         # Extract title: check italic format (*Title.*) first, then standard (Title. *Journal*)
         m_italic = re.search(r"\*\*[^\*]+\*\*\s+\*([^*]+?)\.\*", line_s)
         if m_italic:
@@ -59,30 +58,33 @@ def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
                 line_s,
             )
             printed_title = m_title.group(1).strip("* ") if m_title else ""
-        checked += 1
 
-        try:
-            remote_title = fetch_metadata_title(doi, ctx)
-            sim = similarity(printed_title, remote_title) if printed_title else 1.0
-            if sim >= 0.70:
-                print(f"  [PASS] {doi} (sim: {sim:.2f})")
-                print(f"         Matched: '{remote_title[:75]}...'")
-            else:
-                print(f"  [FAIL] Title mismatch for DOI {doi} (sim: {sim:.2f}):")
-                print(f"         Printed: '{printed_title}'")
-                print(f"         Remote:  '{remote_title}'")
+        for doi in dois:
+            checked += 1
+            try:
+                remote_title = fetch_metadata_title(doi, ctx)
+                sim = similarity(printed_title, remote_title) if printed_title else 1.0
+                if sim >= 0.70:
+                    print(f"  [PASS] {doi} (sim: {sim:.2f})")
+                    print(f"         Matched: '{remote_title[:75]}...'")
+                else:
+                    print(f"  [FAIL] Title mismatch for DOI {doi} (sim: {sim:.2f}):")
+                    print(f"         Printed: '{printed_title}'")
+                    print(f"         Remote:  '{remote_title}'")
+                    errors += 1
+            except Exception as e:
+                print(f"  [FAIL] Error fetching DOI {doi}: {e}")
                 errors += 1
-        except Exception as e:
-            print(f"  [FAIL] Error fetching DOI {doi}: {e}")
-            errors += 1
 
     print(f"Summary for {file_path.name}: {checked} checked, {errors} errors.")
     return errors
 
 def main() -> int:
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        ctx = ssl.create_default_context()
 
     root = Path(__file__).resolve().parent.parent
     files_to_check = [

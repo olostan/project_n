@@ -69,7 +69,7 @@ Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`),
   - **Layer 2 (L2 - Comparable History):** Historical episodes from Child N's verified records exhibiting similar metric embeddings and their recorded outcomes.
   - **Layer 3 (L3 - Context & Antecedents):** Caregiver-provided notes regarding transitions, environment, timing, and caregiver-observed antecedents.
   - **Layer 4 (L4 - Evidence Library):** Versioned, cited excerpts from published literature, documenting author, year, study population, and evidence level.
-- **Abstention as a First-Class State:** If nearest-neighbor distance in metric space exceeds a calibrated threshold or if signal quality is compromised, the system must **abstain** ("unrecognized pattern") and suggest observational or AAC-based exploratory options.
+- **Abstention as a First-Class State:** If nearest-neighbor distance in metric space exceeds a calibrated threshold or if signal quality is compromised, the system must **abstain** ("unrecognized pattern") and suggest open-ended caregiver observation or environmental check-in.
 - **Forbidden Terminology:** Outputs and documentation must not use deterministic terms such as "child state diagnosis", "translating into intent", or "caregiver treatment protocols".
 
 ### Invariant 7: Medical Safety Protocol & Human-Controlled Triage Priority

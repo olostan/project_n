@@ -90,11 +90,11 @@ graph TD
 
     subgraph Empowerment [Caregiver & Therapist Guidance with Child Agency]
         RAG --> CaregiverCard[Primary: Four-Layer Structured Evidence Card L1-L4<br/>• Behavioral Analysis & Pattern Recognition<br/>• What Helped Before & Practical Hints for OTs/Parents<br/>• Grounded Clinical Literature Citations]
-        RAG --> AACBridge[Optional Child Bridge: Adaptive AAC Choice Tiles<br/>• Direct Child Self-Advocacy & Authorship<br/>• Real-time Visual Choice Board]
+        CaregiverCard -.-> ChildResponse[Child Agency Observational Record<br/>• Caregiver logs spontaneous gestures, reaches, or voluntary AAC choices<br/>• Child-confirmed feedback refines historical record]
     end
 
     style MedicalCard fill:#ff4d4f,color:#fff,stroke:#333,stroke-width:2px
-    style AACBridge fill:#52c41a,color:#fff,stroke:#333,stroke-width:2px
+    style ChildResponse fill:#52c41a,color:#fff,stroke:#333,stroke-width:2px
     style CaregiverCard fill:#1890ff,color:#fff,stroke:#333,stroke-width:2px
 ```
 
@@ -162,21 +162,20 @@ stateDiagram-v2
     state MedicalTriage {
         [*] --> DistressScreening: Automated Acute Distress Screener
         DistressScreening --> CaregiverPrompt: Acoustic/Kinematic Anomaly Detected
-        DistressScreening --> BehavioralDyad: Baseline Telemetry (Sensory / Communicative)
+        DistressScreening --> BehavioralDyad: No Acute Distress Anomaly Detected
         CaregiverPrompt --> PhysicalCheck: Caregiver Conducts Pediatrician Check / NCCPC-PV
-        PhysicalCheck --> RedFlagEscalation: Acute Pain / Distress Confirmed by Caregiver
-        PhysicalCheck --> BehavioralDyad: Physical Cause Ruled Out by Caregiver
+        PhysicalCheck --> RedFlagEscalation: Acute Somatic Distress Confirmed by Caregiver
+        PhysicalCheck --> BehavioralDyad: Comfort Check Completed (No Somatic Distress Observed)
     }
 
-    RedFlagEscalation --> ClinicalMedicalReview: Alert Caregiver to Examine Physical Cause
+    RedFlagEscalation --> ClinicalMedicalReview: Alert Caregiver to Follow Pediatrician Protocol
     ClinicalMedicalReview --> BaselineRegulated: Medical Relief Provided
 
     BehavioralDyad --> EpisodicMatching: Query 128-dim Historical Memory
     EpisodicMatching --> CaregiverInsight: Synthesize L1-L4 Evidence & Precedents
     CaregiverInsight --> CoRegulation: Partner Delivers Scaffolding & Support
-    CaregiverInsight --> AACBridge: Optional Child-Directed AAC Choice Tiles
-    AACBridge --> CoRegulation: Child Selects Tile or Gestures
-    CoRegulation --> BaselineRegulated: Observed De-escalation (Behavioral Resolution Verified)
+    CoRegulation --> ChildResponse: Caregiver Records Child Reaction (Spontaneous AAC, Gesture, Reach)
+    ChildResponse --> BaselineRegulated: Observed De-escalation (Behavioral Resolution Verified)
 ```
 
 ---
@@ -197,7 +196,7 @@ Project N builds directly upon and synthesizes several empirical research bodies
 ### 5.2 Wearable Biosensing & Autonomic Forecasting
 - **Biosensing in Minimally Verbal Autistic Youth ([Goodwin et al., 2019](#ref-5); [Imbiriba et al., 2023](#ref-6)):**
   In a foundational mobile clinical laboratory study of 20 youth with autism spectrum disorder (85% minimally verbal) across 69 sessions totaling 87 observation hours, Goodwin et al. ([2019](#ref-5)) demonstrated that imminent aggressive distress episodes could be predicted 1 minute in advance with an AUROC of **0.84** using person-dependent time-series models (versus 0.71 for population models).
-  Subsequently, in a cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba, Demirkaya, Singh, et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead, reporting a mean AUROC of **0.80** (with person-dependent models outperforming population models), demonstrating that while population models provide a useful starting baseline, longitudinal calibration remains essential for individual autonomic profiles.
+  Subsequently, in a cohort of 70 psychiatric inpatients across 497 observation hours, Imbiriba, Demirkaya, Singh, et al. ([2023](#ref-6)) expanded prediction horizons to 3 minutes ahead, reporting a mean AUROC of **0.80** (with individual personalization and performance varying across data volume and inpatient cohorts), demonstrating the utility of longitudinal calibration.
   - *Engineering Implication:* Direct autonomic sensing breaks the circularity of guessing internal arousal from surface behaviors alone, providing objective somatic telemetry to substantiate behavioral escalation.
 
 ### 5.3 Motor Stimming, Kinematics & Predictive Coding
@@ -208,14 +207,14 @@ Project N builds directly upon and synthesizes several empirical research bodies
 
 ### 5.4 Augmentative and Alternative Communication (AAC)
 - **Speech Production Outcomes in Aided AAC ([Millar et al., 2006](#ref-10)):**
-  A systematic review of 23 empirical studies across 67 individuals with developmental disabilities (including autism) demonstrated that among the 27 cases in the 6 methodologically strongest studies evaluated, introducing aided AAC was followed by increased speech production in **89% of cases**, no change in 11%, and **0% exhibited any speech decrease**. A subsequent meta-analysis by Schlosser & Wendt (2008) corroborated these findings, firmly disproving the clinical myth that AAC inhibits natural vocal development.
+  A systematic review of 23 empirical studies across 67 individuals with developmental disabilities (including autism) demonstrated that among the 27 cases in the 6 methodologically strongest studies evaluated, introducing aided AAC was followed by increased speech production in **89% of cases**, no change in 11%, and **0% exhibited any speech decrease**. A subsequent systematic review by Schlosser & Wendt ([2008](#ref-schlosser-2008)) corroborated that AAC intervention did not impede speech production, with modest speech gains observed across several studies.
 - **Naturalistic Developmental Behavioral Interventions (NDBI; [Schreibman et al., 2015](#ref-17); [Bruinsma et al., 2020](#ref-3)):**
   Consensus clinical guidelines demonstrate that communication development accelerates when embedded within shared, child-led everyday routines with contingent partner responsiveness.
   - *Clinical & Epistemic Implication:* Communication development is transactional and partner-supported. Where accessible, AAC serves as an empowering channel for independent child-directed authorship; simultaneously, partner scaffolding and timely co-regulatory interventions—measured through prospective behavioral resolution—form the primary dyadic engine for communicative connection and de-escalation.
 
 ### 5.5 Somatic Distress & Pain Evaluation
 - **Non-Communicating Children’s Pain Checklist – Postoperative Version (NCCPC-PV; [Breau et al., 2002](#ref-2)):**
-  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed for caregivers and clinicians to evaluate postoperative physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute structured observation). In its validation cohort of 24 children postoperatively, a cut-off of $\ge 11$ indicated moderate-to-severe pain (while in home settings, the 30-item, 2-hour NCCPC-R establishes $\ge 7$ as indicative of pain; Breau et al., 2002). Because a 2-hour observation window cannot be performed in-the-moment following an acute episode, Project N structures its acute post-episode caregiver check around the 10-minute, 27-item instrument (NCCPC-PV). Real-time acoustic/kinematic distress anomalies immediately prompt caregivers to execute their family pediatrician-approved physical comfort protocol, while suppressing behavioral interpretations.
+  A validated 27-item clinical instrument with high internal consistency ($\alpha = 0.91$) designed for caregivers and clinicians to evaluate postoperative physical pain in children with severe communication impairments across 6 observable subscales (Vocal, Social, Facial, Activity, Body & Limbs, Physiological; total score 0–81 over a 10-minute structured observation). In its validation cohort of 24 children postoperatively, a cut-off of $\ge 11$ indicated moderate-to-severe pain (while in home/residential settings, the 30-item, 2-hour NCCPC-R establishes $\ge 7$ as indicative of pain; [Breau et al., 2002](#ref-breau-2002-r)). Because a 2-hour observation window cannot be performed in-the-moment following an acute episode, Project N structures its acute post-episode caregiver check around the 10-minute, 27-item instrument (NCCPC-PV). Real-time acoustic/kinematic distress anomalies immediately prompt caregivers to execute their family pediatrician-approved physical comfort protocol, while suppressing behavioral interpretations.
 
 ---
 
@@ -256,7 +255,7 @@ graph LR
 To ensure clinical and practical utility across different stakeholders, the structured L1–L4 evidence is rendered through a toggleable interface:
 
 1. **Parent View (Default — Warm Co-Regulatory Scaffolding):**
-   Translates dense bioacoustic physics and kinematic coordinates into accessible, compassionate, and non-pathologizing everyday observations (*e.g., explaining that elevated vocal pitch and rhythmic wrist movement often reflect physiological or sensory arousal rather than intentional defiance*). It presents concrete, low-risk possibilities to explore grounded in past successes (*"In 2 of 3 similar past episodes, offering his favorite red squishy toy or providing 3 minutes of quiet space was followed by calming"*), accompanied by an explicit reminder that sensor signals reflect physical arousal rather than internal subjective thoughts and that suggestions are gentle possibilities to explore, not medical diagnoses.
+   Translates dense bioacoustic physics and kinematic coordinates into accessible, compassionate, and non-pathologizing everyday observations (*e.g., describing elevated vocal pitch and rhythmic wrist movement relative to personal baseline*). It presents gentle exploratory possibilities to investigate and concrete, low-risk things to try grounded in past successes (*"In 2 of 3 similar past episodes, offering his favorite red squishy toy or providing 3 minutes of quiet space was followed by calming"*), accompanied by an explicit reminder that sensors capture physical patterns rather than internal subjective thoughts and that suggestions are gentle possibilities to explore, not medical diagnoses.
 2. **Therapist View (Bioacoustic & Motion Telemetry):**
    Surfaces raw fundamental frequency ($F_0$), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, pose oscillation frequencies (Hz), SCERTS mutual regulation categories, and exact peer-reviewed literature citations, enabling Speech-Language Pathologists and Occupational Therapists to review objective empirical progress during therapy sessions.
 
@@ -316,3 +315,5 @@ We warmly invite speech-language pathologists, occupational therapists, assistiv
 19. <a id="ref-19"></a>**Van de Cruys, S., Evers, K., Van der Hallen, R., Van Eylen, L., Boets, B., de-Wit, L., & Wagemans, J. (2014).** Precise minds in uncertain worlds: Predictive coding in autism. *Psychological Review*, 121(4), 649–675. [doi:10.1037/a0037665](https://doi.org/10.1037/a0037665)
 20. <a id="ref-20"></a>**Wetherby, A. M., & Prizant, B. M. (2000).** *Autism spectrum disorders: A transactional developmental perspective*. Paul H. Brookes Publishing. [Brookes Publishing](https://products.brookespublishing.com/Autism-Spectrum-Disorders-P198.aspx)
 21. <a id="ref-21"></a><a id="ref-shamseer-2015"></a>**Shamseer, L., Sampson, M., Bukutu, C., Schmid, C. H., Nikles, J., Tate, R., Johnston, B. C., Zucker, D., Shadish, W. R., Kravitz, R., Guyatt, G., Altman, D. G., Moher, D., & Vohra, S. (2015).** CONSORT extension for reporting N-of-1 trials (CENT) 2015: Explanation and elaboration. *BMJ*, 350, h1793. [doi:10.1136/bmj.h1793](https://doi.org/10.1136/bmj.h1793)
+22. <a id="ref-22"></a><a id="ref-breau-2002-r"></a>**Breau, L. M., McGrath, P. J., Camfield, C. S., & Finley, G. A. (2002).** Psychometric properties of the non-communicating children’s pain checklist-revised. *Pain*, 99(1-2), 349–357. [doi:10.1016/S0304-3959(02)00179-3](https://doi.org/10.1016/S0304-3959(02)00179-3)
+23. <a id="ref-23"></a><a id="ref-schlosser-2008"></a>**Schlosser, R. W., & Wendt, O. (2008).** Effects of augmentative and alternative communication intervention on speech production in children with autism: A systematic review. *American Journal of Speech-Language Pathology*, 17(3), 212–230. [doi:10.1044/1058-0360(2008/021)](https://doi.org/10.1044/1058-0360(2008/021))

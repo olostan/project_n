@@ -203,7 +203,7 @@ graph TD
 
     Gate1 -- "Yes (Acute Distress / Pain Anomaly)" --> MedicalCard["Caregiver Medical Prompt Card<br/>Prompts caregiver to conduct pediatrician-approved comfort check<br/>(e.g., 27-item NCCPC-PV checklist; Breau et al., 2002).<br/>Behavioral/sensory interpretations suppressed."]
 
-    Gate1 -- "No (Regulated / Non-Pain)" --> Embed["Metric Projection & Prototype Search<br/>Compute z ∈ ℝ^128, find c_nearest"]
+    Gate1 -- "No (No Acute Distress Anomaly Detected)" --> Embed["Metric Projection & Prototype Search<br/>Compute z ∈ ℝ^128, find c_nearest"]
 
     Embed --> Gate2{"Calibrated Abstention Gate<br/>d(z, c_nearest) > τ_abstain ?"}
 
@@ -246,7 +246,7 @@ Recommended Action: Observe environmental context, offer preferred comfort items
 A common pitfall in assistive technology is presenting either fabricated narratives ("mind-reading") or dense clinical jargon that is alienating to parents during moments of acute behavioral distress. Project N implements a **Dual-Perspective Interaction Model** governed by schema-constrained prompt templating over the four-layer evidence foundation:
 
 1. **Parent View (Default — Accessible, Empathetic Co-Regulatory Support):**
-   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday observations (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation indicating autonomic hyper-arousal"* into plain-English observations: *"Nolan's vocal tension and wrist movement are elevated, indicating heightened sensory arousal (often triggered by ambient room noise or transition fatigue, rather than intentional defiance); gentle possibilities to explore: quiet space, hydration, or his favorite comfort toy"*).
+   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday observations (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation"* into plain-English observations: *"Nolan's vocal tension and wrist movement are elevated relative to recent baseline; gentle possibilities to explore: in similar past episodes, this pattern occurred during room transitions or ambient noise changes; low-risk things to try include a quiet break, hydration, or offering his favorite comfort toy"*).
    - **Actionable, Low-Risk Co-Regulatory Ideas:** Rather than issuing dogmatic medical directives, the system surfaces 2–3 practical, non-invasive strategies based on what has historically comforted Child N (e.g., offering his favorite red squishy toy, dimming room lights, offering water, or providing gentle deep pressure if he leans in).
    - **Hypothesis-Testing Framing:** Candidate interpretations are explicitly framed as gentle hypotheses to investigate (*"Possibilities to explore..."*), acknowledging that even a 30% plausible lead provides vital scaffolding for parents navigating moments of uncertainty, while clearly clarifying that sensors do not reveal internal subjective experience.
    - **Prominent Non-Diagnostic Notice:** Every card prominently displays: *"These are supportive co-regulatory hypotheses based on past verified episodes and sensory literature, not medical diagnoses. Always prioritize physical comfort and consult your pediatrician for medical concerns."*

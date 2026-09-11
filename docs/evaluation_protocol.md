@@ -12,17 +12,18 @@
 ## 1. Ethical Stance, Assent & Primary Benefit
 
 ### 1.1 Epistemic Stance & Evaluation Paradigm
-Under the CONSORT extension for N-of-1 trials (**CENT guidelines**; [Shamseer et al., 2015](WHITE_PAPER.md#ref-shamseer-2015)), a formal "N-of-1 trial" strictly requires multi-period crossover sequences (such as randomized ABAB treatment blocks). Because naturalistic pediatric co-regulatory scaffolding in a non-verbal child cannot ethically or methodologically be subjected to randomized "withdrawal/washout" blocks without compromising child well-being, this benchmark is formally designated as a **Prospective Single-Participant Longitudinal Evaluation** informed by selected CENT reporting principles.
+Under the CONSORT extension for N-of-1 trials (**CENT guidelines**; [Shamseer et al., 2015](WHITE_PAPER.md#ref-shamseer-2015)), formal N-of-1 trials typically utilize prospective repeated crossover sequences. In naturalistic pediatric care for a non-verbal child, withholding supportive interventions or forcing randomized withdrawal blocks during acute distress would be clinically and ethically unacceptable; however, low-risk interface variations (such as comparing structured tabular telemetry versus natural-language Parent View scaffolding) can be evaluated longitudinally without withholding care. This protocol is formally designated as a **Prospective Single-Participant Longitudinal Evaluation** informed by selected CENT reporting principles.
 
 Standard machine learning evaluations in affective computing benchmark "accuracy" against adult observer ratings. As established by [Barrett et al. (2019)](WHITE_PAPER.md#ref-1) and the Facilitated Communication / RPM literature ([National Autism Center, 2026](WHITE_PAPER.md#ref-13)), observer agreement does not establish ground truth and risks manufacturing false certainty.
 
-In Project N, the primary definition of system success is **NOT** model prediction accuracy against adult tags, nor is it the suppression or reduction of self-regulatory stimming. The primary evaluation criteria are:
+In Project N, the primary definition of system success is **NOT** model prediction accuracy against adult tags, nor is it the suppression or reduction of self-regulatory stimming. As a decision-support and insight assistant, the evaluation criteria are prioritized as follows:
 
-1. **Observed Co-Regulation Association (Primary Behavioral Criterion):** The prospective, falsifiable observation of whether the caregiver/therapist co-regulatory support offered (grounded in retrieved historical precedents) was empirically followed by the caregiver-defined observable outcome (e.g., settling to baseline within measured latency), measuring temporal association without over-claiming isolated causal proof.
+1. **Caregiver Decision Utility & Cognitive Load Reduction (Primary Insight Criterion):** Standardized caregiver utility ratings measuring whether the Parent View card meaningfully reduced parental uncertainty and provided actionable, low-risk scaffolding during moments of behavioral ambiguity.
 2. **Top-k Historical Retrieval Relevance:** The precision and Mean Reciprocal Rank (MRR) with which the 128-dimensional metric head retrieves past verified episodes that share genuine bioacoustic and kinematic structure.
-3. **Claim Boundedness & Epistemic Humility (Safety Metric):** Enforcing $0.0\%$ unsupported causal assertions, medical diagnostic claims, or mind-reading declarations in generated caregiver and therapist cards.
-4. **Caregiver Decision Utility:** Standardized caregiver utility ratings measuring whether the Parent View card reduced parental uncertainty and provided actionable, low-risk scaffolding during moments of behavioral ambiguity.
-5. **Independent Child Communication Rate (Adjunct Criterion):** When an independent Augmentative and Alternative Communication (AAC) speech-generating device, PECS card, or visual choice board is utilized by Child N, the frequency with which the child independently initiates or confirms a choice following caregiver scaffolding.
+3. **Claim Traceability & Unsupported-Claim Rate (Safety Invariant):** Enforcing $0.0\%$ unsupported causal assertions, medical diagnostic claims, or ungrounded mind-reading declarations in generated caregiver and therapist cards.
+4. **Calibrated Abstention Accuracy:** True positive rate of abstention on novel, out-of-distribution, or degraded sensor episodes ($\min_k d > \tau_{abstain}$), avoiding false reassurance or ungrounded guesses.
+5. **Observed Co-Regulation Association (Secondary Behavioral Observational Criterion):** The prospective observation of whether the caregiver/therapist co-regulatory support offered (grounded in retrieved historical precedents) was empirically followed by settling to baseline within measured latency.
+6. **Independent Child Communication Rate (Adjunct Observational Criterion):** When an independent Augmentative and Alternative Communication (AAC) speech-generating device, PECS card, or visual choice board is utilized by Child N, the frequency with which the child independently initiates or confirms a choice following caregiver scaffolding.
 
 ### 1.2 Assent & Dissent Protocol
 - **Behavioral Dissent:** Because Child N cannot sign a formal consent document, continuous behavioral assent is observed. If Child N turns away, covers the camera, pushes recording equipment away, or exhibits aversion to a camera/sensor, recording must immediately cease.
@@ -66,11 +67,11 @@ Every reported evaluation of Project N's multimodal metric learning pipeline mus
 ## 4. Formal Evaluation Metrics
 
 ### 4.1 Multi-Label Precision, Recall & Macro-F1
-Because communicative intents (e.g., seeking deep pressure, requesting water, auditory overload) are non-mutually exclusive and severely imbalanced, overall accuracy is banned as a primary metric.
-- **Per-Class Precision & Recall:** Computed for every label in the hypothesis taxonomy.
+Because co-regulatory support categories and antecedent contexts (e.g., deep pressure co-regulation, hydration check, auditory sensitivity) are non-mutually exclusive and imbalanced, overall accuracy is banned as a primary metric.
+- **Per-Class Precision & Recall:** Computed for every category in the co-regulatory taxonomy.
 - **Macro-Averaged F1-Score:**
   $$\text{Macro-F1} = \frac{1}{K} \sum_{k=1}^K \frac{2 \cdot P_k \cdot R_k}{P_k + R_k}$$
-  where $K$ is the number of active intent categories.
+  where $K$ is the number of active behavioral/antecedent categories.
 
 ### 4.2 Expected Calibration Error (ECE) & Reliability Diagrams
 A model deployed in pediatric care must not produce overconfident false predictions. Predictions must be statistically calibrated:

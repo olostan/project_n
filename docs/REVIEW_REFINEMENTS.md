@@ -88,7 +88,7 @@ realistic target, and define the baselines that must be beaten.
 | :-- | :-- | :-- |
 | 7,077 labeled non-verbal vocalizations, 8 minimally speaking individuals, labeled in real time by a close family member | [ReCANVo (Johnson et al., 2023)](#ref-johnson-2023) | Almost exactly this project's data design. The premise is validated, not speculative. |
 | Speaker-dependent 5-way function classification: UAR **0.75 / 0.53 / 0.79** for three individuals | [Narain et al., 2022](#ref-narain-2022) | **This is the realistic target.** Achieved with conventional spectral features plus SVM/random forest — not a 14B LLM. |
-| Aggression forecast 1 min ahead from 3 min of wearable physiology: AUROC **0.71** population vs **0.84** person-dependent, n=20, 85% minimally verbal | [Goodwin et al., 2019](#ref-goodwin-2019); see also [Imbiriba et al., 2023](#ref-imbiriba-2023) (n=70, 3 min ahead: AUROC 0.87 pop vs 0.74 person-dep) | Quantifies the personalization gain. Also the strongest argument for adding a physiological channel (`F-07`). |
+| Aggression forecast 1 min ahead from 3 min of wearable physiology: AUROC **0.71** population vs **0.84** person-dependent, n=20, 85% minimally verbal | [Goodwin et al., 2019](#ref-goodwin-2019); see also [Imbiriba et al., 2023](#ref-imbiriba-2023) (n=70, 3 min ahead: mean AUROC **0.80**, varying by data volume and cohort) | Quantifies the personalization gain. Also the strongest argument for adding a physiological channel (`F-07`). |
 | Pose-derived features on the public stimming benchmark: 97.5% (LSTM) / 98.75% (GRU) | [Rajagopalan et al., 2013 (SSBD)](#ref-rajagopalan-2013); [Mondal & Washington, 2026](#ref-mondal-2026) | Pose is robust and cheap; see `F-05`. |
 | Accuracy **peaks at 15-frame sampling interval**, not every frame (LSTM 90.0% → 97.5%), at ~93% less compute | [Mondal & Washington, 2026](#ref-mondal-2026) on SSBD | 60 fps is not merely unnecessary, it is counterproductive; see `F-06`. |
 | Aided AAC: improved vocal output in **89%** of participants (11% no change, 0% decreased) across 23 studies | [Millar et al., 2006](#ref-millar-2006); [Schlosser & Wendt, 2008](#ref-schlosser-2008) | AAC does not suppress speech. Removes the main objection to `P0-4`. |
@@ -846,10 +846,11 @@ Each of these needs an ablation and a recorded result, not a rule.
 - [ ] **P0-3 Fix the acoustic front end and the invariant that caused it.** Add F0/jitter/shimmer/HNR at
       ~10 ms hop plus CQT or ERB. Rewrite Invariant 4 to ban phonemic decoding and text-only intermediates,
       not pretrained encoders, and state that pitch tracking is permitted. *Closes `F-03`; amends `F-16`.*
-- [ ] **P0-4 Add the AAC bridge and the medical rule-out.** Route predictions into a speech-generating device
-      or AAC board as **pre-populated candidate requests the child selects from**, rather than conclusions
-      delivered to adults — making him the author. Adopt NCCPC-R for distress, with threshold crossings
-      escalating to "seek medical review." *Closes `F-13`; addresses `F-11`, `F-16`.*
+- [ ] **P0-4 Add observational AAC outcome recording and acute distress screening.** Ground caregiver
+      co-regulatory exploration in observable context while recording subsequent child communication/response
+      on AAC as an empirical outcome (rather than auto-generating tiles or speaking for the child).
+      Screen for acute signal anomalies and prompt caregiver-scored NCCPC-R/PV comfort checks.
+      *Closes `F-13`; addresses `F-11`, `F-16`.*
 - [ ] **P0-5 Correct the model interface.** Pin one base model; fix `d_model` to 5120 or select a verified
       4096-wide model and re-derive every dependent number. *Closes `F-04`.*
 - [ ] **P0-6 Remove deterministic clinical language** from `DESIGN.md` and `README.md`: neurobiology as
@@ -918,7 +919,7 @@ association prospectively.
 **Population and task**
 
 - <a id="ref-johnson-2023"></a>**Johnson, K. T., Narain, J., Quatieri, T., Maes, P., & Picard, R. (2023).** *ReCANVo: A database of real-world communicative and affective nonverbal vocalizations.* Scientific Data 10:523. [doi:10.1038/s41597-023-02405-7](https://doi.org/10.1038/s41597-023-02405-7)
-- <a id="ref-narain-2022"></a>**Narain, J., Johnson, K. T., O'Brien, A., Wofford, P., Maes, P., & Picard, R. (2022).** *Modeling Real-World Affective and Communicative Nonverbal Vocalizations From Minimally Speaking Individuals.* IEEE Transactions on Affective Computing 13(4):2238–2253. [doi:10.1109/TAFFC.2022.3208233](https://doi.org/10.1109/TAFFC.2022.3208233)
+- <a id="ref-narain-2022"></a>**Narain, J., Johnson, K. T., Quatieri, T., Picard, R., & Maes, P. (2022).** *Modeling Real-World Affective and Communicative Nonverbal Vocalizations From Minimally Speaking Individuals.* IEEE Transactions on Affective Computing 13(4):2238–2253. [doi:10.1109/TAFFC.2022.3208233](https://doi.org/10.1109/TAFFC.2022.3208233)
 - <a id="ref-goodwin-2019"></a>**Goodwin, M. S., Mazefsky, C. A., Ioannidis, S., Erdogmus, D., & Siegel, M. (2019).** *Predicting aggression to others in youth with autism using a wearable biosensor.* Autism Research 12(8):1286–1296. [doi:10.1002/aur.2151](https://doi.org/10.1002/aur.2151)
 - <a id="ref-imbiriba-2023"></a>**Imbiriba, T., Demirkaya, A., Singh, P., Erdogmus, D., & Goodwin, M. S. (2023).** *Wearable biosensing to predict imminent aggressive behavior in psychiatric inpatient youths with autism.* JAMA Network Open 6(12):e2348898. [doi:10.1001/jamanetworkopen.2023.48898](https://doi.org/10.1001/jamanetworkopen.2023.48898)
 - <a id="ref-nidcd-2023"></a>**NIDCD. (2023).** *Workshop on minimally verbal / non-speaking autistic people.* [NIH NIDCD](https://www.nidcd.nih.gov/workshops/2023/summary)
