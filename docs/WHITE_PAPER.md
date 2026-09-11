@@ -7,9 +7,9 @@
 
 ---
 
-## Foreword from the Founder
+## Foreword from the Project Initiator
 
-> *"I am a software engineer, systems architect, and—most importantly—the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my child. Nolan is non-verbal. Completely.*
+> *"I am a software engineer, systems architect, and—most importantly—the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my child. Nolan is non-verbal. Completely.
 >
 > *My son cannot speak in words, but he is never silent. He communicates continuously: through subtle pitch inflections in his throat, micro-tremors in his hands, bodily orientations, and rhythms of movement. Traditional society and standard AI models discard these signals as 'meaningless noise.' But to me, as his father, that 'noise' is his entire voice.*
 >
@@ -17,7 +17,7 @@
 >
 > *This whitepaper outlines the scientific, clinical, and architectural foundation of this initiative. If you are a speech-language pathologist, an occupational therapist, an autism researcher, or an engineer who believes in communication rights: I warmly invite you to read, critique, and contribute to this open endeavor."*
 >
-> — **Valentyn Shybanov** ([olostan.me](https://olostan.me/))
+> — **Valentyn Shybanov** (Father & Project Initiator · [olostan.me](https://olostan.me/) · [GitHub](https://github.com/olostan))
 
 ---
 
