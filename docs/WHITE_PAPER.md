@@ -38,23 +38,21 @@ sequenceDiagram
     actor Child as Child N (Completely Non-Verbal)
     actor Partner as Communication Partner (Parent / OT / SLP)
     participant Engine as Project N Local Assistant (Apple Silicon)
-    participant AAC as Child's AAC Speech Device (Optional)
 
-    Child->>Partner: Non-verbal bid (Pitch glide + 4Hz wrist stim)
-    Note over Partner: Partner observes context & captures clip via mobile client
+    Child->>Partner: Natural communication bid (Pitch glide + 4Hz wrist stim)
+    Note over Partner: Partner observes context and captures clip via mobile client
     Partner->>Engine: Uploads clip with situational antecedents
-    Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
+    Engine->>Engine: Extracts holistic acoustics (F0, CQT) and 3D kinematics (pose, optical flow)
     Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
-    Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
-    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure resolved 2/3)<br/>• Grounded OT/SLP recommendations & hints
-    opt Optional Child Authorship
-        Engine->>AAC: Pre-populates candidate tiles ([Deep Pressure], [Sensory Break])
-        Child->>AAC: Directly selects icon or gestures
-        AAC-->>Partner: Speaks aloud child's choice
-    end
+    Engine->>Engine: Retrieves matching historical episodes and clinical research precedents
+    Engine->>Partner: Delivers Caregiver and Therapist Insight Card:<br/>• Acoustic strain and motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques and low-risk things to try
     Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
-    Note over Child,Partner: Co-regulation restored; latency & outcome recorded
-    Engine->>Engine: Updates local N-of-1 episodic memory with verified outcome
+    opt Independent Child Communication
+        Child->>Partner: Child communicates response (independent AAC, gesture, reach)
+    end
+    Note over Child,Partner: Co-regulation observed, latency and outcome recorded
+    Partner->>Engine: Logs observed resolution and child feedback
+    Engine->>Engine: Updates local episodic memory with verified outcome
 ```
 
 ### 1.2 The SCERTS Framework & Multimodal Integration
@@ -240,7 +238,7 @@ graph LR
     end
 
     subgraph L4 [Layer 4: Cited Evidence]
-        L4_data["Curated Literature<br/>• Van de Cruys et al. (2014)<br/>• HIPPEA uncertainty reduction<br/>• Scope: Theoretical predictive coding framework;<br/>no empirical clinical sample"]
+        L4_data["Curated Literature<br/>• Van de Cruys et al. (2014)<br/>• HIPPEA uncertainty reduction<br/>• Scope: Theoretical predictive coding framework,<br/>no empirical clinical sample"]
     end
 
     subgraph OutputCard [Schema-Constrained Caregiver Card]

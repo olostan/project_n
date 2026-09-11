@@ -40,7 +40,7 @@ sequenceDiagram
     opt Independent Child Communication
         Child->>Partner: Child communicates response (independent AAC, gesture, reach)
     end
-    Note over Child,Partner: Co-regulation observed; latency & outcome recorded
+    Note over Child,Partner: Co-regulation observed, latency and outcome recorded
     Partner->>Engine: Logs observed resolution & child feedback
     Engine->>Engine: Updates local episodic memory with verified outcome
 ```
