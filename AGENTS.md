@@ -5,7 +5,7 @@
 ## 1. Role Definition & Autonomous Scope
 This document governs all autonomous AI coding agents (including Antigravity, Cursor, Claude Code, Codex, and automated CI agents) operating within the **Project N** repository.
 
-Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md` and reflect the scientific architecture established in `REVIEW_REFINEMENTS.md`.
+Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md` and reflect the scientific architecture established in `docs/REVIEW_REFINEMENTS.md`.
 
 ---
 
@@ -18,18 +18,18 @@ Agents operate under the persona of **Principal Systems Architect and Apple Sili
 Whenever an agent introduces modifications that alter:
 
 1. **Tensor Dimensions & Pipeline Shapes** (e.g., changes to STFT parameters, pitch hop intervals, pose landmarks, resampler query counts, metric projection dimensions):
-   - The agent **MUST** update Section 3 of `SPECS.md`.
-   - The agent **MUST** update Section 4 of `DESIGN.md`.
+   - The agent **MUST** update Section 3 of `docs/SPECS.md`.
+   - The agent **MUST** update Section 4 of `docs/DESIGN.md`.
 2. **Hyperparameters & Training Ratios** (e.g., re-fit schedules, metric learning margins, masking ratios, clustering thresholds):
    - The agent **MUST** update Section 2 of `INVARIANTS.md`.
-   - The agent **MUST** update Section 7 of `SPECS.md`.
-   - The agent **MUST** update Section 7 of `DESIGN.md`.
+   - The agent **MUST** update Section 7 of `docs/SPECS.md`.
+   - The agent **MUST** update Section 7 of `docs/DESIGN.md`.
 3. **Hardware Budgets & VRAM Envelopes** (e.g., model quantization, context buffer size, measured peak memory):
-   - The agent **MUST** update Section 1 of `README.md`.
-   - The agent **MUST** update Section 3 of `SPECS.md`.
+   - The agent **MUST** update Section 1 of `README.md` and `docs/index.md`.
+   - The agent **MUST** update Section 3 of `docs/SPECS.md`.
 4. **Database Schemas & Data Layer Definitions** (e.g., ChromaDB schema changes, NCCPC-PV distress fields, provenance metadata):
-   - The agent **MUST** update Section 4 of `SPECS.md`.
-   - The agent **MUST** update Section 6 of `DESIGN.md`.
+   - The agent **MUST** update Section 4 of `docs/SPECS.md`.
+   - The agent **MUST** update Section 6 of `docs/DESIGN.md`.
 
 ---
 
@@ -136,9 +136,9 @@ All CLI entrypoints (e.g., in `training/` and `server/`) must support standard r
 Before submitting or executing a change, verify:
 
 - [ ] Has `git status` been checked, ensuring no unwanted artifacts, binary video files, or `.safetensors` are staged?
-- [ ] Does every tensor transformation match the explicit shape definitions in `SPECS.md`?
+- [ ] Does every tensor transformation match the explicit shape definitions in `docs/SPECS.md`?
 - [ ] Is `mx.fast.scaled_dot_product_attention` utilized for all multi-head attention blocks?
 - [ ] Are `mx.eval()` calls placed at deterministic synchronization points?
 - [ ] Are base model weights frozen using `model.freeze()`, and is the base LLM out of the primary classification path?
 - [ ] Is the four-layer output separation (L1-L4) strictly respected in any generated response?
-- [ ] Have `README.md`, `DESIGN.md`, and `SPECS.md` been synchronized with any new constants or logic introduced?
+- [ ] Have `README.md`, `docs/DESIGN.md`, and `docs/SPECS.md` been synchronized with any new constants or logic introduced?

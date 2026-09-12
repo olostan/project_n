@@ -8,7 +8,7 @@
 [![Docs: Live Research Site](https://img.shields.io/badge/Docs-olostan.github.io%2Fproject__n-blue?style=flat-square)](https://olostan.github.io/project_n/)
 
 > [!IMPORTANT]
-> 🌐 **Interactive Documentation & Scientific Research Website:**  
+> 🌐 **Live Documentation & Research Website:**  
 > **[https://olostan.github.io/project_n/](https://olostan.github.io/project_n/)**  
 > *Explore interactive system diagrams, zoomable architectures, clinical evaluation protocols, and technical specifications.*
 
@@ -16,9 +16,11 @@
 
 ## A Note from the Project Initiator
 
-> *"I am [Valentyn Shybanov](https://olostan.me/), a software engineer and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day, I experience the heartbreak and beauty of trying to understand my son. He has so much to say, but he cannot use spoken words. Nolan is non-verbal. Completely. His entire vocabulary is written in subtle vocal inflections, guttural tones, rapid hand movements, and physical rhythms.*
+> *"I am [Valentyn Shybanov](https://olostan.me/), a software engineer, systems architect, and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my son. Nolan is non-verbal. Completely.*
 >
-> *I started Project N not as a commercial product, not to make money, and not to promote a startup. I started it out of a father’s deep desire to understand his child. I want to dedicate my engineering experience, systems knowledge, and machine learning skills to build a free, open-source, local-first tool that can help parents like me and the therapists who dedicate their lives to these children.*
+> *My son cannot use spoken words, but he is never silent. He communicates continuously: through subtle pitch inflections in his throat, micro-tremors in his hands, bodily orientations, and rhythms of movement. Traditional foundation models and commercial cloud AI discard these signals as 'meaningless background noise.' But to me, as his father, that 'noise' is his entire voice.*
+>
+> *I started Project N not as a commercial product, not to make money, and not to promote a startup. I started it out of a father’s deep desire to understand his child. I want to dedicate my twenty-plus years of engineering experience, systems knowledge, and machine learning skills to build a free, open-source, local-first tool that can help parents like me and the dedicated therapists who support our children.*
 >
 > *If you are a speech-language pathologist, an occupational therapist, an autism researcher, or an engineer who cares about non-verbal communication: I invite you with an open heart to review this work, critique it, and help us make it better."*
 >
@@ -26,102 +28,107 @@
 
 ---
 
-## 1. Mission Statement & System Overview
+## What is Project N?
 
-**Project N is a 100% offline, privacy-preserving behavioral insight and communication-support assistant** engineered specifically for completely non-verbal neurodivergent children and the parents and therapists who support them.
+**Project N is a 100% offline, privacy-preserving behavioral insight and communication-support assistant** engineered specifically for completely non-verbal neurodivergent children and the parents and therapists who care for them.
 
-### What Makes Project N Different
-
-1. **Acoustic Physics Without Words:** Level 3 non-verbal vocalizations are analyzed using high-resolution bioacoustic physics (fundamental frequency $F_0$ pitch tracking, jitter, shimmer, harmonic overtones via CQT, and periodic-to-aperiodic energy ratio via CPP). The system matches acoustic signals directly to past verified episodes without forcing sounds into clumsy English descriptions.
-2. **The Dyadic Transactional Loop:** Communication is not an isolated broadcast. Grounded in the **SCERTS framework** ([Prizant et al., 2006](https://olostan.github.io/project_n/WHITE_PAPER/#ref-14)) and the **Transactional Model of Communication** ([Sameroff, 1975](https://olostan.github.io/project_n/WHITE_PAPER/#ref-16); [Wetherby & Prizant, 2000](https://olostan.github.io/project_n/WHITE_PAPER/#ref-20)), the system models the interactive dance between the child and the adult communication partner (what the parent/therapist said, what physical scaffolding was offered, and how the child responded).
-3. **Dual-Perspective Insights (Parent View & Therapist View):** The primary goal is helping parents and therapists understand the child's communicative bids through a perspective-switchable interface:
-   - **Parent View (Default):** Translates complex acoustic physics and motion kinematics into warm, accessible, everyday language (*e.g., "Nolan's vocal tension and wrist movement are elevated relative to recent baseline; in similar past episodes, offering his favorite red squishy toy or a 3-minute quiet break was followed by calming"*), presenting gentle exploratory possibilities to investigate and concrete, low-risk things to try based on past co-regulatory successes, accompanied by an explicit non-diagnostic parental notice.
-   - **Therapist View:** Surfaces full bioacoustic telemetry ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck optical flow), SCERTS framework mapping, and cited clinical evidence ready for Occupational Therapy and Speech sessions.
-4. **Medical Safety Protocol & Distress Screening:** Automated signals screen for acute acoustic/kinematic distress anomalies (deviation from Nolan's baseline) and immediately prompt caregivers to conduct their family pediatrician-approved comfort check (such as the caregiver-observed NCCPC checklist; [Breau et al., 2002](https://olostan.github.io/project_n/WHITE_PAPER/#ref-2)), prioritizing physical comfort and medical rule-out over behavioral interpretations.
-5. **100% Offline & Two-Key Encrypted:** Runs locally on an Apple Silicon Mac (M5 Pro) with zero cloud network telemetry. Video and audio recordings are encrypted with unique per-clip keys.
+Instead of trying to force non-verbal vocalizations into synthetic English speech or making ungrounded claims about what a child is "thinking", Project N:
+1. **Analyzes raw bioacoustic physics:** Tracks vocal pitch ($F_0$), harmonic overtones (CQT), vocal strain, and body kinematics (pose frequency, optical flow) without phonemic collapse.
+2. **Models the dyadic interaction loop:** Grounded in the **SCERTS framework** and transactional communication models, observing how adult scaffolding and child responses interact.
+3. **Provides dual-perspective insight:** Offers **Parent View** (gentle exploratory possibilities to investigate and low-risk co-regulatory ideas grounded in past successes) and **Therapist View** (dense bioacoustic and kinematic telemetry for clinical sessions).
+4. **Prioritizes medical safety:** Runs automated acoustic/motion anomaly screening to prompt pediatrician-approved comfort checks before any behavioral hypotheses are considered.
+5. **Guarantees total privacy:** Runs 100% locally on Apple Silicon (Apple MLX) with zero cloud network telemetry and two-key encrypted storage.
 
 ---
 
-## 2. The Dyadic Transactional Loop
+## Documentation Directory (`docs/`)
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Child as Child N (Completely Non-Verbal)
-    actor Partner as Communication Partner (Parent / OT / SLP)
-    participant Engine as Project N Local Assistant (Apple Silicon)
-
-    Child->>Partner: Natural communication bid (Pitch glide + 4Hz wrist stim)
-    Note over Partner: Partner observes context & captures clip via mobile app
-    Partner->>Engine: Uploads clip with situational antecedents
-    Engine->>Engine: Extracts holistic acoustics (F0, CQT) & 3D kinematics (pose, optical flow)
-    Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
-    Engine->>Engine: Retrieves matching historical episodes & clinical research precedents
-    Engine->>Partner: Delivers Caregiver & Therapist Insight Card:<br/>• Acoustic strain & motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques & low-risk things to try
-    Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet break)
-    opt Independent Child Communication
-        Child->>Partner: Child communicates response (independent AAC, gesture, reach)
-    end
-    Note over Child,Partner: Co-regulation observed, latency and outcome recorded
-    Partner->>Engine: Logs observed resolution & child feedback
-    Engine->>Engine: Updates local episodic memory with verified outcome
-```
-
----
-
-## 3. Comprehensive Documentation & Research Portal
-
-All detailed technical architectures, clinical protocols, interactive zoomable diagrams, and formal specifications are hosted on the interactive documentation portal:
+All scientific whitepapers, clinical protocols, architectural designs, and engineering specifications reside in the **[`docs/`](docs/)** directory and are served on the [live documentation website](https://olostan.github.io/project_n/):
 
 | Document | Focus & Target Audience |
 | :--- | :--- |
-| [📄 **Scientific Whitepaper**](https://olostan.github.io/project_n/WHITE_PAPER/) | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. |
-| [🧠 **Engineering Architecture**](https://olostan.github.io/project_n/design/) | Detailed theoretical design, sensory feature extraction, metric learning, episodic retrieval, and interactive diagrams. |
-| [📐 **Technical Specifications**](https://olostan.github.io/project_n/specs/) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and UI layout wireframe. |
-| [📋 **Evaluation Protocol**](https://olostan.github.io/project_n/evaluation_protocol/) | Single-case (N-of-1) study design, leave-one-day-out splits, locked safety holdouts, and model promotion criteria. |
-| [🛡️ **System & Safety Invariants**](https://olostan.github.io/project_n/invariants/) | Non-negotiable safety rules: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. |
-| [🤖 **Autonomous Agent Directives**](https://olostan.github.io/project_n/agents/) | Development standards, Apple MLX memory management conventions, and documentation synchronization rules. |
+| [📄 **Scientific Whitepaper**](docs/WHITE_PAPER.md) | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. |
+| [📋 **Evaluation Protocol**](docs/evaluation_protocol.md) | Prospective single-participant longitudinal evaluation design, forward-chaining splits, and model promotion criteria. |
+| [🧠 **Theoretical Architecture & Design**](docs/DESIGN.md) | Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation. |
+| [📐 **Technical Specifications**](docs/SPECS.md) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and executable MLX implementations. |
+| [🛡️ **System & Safety Invariants**](INVARIANTS.md) | Non-negotiable repository guardrails: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. |
+| [🔍 **Multi-Reviewer Scientific Audit**](docs/REVIEW_REFINEMENTS.md) | Comprehensive finding-by-finding peer review and corrective action matrix. |
+| [🤖 **Autonomous Agent Directives**](AGENTS.md) | Engineering standards, Apple MLX memory management conventions, and documentation synchronization rules. |
 
 ---
 
-## 4. Technology Stack At a Glance
-
-| Layer | Technology | Role in Project N |
-| :--- | :--- | :--- |
-| **ML Engine** | **Apple MLX 0.22+** | Metal-accelerated sensory encoders, metric projection, and local inference. |
-| **Backend Daemon** | **Python 3.11+ / FastAPI** | High-performance local server with zero-copy in-memory tensor access. |
-| **Caregiver Dashboard** | **React 18 + Tailwind CSS** | Local web application bundled with FastAPI (zero external CDNs or trackers). |
-| **Live Event Bus** | **Server-Sent Events (SSE)** | Unidirectional streaming of pipeline stages, memory telemetry, and cards. |
-| **Mobile Client** | **Flutter 3.24+ (Dart)** | Cross-platform app (Android & iOS) with encrypted offline outbox for capture at playgrounds or OT sessions. |
-| **Vector Storage** | **ChromaDB (Persistent)** | Embedded HNSW indexing for 128-dim metric embeddings and clinical RAG library. |
-| **Base Language Model** | **Qwen2.5-14B-Instruct** | 4-bit quantized, 100% frozen model used strictly for schema-constrained rendering. |
-
----
-
-## 5. Getting Started & Local Development
+## Getting Started & Local Development
 
 ### Prerequisites
 
 - **Hardware:** Apple Silicon Mac (M-series with 32 GB+ Unified Memory; 48 GB recommended).
 - **Operating System:** macOS 14.0 (Sonoma) or newer.
-- **Python Environment:** Python 3.11+ with [`uv`](https://github.com/astral-sh/uv) package manager.
+- **Python Environment:** Python 3.11+ with the [`uv`](https://github.com/astral-sh/uv) package manager.
 
-### Serving Documentation Locally
-
-To browse the complete documentation site with interactive diagrams, full-screen lightbox zoom, and search:
+### 1. Clone the Repository
 
 ```bash
-# Clone repository
 git clone https://github.com/olostan/project_n.git
 cd project_n
-
-# Serve documentation with live reload
-uv run --with mkdocs --with mkdocs-material mkdocs serve
 ```
 
-Then open `http://localhost:8000` in your web browser.
+### 2. Browse Documentation Locally
 
-### Project Roadmap & Implementation Status
+To browse the complete documentation site with interactive diagrams, full-screen zoom, and search:
+
+```bash
+uv run --with mkdocs --with mkdocs-material mkdocs serve
+```
+Then open [http://localhost:8000](http://localhost:8000) in your web browser.
+
+### 3. Verify Citations & Documentation Integrity
+
+To run the automated Crossref and DataCite metadata verification suite across all academic citations:
+
+```bash
+python3 tests/verify_citations.py
+```
+
+To test building the documentation in strict mode (ensuring zero broken links or markdown warnings):
+
+```bash
+uv run --with mkdocs --with mkdocs-material mkdocs build --strict
+```
+
+---
+
+## Repository Structure
+
+```
+project_n/
+├── README.md                      # Project portal & onboarding (this file)
+├── INVARIANTS.md                  # Non-negotiable safety guardrails (offline, privacy, frozen LLM)
+├── AGENTS.md                      # AI coding agent operating directives & MLX standards
+├── mkdocs.yml                     # Documentation site configuration
+├── docs/                          # The single source of truth for all documentation
+│   ├── index.md                   # Live documentation website homepage
+│   ├── WHITE_PAPER.md             # Scientific whitepaper
+│   ├── evaluation_protocol.md     # Single-participant longitudinal evaluation protocol
+│   ├── DESIGN.md                  # Theoretical design & architecture
+│   ├── SPECS.md                   # Technical specifications & executable MLX pipelines
+│   ├── INVARIANTS.md              # Documentation mirror of root invariants
+│   ├── REVIEW_REFINEMENTS.md      # Multi-reviewer scientific audit matrix
+│   ├── report-source.md           # Preserved original audit critique
+│   ├── stylesheets/               # Theme styling
+│   └── javascripts/               # Theme scripts & MathJax
+├── tests/
+│   └── verify_citations.py        # Automated Crossref/DataCite DOI verifier
+├── app/                           # Cross-platform Flutter mobile client (offline outbox)
+├── extraction/                    # Bioacoustic (F0, CQT) & kinematic feature extraction
+├── models/                        # Native Apple MLX neural encoders & metric projection
+├── rag/                           # ChromaDB episodic memory & clinical knowledge base
+├── server/                        # Local FastAPI backend daemon (SSE event bus)
+└── training/                      # MLX training scripts & forward-chaining splits
+```
+
+---
+
+## Implementation Roadmap
 
 Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion Foundations)**:
 - [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
@@ -133,3 +140,13 @@ Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion F
 - [ ] Phase 4: Local React dashboard and clinic-to-home knowledge transfer.
 - [ ] Phase 5: Controlled clinical evaluation and prospective single-participant longitudinal benchmark.
 
+---
+
+## Safety & Operating Invariants
+
+Any engineer or autonomous AI agent modifying this codebase is bound by the rules in [`INVARIANTS.md`](INVARIANTS.md) and [`AGENTS.md`](AGENTS.md):
+- **100% Local Execution:** Zero external cloud AI SDKs (`openai`, `anthropic`, `vertexai`, `google.generativeai`).
+- **Framework Purity:** 100% native Apple MLX (`mlx.core`, `mlx.nn`). Zero PyTorch imports in runtime modules.
+- **Strict VRAM Budget:** Peak memory $\le 28.0\text{ GB}$ (operational peak), hard ceiling $\le 36.0\text{ GB}$.
+- **Frozen Base LLM:** Base language model is 100% frozen with `model.freeze()` and kept out of primary classification paths.
+- **Child Agency:** Independent child communication is treated strictly as an observed outcome, never auto-generated machine speech.

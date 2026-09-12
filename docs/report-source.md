@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Historical Audit Provenance**  
-> This document preserves the original architectural, clinical, and systems critique delivered on 2026-09-08 that motivated the architectural overhaul of Project N. The actionable recommendations from this audit were incorporated into [`REVIEW_REFINEMENTS.md`](REVIEW_REFINEMENTS.md), and current normative technical specifications reside in [`SPECS.md`](specs.md), [`DESIGN.md`](design.md), and [`INVARIANTS.md`](invariants.md).
+> This document preserves the original architectural, clinical, and systems critique delivered on 2026-09-08 that motivated the architectural overhaul of Project N. The actionable recommendations from this audit were incorporated into [`REVIEW_REFINEMENTS.md`](REVIEW_REFINEMENTS.md), and current normative technical specifications reside in [`SPECS.md`](SPECS.md), [`DESIGN.md`](DESIGN.md), and [`INVARIANTS.md`](INVARIANTS.md).
 
 **Date:** 2026-09-08  
 **Scope:** All Markdown documents present in the repository at review start (`AGENTS.md`, `DESIGN.md`, `INVARIANTS.md`, `README.md`, and `SPECS.md`), plus the clarified intended use: a private, parent-owned system for understanding one child better, running locally on an always-on Mac and accepting clips from a paired Flutter app. This is a research and architecture review, not an assessment of any child and not medical, legal, or regulatory advice.

@@ -1,1 +1,0 @@
-docs/WHITE_PAPER.md

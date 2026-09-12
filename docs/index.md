@@ -71,12 +71,26 @@ graph LR
 
 ---
 
+## Technology Stack At a Glance
+
+| Layer | Technology | Role in Project N |
+| :--- | :--- | :--- |
+| **ML Engine** | **Apple MLX 0.22+** | Metal-accelerated sensory encoders, metric projection, and local inference. |
+| **Backend Daemon** | **Python 3.11+ / FastAPI** | High-performance local server with zero-copy in-memory tensor access. |
+| **Caregiver Dashboard** | **React 18 + Tailwind CSS** | Local web application bundled with FastAPI (zero external CDNs or trackers). |
+| **Live Event Bus** | **Server-Sent Events (SSE)** | Unidirectional streaming of pipeline stages, memory telemetry, and cards. |
+| **Mobile Client** | **Flutter 3.24+ (Dart)** | Cross-platform app (Android & iOS) with encrypted offline outbox for capture at playgrounds or OT sessions. |
+| **Vector Storage** | **ChromaDB (Persistent)** | Embedded HNSW indexing for 128-dim metric embeddings and clinical RAG library. |
+| **Base Language Model** | **Qwen2.5-14B-Instruct** | 4-bit quantized, 100% frozen model used strictly for schema-constrained rendering. |
+
+---
+
 ## Documentation Roadmap
 
 - 📄 **[Scientific & Architectural Whitepaper](WHITE_PAPER.md):** Clinical and computational foundations paper for Speech-Language Pathologists, OTs, and autism researchers detailing the transactional paradigm, bioacoustics, and dyadic co-regulation support.
 - 📋 **[Prespecified Evaluation Protocol](evaluation_protocol.md):** Prospective single-participant longitudinal evaluation design with forward-chaining temporal splits, mandatory baselines B1–B4, and safety metrics.
-- 📐 **[Technical Specifications](specs.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
-- 🧠 **[Theoretical Architecture & Design](design.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
-- 🛡️ **[System & Safety Invariants](invariants.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
+- 📐 **[Technical Specifications](SPECS.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
+- 🧠 **[Theoretical Architecture & Design](DESIGN.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
+- 🛡️ **[System & Safety Invariants](INVARIANTS.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
 - 🔍 **[Multi-Reviewer Scientific Audit](REVIEW_REFINEMENTS.md):** Comprehensive finding-by-finding peer review and corrective action matrix.
-- 🤖 **[Agent Directives](agents.md):** Engineering standards, MLX memory conventions, and mandatory documentation synchronization protocol.
+- 🤖 **[Agent Directives](AGENTS.md):** Engineering standards, MLX memory conventions, and mandatory documentation synchronization protocol.

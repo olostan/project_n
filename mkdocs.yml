@@ -77,7 +77,7 @@ nav:
       - Multi-Reviewer Audit: REVIEW_REFINEMENTS.md
       - Review Raw Source: report-source.md
   - Engineering Architecture:
-      - Theoretical Design: design.md
-      - Technical Specifications: specs.md
-      - System Invariants: invariants.md
-      - Autonomous Agent Directives: agents.md
+      - Theoretical Design: DESIGN.md
+      - Technical Specifications: SPECS.md
+      - System Invariants: INVARIANTS.md
+      - Autonomous Agent Directives: AGENTS.md
