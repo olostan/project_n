@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > **Historical Audit Provenance (Archival Document)**
-> This document preserves the original architectural, clinical, and systems critique delivered on 2026-09-08 that motivated the architectural overhaul of Project N. The actionable recommendations from this audit were incorporated into [`REVIEW_REFINEMENTS.md`](REVIEW_REFINEMENTS.md), and current normative technical specifications reside in [`SPECS.md`](SPECS.md), [`DESIGN.md`](DESIGN.md), [`INVARIANTS.md`](INVARIANTS.md), and [`evaluation_protocol.md`](evaluation_protocol.md).
+> This document preserves the original architectural, clinical, and systems critique delivered on 2026-09-08 that motivated the architectural overhaul of Project N. The actionable recommendations from this audit were incorporated into the core documentation, and current normative technical specifications reside in [`SPECS.md`](SPECS.md), [`DESIGN.md`](DESIGN.md), [`INVARIANTS.md`](INVARIANTS.md), and [`evaluation_protocol.md`](evaluation_protocol.md).
 
 **Status:** Archived audit report (historical record; superseded by `docs/SPECS.md`, `docs/DESIGN.md`, and `docs/evaluation_protocol.md`).
 **Date:** 2026-09-08

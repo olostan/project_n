@@ -74,7 +74,6 @@ nav:
   - Scientific Whitepaper: WHITE_PAPER.md
   - Clinical Foundations:
       - Evaluation Protocol: evaluation_protocol.md
-      - Multi-Reviewer Audit: REVIEW_REFINEMENTS.md
       - Review Raw Source: report-source.md
   - Engineering Architecture:
       - Theoretical Design: DESIGN.md

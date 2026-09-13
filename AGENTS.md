@@ -5,7 +5,7 @@
 ## 1. Role Definition & Autonomous Scope
 This document governs all autonomous AI coding agents (including Antigravity, Cursor, Claude Code, Codex, and automated CI agents) operating within the **Project N** repository.
 
-Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md` and reflect the scientific architecture established in `docs/REVIEW_REFINEMENTS.md`.
+Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md` and reflect the scientific architecture established in `docs/DESIGN.md` and `docs/SPECS.md`.
 
 ---
 

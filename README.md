@@ -52,7 +52,6 @@ All scientific whitepapers, clinical protocols, architectural designs, and engin
 | [🧠 **Theoretical Architecture & Design**](docs/DESIGN.md) | Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation. |
 | [📐 **Technical Specifications**](docs/SPECS.md) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and normative MLX component interfaces. |
 | [🛡️ **System & Safety Invariants**](INVARIANTS.md) | Non-negotiable repository guardrails: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. |
-| [🔍 **Multi-Reviewer Scientific Audit**](docs/REVIEW_REFINEMENTS.md) | Comprehensive finding-by-finding peer review and corrective action matrix. |
 | [🤖 **Autonomous Agent Directives**](AGENTS.md) | Engineering standards, Apple MLX memory management conventions, and documentation synchronization rules. |
 
 ---
@@ -139,7 +138,6 @@ project_n/
 │   ├── DESIGN.md                  # Theoretical design & architecture
 │   ├── SPECS.md                   # Technical specifications & normative MLX component interfaces
 │   ├── INVARIANTS.md              # Documentation mirror of root invariants
-│   ├── REVIEW_REFINEMENTS.md      # Multi-reviewer scientific audit matrix
 │   ├── report-source.md           # Preserved original audit critique
 │   ├── stylesheets/               # Theme styling
 │   └── javascripts/               # Theme scripts & MathJax

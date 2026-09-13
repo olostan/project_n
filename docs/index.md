@@ -92,5 +92,4 @@ graph LR
 - 📐 **[Technical Specifications](SPECS.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and normative MLX component interfaces.
 - 🧠 **[Theoretical Architecture & Design](DESIGN.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
 - 🛡️ **[System & Safety Invariants](INVARIANTS.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
-- 🔍 **[Multi-Reviewer Scientific Audit](REVIEW_REFINEMENTS.md):** Comprehensive finding-by-finding peer review and corrective action matrix.
 - 🤖 **[Agent Directives](AGENTS.md):** Engineering standards, MLX memory conventions, and mandatory documentation synchronization protocol.

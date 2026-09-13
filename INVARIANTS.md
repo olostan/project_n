@@ -5,7 +5,7 @@
 ## Preamble
 This document establishes the system, architectural, mathematical, security, and governance boundaries governing **Project N**. Every contributor, automated script, and autonomous AI coding agent (e.g., Antigravity, Cursor, Claude Code) operating on this codebase is strictly bound by these rules.
 
-Following the comprehensive architectural review (`docs/REVIEW_REFINEMENTS.md`), this document makes an explicit distinction between:
+Following the comprehensive architectural review, this document makes an explicit distinction between:
 
 1. **True Non-Negotiable Invariants (§1):** Hard system, safety, privacy, and architectural constraints that must never be violated.
 2. **Tunable Empirical Defaults (§2):** Research and training hyperparameters that are explicitly configurable and subject to experimental ablation.

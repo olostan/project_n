@@ -118,7 +118,6 @@ def main() -> int:
     root = Path(__file__).resolve().parent.parent
     files_to_check = [
         root / "docs" / "WHITE_PAPER.md",
-        root / "docs" / "REVIEW_REFINEMENTS.md",
         root / "INVARIANTS.md",
         root / "docs" / "SPECS.md",
     ]
