@@ -1,9 +1,12 @@
 # Project N — Review Refinements
 
-**Status:** working document. Merged output of two independent scientific/engineering reviews of the
-specification set (`README.md`, `DESIGN.md`, `SPECS.md`, `INVARIANTS.md`, `AGENTS.md`) at commit `ebb0710`.
+> [!NOTE]
+> **Historical Audit & Refinement Provenance (Archival Document)**
+> This document preserves the comprehensive finding-by-finding scientific and engineering audit matrix compiled on 2026-09-08 (at commit `ebb0710`). The corrective actions detailed herein have been resolved and integrated into the active canonical specifications: current normative designs and executable pipelines reside in [`SPECS.md`](SPECS.md), [`DESIGN.md`](DESIGN.md), [`INVARIANTS.md`](INVARIANTS.md), and [`evaluation_protocol.md`](evaluation_protocol.md). Unchecked boxes, historical AAC routing hypotheses, and earlier recommendations reflect the audit's point-in-time record and are preserved here for scientific provenance.
+
+**Status:** Archived audit matrix (historical record; superseded by `docs/SPECS.md` and `docs/DESIGN.md`).
 **Date:** 2026-09-08
-**Repository state at review:** documentation only; no code yet.
+**Repository state at review:** Initial documentation baseline; no code yet.
 
 This is a research and architecture review. It is not an assessment of any child, and it is not medical,
 legal, or regulatory advice.
@@ -86,7 +89,7 @@ realistic target, and define the baselines that must be beaten.
 
 | Result | Source | Implication for Project N |
 | :-- | :-- | :-- |
-| 7,077 labeled non-verbal vocalizations, 8 minimally speaking individuals, labeled in real time by a close family member | [ReCANVo (Johnson et al., 2023)](#ref-johnson-2023) | Almost exactly this project's data design. The premise is validated, not speculative. |
+| 7,077 labeled non-verbal vocalizations, 8 minimally speaking individuals, labeled in real time by a close family member | [ReCANVo (Johnson et al., 2023)](#ref-johnson-2023) | Establishes technical feasibility for within-subject modeling of family-annotated vocalizations; provides empirical precedent for personalized acoustics. |
 | Speaker-dependent 5-way function classification: UAR **0.75 / 0.53 / 0.79** for three individuals | [Narain et al., 2022](#ref-narain-2022) | **This is the realistic target.** Achieved with conventional spectral features plus SVM/random forest — not a 14B LLM. |
 | Aggression forecast 1 min ahead from 3 min of wearable physiology: AUROC **0.71** population vs **0.84** person-dependent, n=20, 85% minimally verbal | [Goodwin et al., 2019](#ref-goodwin-2019); see also [Imbiriba et al., 2023](#ref-imbiriba-2023) (n=70, 3 min ahead: mean AUROC **0.80**, varying by data volume and cohort) | Quantifies the personalization gain. Also the strongest argument for adding a physiological channel (`F-07`). |
 | Pose-derived features on the public stimming benchmark: 97.5% (LSTM) / 98.75% (GRU) | [Rajagopalan et al., 2013 (SSBD)](#ref-rajagopalan-2013); [Mondal & Washington, 2026](#ref-mondal-2026) | Pose is robust and cheap; see `F-05`. |

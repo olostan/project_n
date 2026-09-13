@@ -275,7 +275,11 @@ graph TD
     end
 
     subgraph Extraction ["Local Fact Extraction (Apple Silicon)"]
-        Extract["Local LLM extracts structured facts & techniques with provenance:<br/>• Category: therapist_technique | Source: ot_session (Sarah, OT)<br/>• Category: comfort_object | Source: home_observation"]
+        Extract["Local LLM drafts structured facts & techniques with provenance:<br/>• Category: therapist_technique | Source: ot_session (Clinician Role: OT)<br/>• Category: comfort_object | Source: home_observation"]
+    end
+
+    subgraph HumanGate ["Human-in-the-Loop Confirmation Gate"]
+        ReviewCard["Clinician Technique Review Card<br/>Caregiver or therapist inspects, validates & confirms draft technique.<br/>Unconfirmed drafts never enter active retrieval."]
     end
 
     subgraph Vault ["Local Encrypted Knowledge Store (ChromaDB + SQLite)"]
@@ -285,19 +289,22 @@ graph TD
     subgraph LivingRoomDelivery ["Real-Time Parent Support at Home"]
         NewEpisode["Child N Dysregulates at Home<br/>(High acoustic tension + pacing)"] --> QueryEngine["Query Matching Episodes + Personal Fact Store"]
         Store --> QueryEngine
-        QueryEngine --> ParentCard["Parent View Advice:<br/>'💡 Sarah (OT) suggested, Thursday session: Try firm joint compression<br/>on forearms and offer his favorite red squishy toy.'"]
+        QueryEngine --> ParentCard["Parent View Advice:<br/>'💡 Your OT suggested (Thursday session): Try firm joint compression<br/>on forearms (observed settling in 3 of 4 past trials) or offer red squishy dinosaur toy.'"]
     end
 
     OT_Clip & Parent_Clip --> Extract
-    Extract --> Store
+    Extract --> ReviewCard
+    ReviewCard -- "Confirmed by Caregiver/Clinician" --> Store
 
+    style ReviewCard fill:#fffbe6,stroke:#faad14,stroke-width:2px
     style Store fill:#f6ffed,stroke:#52c41a,stroke-width:2px
     style ParentCard fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
 ```
 
-1. **Ingestion & Attribution:** Clips and debrief notes recorded during clinical sessions are tagged with `source_type: "ot_session" | "slp_session"` and therapist attribution (`therapist_name: "Sarah (OT)"`).
-2. **Technique Extraction:** The local pipeline extracts specific physical scaffolding (e.g., joint compression, sensory swing protocols, weighted input) and communication strategies (e.g., visual schedule cues, 10-second wait-time).
-3. **Living Room Scaffolding:** When matching behavioral patterns arise at home, the assistant surfaces specific, familiar strategies explicitly framed as relaying the clinician's instruction (*"Sarah (OT) suggested, Thursday session: ..."*), empowering parents with professional techniques without requiring clinical jargon and ensuring the AI assistant does not autonomously prescribe medical or therapeutic interventions.
+1. **Ingestion & De-Identified Attribution:** Clips and debrief notes recorded during clinical sessions are tagged with `source_type: "ot_session" | "slp_session"` and role-based de-identification (`clinician_role: "OT"`, `clinician_id: "clinician_01"`), strictly respecting Invariant 1 (zero PHI/personal names in runtime databases).
+2. **Human-in-the-Loop Technique Verification:** The local pipeline extracts candidate physical scaffolding (e.g., joint compression, sensory swing protocols, weighted input) and communication strategies. **Crucially, candidate techniques are placed in an unverified staging queue until explicitly inspected and confirmed by the caregiver or therapist on a review card.** Unverified extractions are never committed to the active retrieval store, preventing hallucinated advice from being presented with clinician authority.
+3. **Living Room Scaffolding:** When matching behavioral patterns arise at home, the assistant surfaces specific, familiar strategies explicitly framed as relaying the clinician's instruction (*"Your OT suggested, Thursday session: ..."*), accompanied by empirical numerator/denominator history, empowering parents with professional techniques without requiring clinical jargon.
+4. **Clarification on 'Behavioral Resolution':** Throughout Project N, "behavioral resolution" is defined as an observational correlation—meaning *an offered intervention was followed by observed settling to baseline within measured latency*. It does not assert or prove that the intervention was the sole objective cause of the child's regulation.
 
 ---
 
@@ -310,7 +317,7 @@ graph TD
     Lit["Curated Academic Literature<br/>(FBA, HIPPEA, Interoception, AAC, NCCPC-R, Ayres Sensory Integration)"] --> PDF["PDF Extractor (PyMuPDF)<br/>Preserves section hierarchy, tables & metadata"]
     PDF --> Chunk["Semantic Chunker<br/>~500 tokens / chunk with 50-token sliding overlap"]
     Chunk --> Meta["Metadata Enricher<br/>Extracts author, year, population, study design & evidence grade"]
-    Meta --> Embed["Local MLX Embedding Model<br/>nomic-embed-text-v1.5 (768-dim metric space)"]
+    Chunk --> Embed["Local MLX Embedding Model<br/>nomic-embed-text-v1.5 (768-dim metric space)"]
     Embed --> Chroma["ChromaDB: clinical_evidence Collection<br/>Local HNSW cosine index (100% offline)"]
     Chroma -.-> Retrieval["Runtime Layer 4 (L4) Citation Engine<br/>Matches verified episode outcome to peer-reviewed literature"]
 
@@ -359,7 +366,7 @@ The local Mac interface is a modern React SPA served directly by the FastAPI bac
 Rather than running unstable nightly SGD on single batches, Project N executes a periodic **full re-fit**:
 
 - Upon accumulation of $K \ge 10$ new verified episodes, the 128-dimensional metric projection head and prototype cluster centers are re-fit over the entire verified historical dataset.
-- On Apple Silicon Metal shaders, re-fitting a 128-dimensional metric space over hundreds of episodes completes in seconds, making catastrophic forgetting structurally impossible.
+- **Benchmarked Hypothesis:** We hypothesize that re-fitting a lightweight 128-dimensional metric projection head over the accumulated episodic vault (hundreds of verified episodes) will complete rapidly on Apple Silicon Metal shaders while empirically avoiding the catastrophic forgetting inherent to sequential online gradient descent. This hypothesis will be formally benchmarked in Phase 5.
 
 ### 7.2 Gated Model Promotion Pipeline
 Before any candidate model is deployed to caregiver-facing inference, it must pass the prespecified evaluation protocol in [`evaluation_protocol.md`](evaluation_protocol.md):

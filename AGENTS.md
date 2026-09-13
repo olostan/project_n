@@ -18,18 +18,18 @@ Agents operate under the persona of **Principal Systems Architect and Apple Sili
 Whenever an agent introduces modifications that alter:
 
 1. **Tensor Dimensions & Pipeline Shapes** (e.g., changes to STFT parameters, pitch hop intervals, pose landmarks, resampler query counts, metric projection dimensions):
-   - The agent **MUST** update Section 3 of `docs/SPECS.md`.
-   - The agent **MUST** update Section 4 of `docs/DESIGN.md`.
+   - The agent **MUST** update Section 2 of `docs/SPECS.md`.
+   - The agent **MUST** update Section 3 of `docs/DESIGN.md`.
 2. **Hyperparameters & Training Ratios** (e.g., re-fit schedules, metric learning margins, masking ratios, clustering thresholds):
-   - The agent **MUST** update Section 2 of `INVARIANTS.md`.
-   - The agent **MUST** update Section 7 of `docs/SPECS.md`.
+   - The agent **MUST** update Invariant 2 of `INVARIANTS.md`.
+   - The agent **MUST** update Section 3 of `docs/SPECS.md`.
    - The agent **MUST** update Section 7 of `docs/DESIGN.md`.
 3. **Hardware Budgets & VRAM Envelopes** (e.g., model quantization, context buffer size, measured peak memory):
-   - The agent **MUST** update Section 1 of `README.md` and `docs/index.md`.
-   - The agent **MUST** update Section 3 of `docs/SPECS.md`.
-4. **Database Schemas & Data Layer Definitions** (e.g., ChromaDB schema changes, NCCPC-PV distress fields, provenance metadata):
+   - The agent **MUST** update `README.md` (Hardware Target & Operating Invariants section) and `docs/index.md`.
+   - The agent **MUST** update Section 1 of `docs/SPECS.md`.
+4. **Database Schemas & Data Layer Definitions** (e.g., ChromaDB schema changes, episodic outcome fields, provenance metadata):
    - The agent **MUST** update Section 4 of `docs/SPECS.md`.
-   - The agent **MUST** update Section 6 of `docs/DESIGN.md`.
+   - The agent **MUST** update Section 4 and Section 6 of `docs/DESIGN.md`.
 
 ---
 
@@ -52,9 +52,7 @@ import mlx.optimizers as opt
 Never implement manual nested loops or unoptimized matrix multiplications for attention mechanisms. Always leverage native Metal hardware acceleration:
 ```python
 # MANDATORY: Metal-accelerated scaled dot product attention
-attn_out = mx.fast.scaled_dot_product_attention(
-    queries, keys, values, scale=self.scale, mask=mask
-)
+attn_out = mx.fast.scaled_dot_product_attention(queries, keys, values, scale=self.scale, mask=mask)
 ```
 
 ### 3.3 Lazy Evaluation & Memory Management

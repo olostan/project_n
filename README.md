@@ -37,7 +37,7 @@ Instead of trying to force non-verbal vocalizations into synthetic English speec
 2. **Models the dyadic interaction loop:** Grounded in the **SCERTS framework** and transactional communication models, observing how adult scaffolding and child responses interact.
 3. **Provides dual-perspective insight:** Offers **Parent View** (gentle exploratory possibilities to investigate and low-risk co-regulatory ideas grounded in past successes) and **Therapist View** (dense bioacoustic and kinematic telemetry for clinical sessions).
 4. **Prioritizes medical safety:** Runs automated acoustic/motion anomaly screening to prompt pediatrician-approved comfort checks before any behavioral hypotheses are considered.
-5. **Guarantees total privacy:** Runs 100% locally on Apple Silicon (Apple MLX) with zero cloud network telemetry and two-key encrypted storage.
+5. **Designed for local-only processing & encrypted storage:** Runs 100% locally on Apple Silicon (Apple MLX) with zero cloud network telemetry, local hardware-keyed encryption vaults, and strict data sovereignty.
 
 ---
 
@@ -83,7 +83,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your web browser.
 
 ### 3. Verify Citations & Documentation Integrity
 
-To run the automated Crossref and DataCite metadata verification suite across all academic citations:
+To run the automated Crossref and DataCite metadata title verification suite across cited academic references:
 
 ```bash
 uv run python tests/verify_citations.py

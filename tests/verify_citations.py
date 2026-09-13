@@ -42,6 +42,20 @@ def fetch_metadata_title(doi: str, ctx: ssl.SSLContext) -> str:
             return str(data["message"]["title"][0])
 
 
+def extract_dois(text: str) -> list[str]:
+    raw_matches = re.findall(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
+    cleaned = []
+    for d in raw_matches:
+        d = d.rstrip(".,;:>")
+        while d.endswith(")") and d.count(")") > d.count("("):
+            d = d[:-1]
+        while d.endswith("]"):
+            d = d[:-1]
+        if d not in cleaned:
+            cleaned.append(d)
+    return cleaned
+
+
 def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
     text = file_path.read_text(encoding="utf-8")
     lines = text.splitlines()
@@ -51,21 +65,26 @@ def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
     print(f"\n--- Verifying citations in {file_path.name} ---")
     for line in lines:
         line_s = line.strip()
-        # Find all DOI markdown links on the line
-        dois = re.findall(r"\[doi:(10\.\d{4,9}/[^\]]+)\]", line_s)
+        dois = extract_dois(line_s)
         if not dois:
             continue
 
-        # Extract title: check italic format (*Title.* or _Title._) first, then standard (Title. *Journal*)
-        m_italic = re.search(r"\*\*[^\*]+\*\*\s+[\*_]([^*_]+?)\.[\*_]", line_s)
-        if m_italic:
-            printed_title = m_italic.group(1).strip()
-        else:
-            m_title = re.search(
-                r"\*\*[^\*]+\*\*\s+(.*?)(?:(?:\.|\?)\s+\*|\.\s+Paul|\.\s+Charles|\.\s+\[|\.\s+Published)",
-                line_s,
+        # Only attempt title extraction if the line is a formal bibliography entry
+        # (bold author string ending in (YYYY).**)
+        is_bib_entry = bool(re.search(r"\*\*[^\*]+?\(\d{4}[a-z]?\)\.\*\*", line_s))
+        printed_title = ""
+        if is_bib_entry:
+            m_italic = re.search(
+                r"\*\*[^\*]+?\(\d{4}[a-z]?\)\.\*\*\s+[\*_]([^*_]+?)\.[\*_]", line_s
             )
-            printed_title = m_title.group(1).strip("* ") if m_title else ""
+            if m_italic:
+                printed_title = m_italic.group(1).strip()
+            else:
+                m_title = re.search(
+                    r"\*\*[^\*]+?\(\d{4}[a-z]?\)\.\*\*\s+(.*?)(?:(?:\.|\?)\s+\*|\.\s+Paul|\.\s+Charles|\.\s+\[|\.\s+Published)",
+                    line_s,
+                )
+                printed_title = m_title.group(1).strip("* ") if m_title else ""
 
         for doi in dois:
             checked += 1
@@ -100,6 +119,8 @@ def main() -> int:
     files_to_check = [
         root / "docs" / "WHITE_PAPER.md",
         root / "docs" / "REVIEW_REFINEMENTS.md",
+        root / "INVARIANTS.md",
+        root / "docs" / "SPECS.md",
     ]
 
     total_errors = 0

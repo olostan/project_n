@@ -149,7 +149,9 @@ The high-dimensional sensory representations are compressed into an attention-po
 ```python
 # Metric Representation
 z_metric = MetricProjectionHead(x_audio, x_kinematic, x_physio)  # Shape: (B, 128)
-assert mx.allclose(mx.sum(mx.square(z_metric), axis=-1), mx.array([1.0])), "L2 Norm Invariant Violated!"
+assert mx.allclose(mx.sum(mx.square(z_metric), axis=-1), mx.array([1.0])), (
+    "L2 Norm Invariant Violated!"
+)
 ```
 
 ### 3.2 Episodic Prototype Matching & Calibrated Abstention
@@ -164,21 +166,23 @@ $$d(\mathbf{z}, \mathbf{c}_k) = 1 - \mathbf{z} \cdot \mathbf{c}_k$$
 ### 3.3 Medical Safety Protocol & Distress Screening (Triage First)
 Physical distress and somatic pain must always take absolute priority over behavioral or sensory interpretations. In clinical practice, pain in non-communicating children is evaluated using validated instruments:
 
-- **The Validated Clinical Instruments (Caregiver Gold Standard):**
+- **The Clinical Instruments & Home Adaptation Disclosure:**
   - **NCCPC-PV** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1097/00000542-200203000-00004): Evaluated across 24 children postoperatively; comprises 27 items across 6 subscales ($0 \le S_{NCCPC} \le 81$) standardized over a **10-minute structured human caregiver observation**; validated cut-off $S_{NCCPC} \ge 11$ indicates moderate-to-severe pain.
   - **NCCPC-R** ([Breau et al., 2002](WHITE_PAPER.md#ref-2); doi:10.1016/S0304-3959(02)00179-3): Evaluated in home/residential settings across 71 children; comprises 30 items across 7 subscales ($0 \le S_{NCCPC} \le 90$) over a **2-hour observation window**; validated cut-off $S_{NCCPC} \ge 7$ indicates presence of pain (84% sensitivity, up to 77% specificity).
-  - *Clinical Workflow Alignment:* Because the 2-hour observation window of the NCCPC-R makes it infeasible for acute, immediate post-episode checks, the in-the-moment mobile companion checklist is structured around the 10-minute, 27-item observation (NCCPC-PV).
-- **Decoupling Automated Inference from Clinical Checklists:**
-  A 5-second computer vision and audio clip cannot compute a 10-minute clinical checklist. Project N therefore strictly separates automated inference from clinical diagnosis:
-  - **Automated Acute Distress Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for acute acoustic spikes ($F_0 > 450\text{ Hz}$ shriek excursions, severe CPP periodic-to-aperiodic drops $< 4.0\text{ dB}$) and rapid guarding/flinching kinematics.
-  - **Caregiver Safety Prompt:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check (or complete the 10-minute, 27-item NCCPC-PV observation):
+  - *Exploratory Home Protocol Disclosure:* Because the 2-hour observation window of the NCCPC-R makes it infeasible for acute, immediate post-episode checks, the in-the-moment mobile companion checklist adapts the 10-minute, 27-item observation of the NCCPC-PV. **This application outside postoperative acute care is an exploratory adaptation, not a formally validated setting; use of this protocol at home must be explicitly reviewed, selected, and approved by Nolan's personal pediatrician.**
+- **Decoupling Automated Signal Deviation from Medical Diagnosis:**
+  A 5-second computer vision and audio clip cannot compute a 10-minute clinical checklist. Project N therefore strictly separates automated sensor telemetry from medical diagnosis:
+  - **Configured Signal-Deviation Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for sharp acoustic excursions ($F_0 > 450\text{ Hz}$ shriek excursions, severe CPP periodic-to-aperiodic drops $< 4.0\text{ dB}$) and rapid guarding/flinching kinematics relative to calibrated personal baselines. These thresholds represent configured signal-deviation triggers, not diagnostic markers of pain or internal strain.
+  - **Caregiver Safety Nudge:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check:
   ```text
   [MEDICAL ESCALATION REQUIRED]
-  Acoustic and kinematic signals indicate acute distress / potential pain anomaly.
+  Acoustic and kinematic signals show acute deviation from configured baseline.
   Prompt: Examine child for physical injury, illness, or acute somatic discomfort.
   Follow your family pediatrician-approved medical escalation protocol.
   All behavioral, sensory, and communication interpretations are suppressed.
   ```
+  - **Non-Reassurance Rule:** If no signal deviation is triggered, the system explicitly communicates:
+    `"No configured signal deviation was detected. This does not assess or exclude pain, illness, or distress."`
 - **Cost Asymmetry Rationale:**
   The safety gate triggers aggressively on sensory distress anomalies. This conservative posture is deliberate: a false-positive prompt causes a harmless 2-minute physical check by a loving parent, whereas a false-negative risks mistaking acute otitis media, dental abscess, GI reflux, or acute abdomen for a sensory stim or behavioral bid.
 
@@ -221,19 +225,26 @@ CREATE TABLE episodes (
     eda_tonic_level REAL,
     antecedent_context TEXT,
     caregiver_hypothesis TEXT,
-    action_taken TEXT,
-    resolution_outcome TEXT,           -- 'resolved_immediately', 'resolved_delayed', 'no_change', 'escalated'
-    child_confirmed_aac INTEGER,       -- 1 if child confirmed via AAC, else 0
-    nccpc_score INTEGER,
+    action_offered TEXT,               -- Grounded co-regulatory technique offered to child
+    caregiver_accepted INTEGER DEFAULT 1, -- 1 if caregiver approved/conducted action, else 0
+    outcome_state TEXT CHECK(outcome_state IN ('settled_immediately', 'settled_delayed', 'no_change', 'escalated')),
+    settled_within_sec INTEGER,        -- Measured or caregiver-reported latency to baseline return
+    child_response TEXT CHECK(child_response IN ('reach', 'gesture', 'vocal_signal', 'aac_selection', 'none')),
+    response_channel TEXT CHECK(response_channel IN ('motor', 'vocal', 'aac', 'none')),
+    observer TEXT,                     -- De-identified role (e.g., 'primary_caregiver', 'ot_clinician')
+    nccpc_instrument TEXT CHECK(nccpc_instrument IN ('nccpc_pv', 'nccpc_r', 'none')),
+    nccpc_score INTEGER,               -- Validated checklist total (0-81 for PV, 0-90 for R)
+    pain_cutoff_breached INTEGER DEFAULT 0, -- 1 if score >= cutoff (11 for PV, 7 for R)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE model_checkpoints (
     id TEXT PRIMARY KEY,
     checkpoint_path TEXT NOT NULL,
-    macro_f1 REAL NOT NULL,
-    ece_score REAL NOT NULL,
-    holdout_coverage REAL NOT NULL,
+    retrieval_mrr REAL NOT NULL,       -- Top-k retrieval Mean Reciprocal Rank
+    holdout_coverage REAL NOT NULL,    -- Percentage of holdout queries with d <= tau_abstain
+    zero_distress_misses INTEGER DEFAULT 1, -- 1 if 0/50 red flags missed, else 0
+    caregiver_utility_score REAL,      -- Average Likert score on validation sets
     is_production INTEGER DEFAULT 0,
     promoted_at TEXT,
     notes TEXT
@@ -245,9 +256,12 @@ CREATE TABLE child_profile_facts (
     fact_title TEXT NOT NULL,          -- e.g. 'Red squishy dinosaur toy', 'Forearm joint compression'
     description TEXT NOT NULL,         -- e.g. 'Provides rapid tactile grounding within 2-4 min during auditory overload'
     source_type TEXT NOT NULL,         -- 'home_observation' | 'ot_session' | 'slp_session' | 'school'
-    therapist_name TEXT,               -- e.g. 'Sarah (OT)' if technique demonstrated during clinical therapy
+    clinician_role TEXT,               -- e.g. 'OT', 'SLP', 'Pediatrician' (De-identified role; Zero personal names/PHI)
+    clinician_id TEXT,                 -- De-identified pseudonymized identifier (e.g. 'clinician_01')
     provenance_episode_id TEXT,        -- Foreign key to episodes.id
-    times_helpful INTEGER DEFAULT 1,   -- Success counter incremented on verified resolution
+    confirmed_by_caregiver INTEGER DEFAULT 1, -- Human-in-the-loop gate before entering active retrieval
+    times_tried INTEGER DEFAULT 1,     -- Denominator: total times this action was offered
+    times_helpful INTEGER DEFAULT 1,   -- Numerator: times followed by verified settling
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -259,7 +273,7 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 1. **`nd_confirmed_episodes`:**
    - Vector: 128-dimensional L2-normalized metric embedding.
    - Distance metric: `cosine`.
-   - Metadata: `episode_id`, `encoder_version_id`, `action_taken`, `resolution_outcome`, `child_confirmed_aac`, `nccpc_score`.
+   - Metadata: `episode_id`, `encoder_version_id`, `action_offered`, `caregiver_accepted`, `outcome_state`, `settled_within_sec`, `child_response`, `response_channel`, `nccpc_instrument`, `nccpc_score`, `pain_cutoff_breached`.
 2. **`clinical_evidence`:**
    - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
    - Distance metric: `cosine`.
@@ -267,7 +281,7 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 3. **`personal_dyadic_knowledge` (Personal & Clinic-to-Home RAG):**
    - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
    - Distance metric: `cosine`.
-   - Metadata: `fact_id`, `category`, `source_type`, `therapist_name`, `provenance_episode_id`, `times_helpful`.
+   - Metadata: `fact_id`, `category`, `source_type`, `clinician_role`, `clinician_id`, `provenance_episode_id`, `confirmed_by_caregiver`, `times_tried`, `times_helpful`.
 
 ---
 
@@ -275,16 +289,18 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 
 ### 5.1 REST API Endpoint Specifications
 
-| HTTP Verb | Path | Request Payload | Response Payload | Description |
+All endpoints (except initial user-present pairing) require a local mutual-pairing token passed via `Authorization: Bearer <local_paired_token>`. Sensitive media access and model modifications require biometric confirmation (Touch ID / system admin credential).
+
+| HTTP Verb | Path | Request Payload / Headers | Response Payload | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/pair` | `{ "device_id": str, "nonce": str }` | `{ "client_cert": str, "vault_id": str }` | Pair companion app with local Mac helper. |
-| `POST` | `/api/v1/clips/upload` | Multipart: `file`, `metadata_json` | `{ "clip_id": str, "sha256": str, "status": str }` | Resumable chunked upload from mobile outbox. |
-| `POST` | `/api/v1/clips/{id}/analyze` | `{ "generate_render": bool }` | `{ "task_id": str, "stream_url": str }` | Triggers feature extraction & retrieval pass. |
-| `GET` | `/api/v1/episodes` | Query: `limit`, `offset`, `tag`, `distress` | `{ "episodes": List[Episode], "total": int }` | Timeline and diary browser for dashboard. |
-| `GET` | `/api/v1/episodes/{id}/media` | Header: `X-TouchID-Auth: token` | Decrypted binary video stream (`video/mp4`) | Stream video for review (Touch ID gated). |
-| `GET` | `/api/v1/events/stream` | Header: `Accept: text/event-stream` | Continuous Server-Sent Events (SSE) stream | Real-time progress, telemetry, and training logs. |
-| `POST` | `/api/v1/models/promote` | `{ "candidate_id": str }` | `{ "status": "promoted", "timestamp": str }` | One-click candidate model promotion. |
-| `POST` | `/api/v1/models/rollback` | `{}` | `{ "status": "rolled_back", "active_id": str }` | Rollback to prior stable checkpoint. |
+| `POST` | `/api/v1/auth/pair` | `{ "device_id": str, "nonce": str, "pairing_pin": str }` | `{ "client_cert": str, "token": str, "vault_id": str }` | User-present physical PIN/QR pairing of mobile companion. |
+| `POST` | `/api/v1/clips/upload` | Multipart: `file`, `metadata_json`<br/>Header: `Authorization: Bearer` | `{ "clip_id": str, "sha256": str, "status": str }` | Resumable chunked upload from mobile outbox. |
+| `POST` | `/api/v1/clips/{id}/analyze` | `{ "generate_render": bool }`<br/>Header: `Authorization: Bearer` | `{ "task_id": str, "stream_url": str }` | Triggers feature extraction & retrieval pass. |
+| `GET` | `/api/v1/episodes` | Query: `limit`, `offset`, `tag`, `distress`<br/>Header: `Authorization: Bearer` | `{ "episodes": List[Episode], "total": int }` | Timeline and diary browser for dashboard. |
+| `GET` | `/api/v1/episodes/{id}/media` | Header: `Authorization: Bearer`<br/>Header: `X-TouchID-Auth: token` | Decrypted binary video stream (`video/mp4`) | Stream video for review (Touch ID gated). |
+| `GET` | `/api/v1/events/stream` | Header: `Accept: text/event-stream`<br/>Header: `Authorization: Bearer` | Continuous Server-Sent Events (SSE) stream | Real-time progress, telemetry, and training logs. |
+| `POST` | `/api/v1/models/promote` | `{ "candidate_id": str }`<br/>Header: `X-TouchID-Auth: token` | `{ "status": "promoted", "timestamp": str }` | One-click candidate model promotion (biometric gated). |
+| `POST` | `/api/v1/models/rollback` | `{}`<br/>Header: `X-TouchID-Auth: token` | `{ "status": "rolled_back", "active_id": str }` | Rollback to prior stable checkpoint (biometric gated). |
 
 ### 5.2 Server-Sent Events (SSE) Protocol Specification
 Clients subscribe to `GET /api/v1/events/stream`. Events are formatted as standard UTF-8 text frames:
@@ -297,7 +313,7 @@ event: system_telemetry
 data: {"active_vram_gb": 12.4, "peak_vram_gb": 17.2, "memory_ceiling_gb": 36.0, "thermal_state": "nominal", "mlx_device": "Apple M5 Pro (Metal GPU)"}
 
 event: four_layer_card
-data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Nolan's vocal pitch and wrist movement are elevated, which in past episodes occurred during noise overload or fatigue; you might explore offering deep pressure or water.", "abstained": false}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Child N's vocal pitch and wrist movement are elevated, which in past episodes occurred during noise overload or fatigue; you might explore offering deep pressure or water.", "abstained": false}
 ```
 
 ---
@@ -365,7 +381,7 @@ graph TD
    - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and Farnebäck motion vectors frame-by-frame.
    - Synchronized audio waveform with interactive pitch trace ($F_0$ curve) and CQT spectrogram heatmaps.
    - **Perspective Switcher Toggle (`[ 🟢 Parent View (Default) ] | [ 🔬 Therapist View ]`):**
-     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Nolan's vocal pitch and wrist movement are elevated, similar to past fatigue episodes"*), gentle exploratory hypotheses (*"What Nolan might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
+     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Child N's vocal pitch and wrist movement are elevated, similar to past fatigue episodes"*), gentle exploratory hypotheses (*"What Child N might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
      - **Therapist View:** Full bioacoustic figures ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck displacement), SCERTS and Ayres Sensory Integration mapping, and exact peer-reviewed literature citations.
 2. **Interactive 2D Lexicon Cluster Map:**
    - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
@@ -381,8 +397,12 @@ graph TD
 Below is an illustrative architectural specification and pseudo-code sketch outlining the component interfaces: the multimodal metric projection head with missing-modality gating, episodic prototype retrieval, acute distress anomaly screening, and schema-constrained Qwen2.5-14B rendering.
 
 > [!NOTE]
-> **Implementation Scope Note**
-> This section serves as an interface contract and dataflow blueprint for Phase 1 implementation. Production feature extraction routines, validation assertions, and runtime pipeline modules reside in the repository source packages (`extraction/`, `models/`, `rag/`, `server/`).
+> **Implementation Scope & Architectural Normative Note**
+> This section serves as an interface contract and dataflow blueprint for implementation. Production feature extraction routines, validation assertions, and runtime pipeline modules will reside in the repository source packages (`extraction/`, `models/`, `rag/`, `server/`) upon execution of their respective roadmap phases.
+>
+> **Normative Baseline vs. Research Branch:**
+> - **Normative Baseline (Phase 1–2):** Modality-specific attention pooling with missing-sensor gating (`AttentionPool` + `MetricProjectionHead`) represents the primary normative implementation path for device-local inference.
+> - **Exploratory Research Branch:** CAV-MAE / Perceiver cross-attention audio-visual temporal binding is maintained as an experimental pre-training investigation.
 
 ```python
 """
@@ -402,6 +422,7 @@ class AttentionPool(nn.Module):
     Learned temporal attention pooling condensing arbitrary sequence lengths
     into a unified latent summary representation.
     """
+
     def __init__(self, d_in: int):
         super().__init__()
         self.attn_vector = nn.Linear(d_in, 1, bias=False)
@@ -425,13 +446,14 @@ class MetricProjectionHead(nn.Module):
     optional physiological sensors are absent. Maps inputs into an
     L2-normalized 128-dimensional metric space.
     """
+
     def __init__(
         self,
         d_audio: int = 512,
         d_kinematic: int = 512,
         d_physio: int = 64,
         d_hidden: int = 512,
-        d_metric: int = 128
+        d_metric: int = 128,
     ):
         super().__init__()
         # Modal attention pools
@@ -453,10 +475,7 @@ class MetricProjectionHead(nn.Module):
         self.fc_metric = nn.Linear(d_hidden, d_metric, bias=False)
 
     def __call__(
-        self,
-        x_audio: mx.array,
-        x_kinematic: mx.array,
-        x_physio: Optional[mx.array] = None
+        self, x_audio: mx.array, x_kinematic: mx.array, x_physio: Optional[mx.array] = None
     ) -> mx.array:
         B = x_audio.shape[0]
 
@@ -487,20 +506,15 @@ class EpisodicPrototypeMatcher:
     """
     Episodic prototype and k-NN retrieval engine with calibrated abstention.
     """
+
     def __init__(self, tau_abstain: float = 0.35):
         self.tau_abstain = tau_abstain
 
     def match(
-        self,
-        query_vector: mx.array,
-        confirmed_collection: Any,
-        top_k: int = 3
+        self, query_vector: mx.array, confirmed_collection: Any, top_k: int = 3
     ) -> Dict[str, Any]:
         q_list = query_vector[0].tolist()
-        results = confirmed_collection.query(
-            query_embeddings=[q_list],
-            n_results=top_k
-        )
+        results = confirmed_collection.query(query_embeddings=[q_list], n_results=top_k)
 
         distances = results["distances"][0] if results["distances"] else [1.0]
         nearest_distance = distances[0]
@@ -511,39 +525,41 @@ class EpisodicPrototypeMatcher:
                 "abstained": True,
                 "reason": f"Distance ({nearest_distance:.3f}) exceeds threshold ({self.tau_abstain:.3f})",
                 "nearest_distance": nearest_distance,
-                "candidates": []
+                "candidates": [],
             }
 
         candidates = []
         for meta, dist in zip(results["metadatas"][0], distances):
-            candidates.append({
-                "action_taken": meta.get("action_taken"),
-                "resolution_outcome": meta.get("resolution_outcome"),
-                "child_response": meta.get("child_response"),
-                "response_channel": meta.get("response_channel", "unspecified"),
-                "child_confirmed": bool(meta.get("child_response")),
-                "distance": dist
-            })
+            candidates.append(
+                {
+                    "action_offered": meta.get("action_offered"),
+                    "caregiver_accepted": bool(meta.get("caregiver_accepted", 1)),
+                    "outcome_state": meta.get("outcome_state"),
+                    "settled_within_sec": meta.get("settled_within_sec"),
+                    "child_response": meta.get("child_response", "none"),
+                    "response_channel": meta.get("response_channel", "none"),
+                    "child_confirmed": bool(
+                        meta.get("child_response") and meta.get("child_response") != "none"
+                    ),
+                    "distance": dist,
+                }
+            )
 
-        return {
-            "abstained": False,
-            "nearest_distance": nearest_distance,
-            "candidates": candidates
-        }
+        return {"abstained": False, "nearest_distance": nearest_distance, "candidates": candidates}
 
 
 class AcuteDistressAnomalyDetector:
     """
     Automated acoustic and kinematic anomaly screener executing on raw 5s sensory frames.
     Screens for acute acoustic excursions and flinching/guarding kinematics relative to
-    the child's established personal baseline (or clinical fallback distributions).
-    Prompts caregiver to conduct their family pediatrician-approved comfort check.
+    the child's established personal baseline (or safe fallback distributions).
+    Configured signal-deviation trigger only; does not assess or exclude somatic pain, illness,
+    or distress. Prompts caregiver to conduct their family pediatrician-approved comfort check.
     """
+
     @classmethod
     def evaluate(
-        cls,
-        measured_features: Dict[str, Any],
-        baseline_stats: Optional[Dict[str, float]] = None
+        cls, measured_features: Dict[str, Any], baseline_stats: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
         f0_mean = measured_features.get("f0_mean_hz")
         cpp_val = measured_features.get("cpp_db")
@@ -562,14 +578,15 @@ class AcuteDistressAnomalyDetector:
             "indicators": {
                 "f0_spike": f0_spike,
                 "cpp_strain": cpp_strain,
-                "flinch_guarding": flinch_guarding
+                "flinch_guarding": flinch_guarding,
             },
             "recommendation": (
-                "ACUTE DISTRESS ANOMALY DETECTED: Acoustic or kinematic signals show acute deviation from baseline. "
+                "CONFIGURED SIGNAL DEVIATION DETECTED: Acoustic or kinematic signals show acute deviation from configured baseline. "
                 "Prompt caregiver to perform pediatrician-approved comfort check. "
                 "Behavioral and sensory interpretations are suppressed."
-                if is_anomaly else "No acute distress anomaly detected in current sensory window."
-            )
+                if is_anomaly
+                else "No configured signal deviation was detected. This does not assess or exclude pain, illness, or distress."
+            ),
         }
 
 
@@ -578,29 +595,44 @@ class NCCPCChecklist:
     Caregiver-completed Non-Communicating Children's Pain Checklist (Breau et al., 2002).
     - NCCPC-PV (Breau et al., 2002, Anesthesiology, doi:10.1097/00000542-200203000-00004):
       27 items across 6 subscales (0 to 81) over a 10-minute observation. Cut-off >= 11 indicates moderate-to-severe pain.
-      Used for in-the-moment post-episode caregiver check-ins on mobile companion devices.
+      Exploratory in-home adaptation on mobile companion devices; requires pediatrician review and selection.
     - NCCPC-R (Breau et al., 2002, Pain, doi:10.1016/S0304-3959(02)00179-3):
       30 items across 7 subscales (0 to 90) over a 2-hour observation. Cut-off >= 7 indicates presence of pain.
     """
+
     NCCPC_PV_MODERATE_CUTOFF = 11
     NCCPC_R_CUTOFF = 7
 
     @classmethod
     def score_pv(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
+        if len(item_scores) != 27:
+            raise ValueError(
+                f"NCCPC-PV requires exactly 27 observation items; received {len(item_scores)}."
+            )
+        for k, v in item_scores.items():
+            if not isinstance(v, int) or v < 0 or v > 3:
+                raise ValueError(f"Item '{k}' score must be integer between 0 and 3; received {v}.")
         total_score = sum(item_scores.values())
         return {
             "total_score": total_score,
-            "instrument": "NCCPC-PV (27 items, 10-min)",
-            "exceeds_threshold": total_score >= cls.NCCPC_PV_MODERATE_CUTOFF
+            "instrument": "NCCPC-PV (27 items, 10-min, exploratory home adaptation)",
+            "exceeds_threshold": total_score >= cls.NCCPC_PV_MODERATE_CUTOFF,
         }
 
     @classmethod
     def score_r(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
+        if len(item_scores) != 30:
+            raise ValueError(
+                f"NCCPC-R requires exactly 30 observation items; received {len(item_scores)}."
+            )
+        for k, v in item_scores.items():
+            if not isinstance(v, int) or v < 0 or v > 3:
+                raise ValueError(f"Item '{k}' score must be integer between 0 and 3; received {v}.")
         total_score = sum(item_scores.values())
         return {
             "total_score": total_score,
-            "instrument": "NCCPC-R (30 items, 2-hr)",
-            "exceeds_threshold": total_score >= cls.NCCPC_R_CUTOFF
+            "instrument": "NCCPC-R (30 items, 2-hr, community validated)",
+            "exceeds_threshold": total_score >= cls.NCCPC_R_CUTOFF,
         }
 
 
@@ -608,17 +640,22 @@ def execute_inference_cycle(
     raw_audio: mx.array,
     raw_kinematic: mx.array,
     raw_physio: Optional[mx.array],
-    measured_features: Dict[str, Any],    # Extracted L1 features (F0, CPP, motion freq, etc.)
-    caregiver_context: Dict[str, Any],    # L3 antecedents (time elapsed, transition state, etc.)
-    caregiver_nccpc_scores: Optional[Dict[str, int]],  # Optional caregiver 10-min observation scores
+    measured_features: Dict[str, Any],  # Extracted L1 features (F0, CPP, motion freq, etc.)
+    caregiver_context: Dict[str, Any],  # L3 antecedents (time elapsed, transition state, etc.)
+    caregiver_nccpc_scores: Optional[
+        Dict[str, int]
+    ],  # Optional caregiver 10-min observation scores
     metric_head: MetricProjectionHead,
     matcher: EpisodicPrototypeMatcher,
     confirmed_collection: Any,
     evidence_collection: Any,
-    personal_knowledge_collection: Optional[Any],  # Personal facts & clinic-learned OT/SLP techniques
+    personal_knowledge_collection: Optional[
+        Any
+    ],  # Personal facts & clinic-learned OT/SLP techniques
     llm_renderer: Any,
     tokenizer: Any,
-    view_mode: str = "parent"             # "parent" (default) or "therapist"
+    view_mode: str = "parent",  # "parent" (default) or "therapist"
+    baseline_stats: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """
     Executes an end-to-end Project N inference cycle adhering to the four-layer output contract.
@@ -626,7 +663,7 @@ def execute_inference_cycle(
     precedents, antecedent context, and grounded hypotheses to support parent decision-making.
     """
     # 1. MEDICAL SAFETY RULE-OUT & DISTRESS SCREENING (Triage First)
-    anomaly_check = AcuteDistressAnomalyDetector.evaluate(measured_features)
+    anomaly_check = AcuteDistressAnomalyDetector.evaluate(measured_features, baseline_stats)
     caregiver_pain_flag = False
     nccpc_total = None
     if caregiver_nccpc_scores is not None:
@@ -646,9 +683,9 @@ def execute_inference_cycle(
             ),
             "actionable_hints": [
                 "Examine child for physical symptoms, temperature, or acute somatic discomfort",
-                "Follow family pediatrician-approved comfort and escalation protocol"
+                "Follow family pediatrician-approved comfort and escalation protocol",
             ],
-            "suggested_observations": ["physical_comfort_check", "pediatrician_protocol"]
+            "suggested_observations": ["physical_comfort_check", "pediatrician_protocol"],
         }
 
     # 2. METRIC PROJECTION (128-dim L2 space)
@@ -664,24 +701,48 @@ def execute_inference_cycle(
             "nearest_distance": match_result["nearest_distance"],
             "actionable_hints": [
                 "Observe child without immediate intervention",
-                "Offer open-ended visual schedule or preferred comfort object"
+                "Offer open-ended visual schedule or preferred comfort object",
             ],
-            "suggested_observations": ["open_choice_board", "check_in"]
+            "suggested_observations": ["open_choice_board", "check_in"],
         }
 
     # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
-    # Filter candidates by verified successful resolution to avoid recommending actions that failed in past episodes
-    successful_candidates = [
-        c for c in match_result["candidates"]
-        if c.get("resolution_outcome") == "resolved" and c.get("action_taken")
-    ]
-    actions = [c["action_taken"] for c in successful_candidates]
-    if not actions:
-        actions = [c["action_taken"] for c in match_result["candidates"] if c.get("action_taken")]
-    top_action = Counter(actions).most_common(1)[0][0] if actions else "supportive co-regulation"
-    evidence_query = f"Sensory regulation and environmental support for {top_action} in pediatric autism"
+    # Track numerator (times settled) and denominator (times offered) to avoid ranking by raw count
+    candidates = match_result["candidates"]
+    action_stats: Dict[str, Dict[str, int]] = {}
+    for c in candidates:
+        act = c.get("action_offered")
+        if not act:
+            continue
+        if act not in action_stats:
+            action_stats[act] = {"offered": 0, "settled": 0}
+        action_stats[act]["offered"] += 1
+        if c.get("outcome_state") in ("settled_immediately", "settled_delayed") and c.get(
+            "caregiver_accepted", True
+        ):
+            action_stats[act]["settled"] += 1
+
+    if action_stats:
+        sorted_actions = sorted(
+            action_stats.items(),
+            key=lambda item: (item[1]["settled"] / max(item[1]["offered"], 1), item[1]["settled"]),
+            reverse=True,
+        )
+        top_action, stats = sorted_actions[0]
+        history_ratio_str = f"{top_action} (settling observed in {stats['settled']} of {stats['offered']} similar episodes)"
+    else:
+        top_action = "supportive co-regulation"
+        history_ratio_str = "supportive co-regulation (no previous action recorded)"
+
+    evidence_query = (
+        f"Sensory regulation and environmental support for {top_action} in pediatric autism"
+    )
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
-    evidence_text = lit_results["documents"][0][0] if (lit_results.get("documents") and lit_results["documents"][0]) else None
+    evidence_text = (
+        lit_results["documents"][0][0]
+        if (lit_results.get("documents") and lit_results["documents"][0])
+        else None
+    )
 
     # Retrieve personalized child anchors and professional techniques learned in OT/SLP clinic sessions
     personal_facts = []
@@ -690,7 +751,11 @@ def execute_inference_cycle(
         fact_results = personal_knowledge_collection.query(query_texts=[fact_query], n_results=3)
         if fact_results.get("documents") and fact_results["documents"][0]:
             personal_facts = fact_results["documents"][0]
-    personal_facts_str = "; ".join(personal_facts) if personal_facts else "No specific personal anchors or clinic techniques recorded yet."
+    personal_facts_str = (
+        "; ".join(personal_facts)
+        if personal_facts
+        else "No specific personal anchors or clinic techniques recorded yet."
+    )
 
     # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY (Without Fabricated Defaults)
     f0_mean = measured_features.get("f0_mean_hz")
@@ -709,15 +774,20 @@ def execute_inference_cycle(
     )
     l2 = (
         f"Matched {len(match_result['candidates'])} prior episodes in historical vault. "
-        f"Most frequent co-regulatory resolution: {top_action}."
+        f"Historical co-regulation precedent: {history_ratio_str}."
     )
     transition = caregiver_context.get("transition_state", "unknown")
     hydration = caregiver_context.get("elapsed_min_since_hydration", "unknown")
     noise = caregiver_context.get("noise_level", "unknown")
     l3 = f"Antecedents: transition={transition}, elapsed_min_since_water={hydration}, ambient_noise={noise}."
-    l4 = f"Research literature: {evidence_text[:140]}..." if evidence_text else "Research literature: No direct literature match found."
+    l4 = (
+        f"Research literature: {evidence_text[:180]}..."
+        if evidence_text
+        else "Research literature: No direct literature match found."
+    )
 
-    # Dual-Perspective Prompt Generation:
+    # 6. SCHEMA-CONSTRAINED RENDERING WITH DETERMINISTIC FALLBACK
+    # Dual-Perspective Structured Formatting:
     # 1. Parent View (Default): Warm, jargon-free everyday English with practical things to try
     parent_render_prompt = (
         f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
@@ -732,7 +802,6 @@ def execute_inference_cycle(
         f"[Personal Anchors & Clinic-Learned Techniques]: {personal_facts_str}\n"
     )
 
-    # 2. Therapist View: Formal sensory processing, bioacoustic, and SCERTS clinical telemetry
     therapist_render_prompt = (
         f"You are an interdisciplinary clinical support assistant for the SLP and Occupational Therapist of Child N.\n"
         f"Summarize this episode using formal bioacoustic, kinematic, SCERTS, and Ayres Sensory Integration terminology.\n"
@@ -744,32 +813,62 @@ def execute_inference_cycle(
         f"[L4 Evidence]: {l4}\n"
     )
 
-    # 6. FROZEN LLM RENDERING VIA MLX-LM (Base LLM 100% frozen via model.freeze())
+    # Deterministic Warm Template Fallback
+    fallback_parent_card = (
+        f"Child N's vocal pitch ({f0_str}) and movement ({motion_type} at {freq_str}) show noticeable rhythm. "
+        f"In similar past episodes, {history_ratio_str}. "
+        f"Context notes: {transition} transition, {hydration} min since hydration. "
+        f"Gentle possibilities to explore: offer {top_action}, check sensory environment (noise: {noise}), "
+        f"or offer preferred comfort object.\n\n"
+        f"Notice: Exploratory co-regulatory hypotheses, not a medical evaluation."
+    )
+    fallback_therapist_card = (
+        f"[Therapist Telemetry Card]\n"
+        f"Measured L1: {l1}\n"
+        f"Precedent L2: {l2}\n"
+        f"Context L3: {l3}\n"
+        f"Evidence L4: {l4}"
+    )
+
+    rendered_parent_card = fallback_parent_card
+    rendered_therapist_card = fallback_therapist_card
+
     if llm_renderer is not None and tokenizer is not None:
         try:
             import mlx_lm
-            rendered_parent_card = mlx_lm.generate(
+
+            gen_parent = mlx_lm.generate(
                 llm_renderer, tokenizer, prompt=parent_render_prompt, max_tokens=350, verbose=False
             )
-            rendered_therapist_card = mlx_lm.generate(
-                llm_renderer, tokenizer, prompt=therapist_render_prompt, max_tokens=350, verbose=False
+            # Post-generation validation: ensure output mentions exploratory stance and does not hallucinate medical certainty
+            if gen_parent and len(gen_parent.strip()) > 30:
+                rendered_parent_card = gen_parent.strip()
+            gen_therapist = mlx_lm.generate(
+                llm_renderer,
+                tokenizer,
+                prompt=therapist_render_prompt,
+                max_tokens=350,
+                verbose=False,
             )
+            if gen_therapist and len(gen_therapist.strip()) > 30:
+                rendered_therapist_card = gen_therapist.strip()
         except Exception:
-            rendered_parent_card = f"[Parent View Rendered]\nObservation: {l1}\nHistory: {l2}\nContext: {l3}\nGuidance: Consider {top_action}."
-            rendered_therapist_card = f"[Therapist View Rendered]\nMeasured: {l1}\nPrecedents: {l2}\nLiterature: {l4}"
-    else:
-        rendered_parent_card = f"[Parent View Rendered]\nObservation: {l1}\nHistory: {l2}\nContext: {l3}\nGuidance: Consider {top_action}."
-        rendered_therapist_card = f"[Therapist View Rendered]\nMeasured: {l1}\nPrecedents: {l2}\nLiterature: {l4}"
+            rendered_parent_card = fallback_parent_card
+            rendered_therapist_card = fallback_therapist_card
 
     # Observed historical child responses recorded during past similar episodes
-    child_responses = [c.get("child_response") for c in match_result["candidates"] if c.get("child_response")]
+    child_responses = [
+        c.get("child_response")
+        for c in match_result["candidates"]
+        if c.get("child_response") and c.get("child_response") != "none"
+    ]
 
     return {
         "structured_data": {
             "L1_measured": l1,
             "L2_history": l2,
             "L3_context": l3,
-            "L4_evidence": l4
+            "L4_evidence": l4,
         },
         "view_mode": view_mode,
         "parent_view": rendered_parent_card,
@@ -777,13 +876,13 @@ def execute_inference_cycle(
         "active_card": rendered_parent_card if view_mode == "parent" else rendered_therapist_card,
         "practical_things_to_try": [
             f"Check if child responds to previous comfort action: {top_action}",
-            f"Review environmental antecedents (transition={transition}, noise={noise})"
+            f"Review environmental antecedents (transition={transition}, noise={noise})",
         ],
         "historical_child_responses": child_responses,
         "disclaimer": (
             "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
             "not a medical diagnosis. Prioritize physical comfort and consult your pediatrician for health concerns."
-        )
+        ),
     }
 ```
 
