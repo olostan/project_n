@@ -103,7 +103,7 @@ graph TD
 ## 2. Introduction & The Communicative Reality
 
 ### 2.1 Beyond the Verbal Threshold: Non-Speaking Is Not Non-Communicative
-A substantial proportion (estimated at 25% to 30%) of autistic children remain minimally speaking or non-verbal past school age ([Tager-Flusberg & Kasari, 2013](#ref-18)). For these individuals, the absence of functional speech does not signify a lack of communicative intent, cognitive agency, or receptive language comprehension. Rather, co-occurring challenges—including Childhood Apraxia of Speech (CAS), oral-motor dyspraxia, sensory processing differences, and atypical sensorimotor feedforward integration—disrupt the complex neuromuscular coordination required to articulate discrete phonemic sequences.
+A substantial proportion (estimated at 25% to 30%) of autistic children remain minimally speaking or non-verbal past school age ([Tager-Flusberg & Kasari, 2013](#ref-18)). For these individuals, the absence of functional speech does not imply an absence of communicative intent or cognitive agency; at the same time, receptive language profiles remain highly heterogeneous and should be evaluated individually rather than assumed. Rather, co-occurring challenges—including Childhood Apraxia of Speech (CAS), oral-motor dyspraxia, sensory processing differences, and atypical sensorimotor feedforward integration—disrupt the complex neuromuscular coordination required to articulate discrete phonemic sequences.
 
 In clinical Speech-Language Pathology (SLP), communication is recognized as inherently multimodal ([Light & McNaughton, 2014](#ref-8)). Non-verbal children routinely mobilize an extensive communicative repertoire:
 
@@ -117,7 +117,7 @@ Conventional foundation models (speech-to-text engines like Whisper, audio trans
 1. **Acoustic Phonemic Discretization:** Whisper’s autoregressive decoder penalizes acoustic variance that does not map onto standardized phonemes or linguistic tokens. Idiosyncratic tonal hums or guttural phonations are filtered out as background noise or collapsed into silence.
 2. **Visual Spatial Pooling:** Standard vision models downsample spatial patches across temporal windows, blending a rapid 4 Hz wrist-flick or finger tremor into the static background pixels of a living room.
 
-When applied to a completely non-verbal child, commercial AI obliterates the very substrate that constitutes their expressive vocabulary.
+When applied to a completely non-verbal child, standard foundation models—optimized for normative linguistic tokens—frequently discard idiosyncratic acoustic perturbations as non-speech noise or blur rapid fine-motor kinematics, filtering out the very substrate that constitutes their expressive repertoire.
 
 ---
 
@@ -191,7 +191,7 @@ Project N builds directly upon and synthesizes several empirical research bodies
   - *Engineering Implication:* Establishes a valuable scientific precedent for individualized acoustic modeling, while underscoring that family annotations reflect naturalistic caregiver interpretation rather than external, objective ground truth.
 - **Acoustic Voice Features in Autism Meta-Analyses ([Fusaroli et al., 2017](#ref-4)):**
   Systematic reviews demonstrate that across populations, acoustic differences between autistic and neurotypical individuals show modest effect sizes ($d = 0.4–0.5$) with only $\sim 61–64\%$ discriminatory accuracy.
-  - *Clinical Implication:* Confirms that population-wide "autism voice classifiers" fail. This supports exploring personalized N-of-1 longitudinal acoustic baselines to detect individual shifts, rather than assuming population acoustic markers can reliably categorize states.
+  - *Clinical Implication:* Indicates that population-level acoustic markers show modest discriminatory power ($d = 0.4–0.5$, $\sim 61–64\%$), which is insufficient for reliable individualized clinical inference and motivates exploring personalized N-of-1 longitudinal acoustic baselines to detect individual shifts, rather than assuming population acoustic markers can reliably categorize states.
 
 ### 5.2 Wearable Biosensing & Autonomic Forecasting
 - **Biosensing in Minimally Verbal Autistic Youth ([Goodwin et al., 2019](#ref-5); [Imbiriba et al., 2023](#ref-6)):**
@@ -203,7 +203,7 @@ Project N builds directly upon and synthesizes several empirical research bodies
 - **Self-Stimulatory Behavior Dataset (SSBD; [Rajagopalan et al., 2013](#ref-15)):**
   Rajagopalan et al. established the SSBD benchmark for video-based detection of repetitive motor behaviors (arm flapping, head banging, spinning). Subsequent temporal ablation studies by Mondal & Washington ([2026](#ref-11)) evaluated classification performance across subsampled video rates, demonstrating that periodic motor classification remained effective at subsampled frame rates (~2 effective fps), indicating that high frame rates are not strictly required for rhythmic stimming classification.
 - **The HIPPEA Framework (High Inflexible Precision of Prediction Errors; [Van de Cruys et al., 2014](#ref-19)):**
-  Reframes repetitive motor stims not as meaningless pathology, but as adaptive cognitive strategies to generate predictable sensory feedback in an overwhelming, high-prediction-error world.
+  Offers a theoretical predictive-coding framework interpreting repetitive motor stims as potential regulatory strategies to generate predictable sensory feedback in high-prediction-error environments, rather than assuming they reflect intentional communicative signals.
 
 ### 5.4 Augmentative and Alternative Communication (AAC)
 - **Speech Production Outcomes in Aided AAC ([Millar et al., 2006](#ref-10)):**
@@ -277,7 +277,7 @@ Both views are derived from the exact same deterministic underlying records, ens
 ### 7.3 The Clinic-to-Home Knowledge Transfer Loop
 In pediatric therapy, a persistent clinical challenge is the generalization gap: effective co-regulatory and communicative strategies discovered by therapists during structured 45-minute clinical sessions often fail to transfer into family home environments. Project N bridges this divide through its **Personal & Therapist Knowledge Store**:
 1. **Clinical Strategy Ingestion:** Therapists can record brief clip exemplars or session notes detailing successful interventions (e.g., specific joint compression protocols, sensory swing sequences, or visual wait-time scaffolding).
-2. **Contextual Living Room Delivery:** When comparable acoustic strain or motor dysregulation occurs at home, the assistant retrieves the therapist's proven technique and presents it directly to parents in plain, supportive language (*"Your OT suggested, Thursday session: Try firm joint compression on forearms"* — explicitly relaying the licensed clinician's own instructions for Child N rather than having the AI autonomously recommend medical treatment).
+2. **Contextual Living Room Delivery:** When comparable acoustic strain or motor dysregulation occurs at home, the assistant retrieves the clinician-authored technique previously recorded as helpful and presents it directly to parents in plain, supportive language (*"Your OT suggested, Thursday session: Try firm joint compression on forearms"* — explicitly relaying the licensed clinician's own instructions for Child N rather than having the AI autonomously recommend medical treatment).
 3. **Bidirectional Longitudinal Review:** Therapists review objective home resolution outcomes during weekly check-ins, verifying whether clinical scaffolding successfully generalized to naturalistic family routines.
 
 ---

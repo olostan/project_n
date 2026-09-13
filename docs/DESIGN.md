@@ -172,20 +172,27 @@ Project N inverts traditional multimodal generation. The Large Language Model is
 
 ```mermaid
 graph TD
-    L1["Layer 1: Measured Observation<br/>• Acoustic latent X_a (F0, CQT, Log-Mel)<br/>• Kinematic latent X_k (Normalized Pose, Farnebäck Flow)<br/>• Physiological latent X_p (EDA, HRV, Accel)"] --> Resampler["Multimodal Perceiver Resampler (Apple MLX)<br/>Cross-attention audio-visual temporal correspondence"]
+    L1["Layer 1: Measured Observation<br/>• Acoustic latent X_a (F0, CQT, Log-Mel)<br/>• Kinematic latent X_k (Normalized Pose, Farnebäck Flow)<br/>• Physiological latent X_p (EDA, HRV, Accel)"] --> Baseline["Modality-Specific Attention Pooling (Normative Baseline)<br/>LinearAlign + AttentionPool per modality"]
 
-    Resampler --> Pooling["Attention Pooling & L2 Normalization"]
-    Pooling --> MetricVector["128-dimensional Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
+    Baseline --> Proj["Multimodal Fusion & Metric Head<br/>MetricProjectionHead (Graceful degradation null-embedding)"]
+    Proj --> MetricVector["128-dimensional Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
 
     MetricVector --> MemoryStore["Episodic Memory Retrieval (ChromaDB / SQLite)<br/>Cosine similarity & Euclidean distance to prototypes c_k"]
     MemoryStore --> MatchedCandidates["Ranked Historical Verified Episodes of Child N<br/>Prior physical resolutions, latency, and context"]
 
+    subgraph ExploratoryBranch ["Exploratory Research Branch"]
+        Resampler["CAV-MAE / Perceiver Resampler<br/>Evaluated in Phase 3; promoted only if it beats baseline MRR"]
+    end
+    L1 -.-> Resampler
+    Resampler -.-> Proj
+
     style L1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
-    style Resampler fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
-    style Pooling fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Baseline fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
+    style Proj fill:#f9f0ff,stroke:#722ed1,stroke-width:2px
     style MetricVector fill:#fff0f6,stroke:#eb2f96,stroke-width:3px
     style MemoryStore fill:#f6ffed,stroke:#52c41a,stroke-width:2px
     style MatchedCandidates fill:#fffbe6,stroke:#faad14,stroke-width:2px
+    style ExploratoryBranch fill:#f5f5f5,stroke:#d9d9d9,stroke-width:1px,stroke-dasharray: 5 5
 ```
 
 The high-dimensional sensory representations are mapped into a compact, 128-dimensional metric space:
@@ -254,7 +261,7 @@ A common pitfall in assistive technology is presenting either fabricated narrati
 2. **Therapist View (Bioacoustic & Motion Telemetry):**
    - **Full Sensor Precision:** Surfaces raw fundamental frequency ($F_0$ mean, trajectory, jitter, shimmer), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, and 3D pose/optical flow oscillation frequencies.
    - **Interdisciplinary Framework Alignment:** Maps patterns directly to Ayres Sensory Integration categories (sensory defensiveness, vestibular/proprioceptive seeking) and the SCERTS model (Mutual Regulation, Social Communication).
-   - **Direct Literature Citations:** Cites peer-reviewed literature (e.g., Schaaf et al., 2018; Schoen et al., 2019; Van de Cruys et al., 2014) with evidence levels for review during formal Occupational Therapy and Speech-Language Pathology sessions.
+   - **Direct Literature Citations:** Cites peer-reviewed literature (e.g., Schoen et al., 2019; Van de Cruys et al., 2014) with evidence levels for review during formal Occupational Therapy and Speech-Language Pathology sessions.
 
 The caregiver can switch between perspectives with a single click (`view_mode: "parent" | "therapist"`). Both views are derived from the exact same deterministic underlying record (L1–L4), designed to strictly constrain the LLM to facts present in the deterministic L1–L4 records and prevent unsupported causal assertions.
 

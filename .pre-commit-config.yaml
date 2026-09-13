@@ -56,6 +56,13 @@ repos:
         files: ^(docs/.*|mkdocs\.yml|README\.md|INVARIANTS\.md|AGENTS\.md)$
         pass_filenames: false
 
+      - id: tensor-shapes-contract
+        name: "Architecture: Verify Tensor Shapes & Dimension Contracts"
+        entry: python3 tests/test_shapes.py
+        language: system
+        always_run: true
+        pass_filenames: false
+
       - id: verify-citations
         name: "Documentation: Verify Academic Citations (Pre-Push)"
         entry: python3 tests/verify_citations.py

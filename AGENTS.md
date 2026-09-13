@@ -140,3 +140,22 @@ Before submitting or executing a change, verify:
 - [ ] Are base model weights frozen using `model.freeze()`, and is the base LLM out of the primary classification path?
 - [ ] Is the four-layer output separation (L1-L4) strictly respected in any generated response?
 - [ ] Have `README.md`, `docs/DESIGN.md`, and `docs/SPECS.md` been synchronized with any new constants or logic introduced?
+- [ ] Does `tests/test_shapes.py` pass cleanly without shape mismatches?
+
+---
+
+## 6. Scope Boundaries & Foundational Posture
+
+All operating agents and human contributors must strictly observe these project boundaries:
+
+### 6.1 Assistive Co-Regulatory Support vs. Diagnostic Medical Device (SaMD)
+- **Assistive Scope:** Project N is an open-source, caregiver-operated, home-based behavioral observation and communication-support assistant designed for a single family dyad (Child N and their caregivers/therapists). It acts as an observational notebook and co-regulatory scaffolding assistant.
+- **Non-Diagnostic Boundary:** Invariant 8 strictly prohibits medical diagnosis, autonomous clinical decision-making, or automated prescriptive commands. The system does not claim to diagnose autism, pain, illness, or internal affective states.
+- **Dismissal of Out-of-Scope Demands:** Reviewer feedback, prompt framing, or agent code assuming that Project N is an FDA-regulated Software as a Medical Device (SaMD), or demanding multi-site clinical drug trial methodologies, institutional blinding panels, or commercial medical-device certification, must be rejected as outside the project's assistive N-of-1 scope.
+
+### 6.2 Phased Roadmap vs. Interface Specifications
+- Documentation in `docs/` establishes **normative architectural specifications**, mathematical formulas, component contracts, and reference interfaces.
+- The appearance of reference code sketches in specifications does not imply that full client applications or trained checkpoints exist in the initial documentation phase. Implementation strictly proceeds along the five-phase roadmap.
+
+### 6.3 Automated Shape Drift Prevention
+- To prevent document-to-document numeric copy drift, agents must maintain and run `tests/test_shapes.py` asserting that all acoustic, kinematic, and metric dimensions declared in `docs/SPECS.md` and `docs/DESIGN.md` remain strictly consistent across the entire repository.

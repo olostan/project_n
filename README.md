@@ -158,15 +158,15 @@ project_n/
 
 ## Implementation Roadmap
 
-Project N is currently in **Phase 1 (Multimodal Feature Extraction & Ingestion Foundations)**:
+Project N is currently in **Phase 1 (Feature Extraction, Ingestion & Two-Key Vault)**:
 - [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
 - [x] Architecture, system invariants, and technical specifications formalized.
 - [x] Prespecified evaluation protocol and safety promotion gates established.
-- [ ] Phase 1: Local Mac backend daemon (FastAPI), encrypted vault, and acoustic feature pipeline.
-- [ ] Phase 2: Metric projection head, episodic prototype retrieval, and ChromaDB integration.
-- [ ] Phase 3: Flutter companion app with offline outbox and pairing.
-- [ ] Phase 4: Local React dashboard and clinic-to-home knowledge transfer.
-- [ ] Phase 5: Controlled clinical evaluation and prospective single-participant longitudinal benchmark.
+- [ ] Phase 1: Feature extraction (acoustic, kinematic, physiology), Two-Key Vault, and local FastAPI daemon.
+- [ ] Phase 2: Modality-specific attention pooling (normative baseline), episodic memory (SQLite + ChromaDB), and acute distress screener.
+- [ ] Phase 3: Cross-platform Flutter companion client with encrypted outbox and hardware-backed PIN pairing.
+- [ ] Phase 4: Zero-cloud React dashboard, clinical RAG library, and clinic-to-home knowledge transfer engine.
+- [ ] Phase 5: Longitudinal single-participant N-of-1 evaluation, holdout assertion pipeline (B1–B4), and gated model promotion.
 
 ---
 
