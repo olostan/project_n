@@ -172,19 +172,28 @@ Physical distress and somatic pain must always take absolute priority over behav
   - *Exploratory Home Protocol Disclosure:* Because the 2-hour observation window of the NCCPC-R makes it infeasible for acute, immediate post-episode checks, the in-the-moment mobile companion checklist adapts the 10-minute, 27-item observation of the NCCPC-PV. **This application outside postoperative acute care is an exploratory adaptation, not a formally validated setting; use of this protocol at home must be explicitly reviewed, selected, and approved by the child's personal pediatrician.**
 - **Decoupling Automated Signal Deviation from Medical Diagnosis:**
   A 5-second computer vision and audio clip cannot compute a 10-minute clinical checklist. Project N therefore strictly separates automated sensor telemetry from medical diagnosis:
-  - **Configured Signal-Deviation Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for sharp acoustic excursions ($F_0 > 450\text{ Hz}$ shriek excursions, severe CPP periodic-to-aperiodic drops $< 4.0\text{ dB}$) and rapid guarding/flinching kinematics relative to calibrated personal baselines. These thresholds represent configured signal-deviation triggers, not diagnostic markers of pain or internal strain.
-  - **Caregiver Safety Nudge:** When an anomaly is detected, the system immediately presents the **Medical Escalation Card**, suppressing all behavioral explanations and prompting the caregiver to conduct their family pediatrician-approved comfort check:
-  ```text
-  [MEDICAL ESCALATION REQUIRED]
-  Acoustic and kinematic signals show acute deviation from configured baseline.
-  Prompt: Examine child for physical injury, illness, or acute somatic discomfort.
-  Follow your family pediatrician-approved medical escalation protocol.
-  All behavioral, sensory, and communication interpretations are suppressed.
-  ```
+  - **Configured Signal-Deviation Screener (`AcuteDistressAnomalyDetector`):** At inference time, the local MLX engine screens for sharp acoustic excursions ($F_0$ spike, severe CPP drop) and rapid guarding/flinching kinematics relative to the child's calibrated personal baseline. If no calibrated personal baseline is available, the screener abstains. These thresholds represent configured signal-deviation triggers, not diagnostic markers of pain or internal strain.
+  - **Two-Stage Triage Separation:**
+    1. **Physical Comfort Check Nudge (Triggered by Sensor Deviation):**
+       When automated acoustic or kinematic excursion is detected, the system immediately presents a **Physical Comfort Check Card**, suppressing behavioral interpretations:
+       ```text
+       [PHYSICAL COMFORT CHECK SUGGESTED]
+       Acoustic and kinematic signals show acute deviation from calibrated personal baseline.
+       Prompt: Check for physical discomfort, temperature, hydration, fatigue, or acute sensory overload.
+       All behavioral, communicative, and sensory interpretations are suppressed.
+       ```
+    2. **Medical Escalation Card (Triggered by Caregiver Pain Instrument / Red Flag):**
+       When the caregiver records a clinical red flag or completes an observation checklist exceeding validated pain thresholds (NCCPC-PV $\ge 11$ or NCCPC-R $\ge 7$), the system triggers the **Medical Escalation Card**:
+       ```text
+       [MEDICAL ESCALATION REQUIRED]
+       Caregiver pain observation threshold exceeded or clinical red flag recorded.
+       Prompt: Follow your family pediatrician-approved medical escalation protocol.
+       All behavioral, sensory, and communication interpretations are suppressed.
+       ```
   - **Non-Reassurance Rule:** If no signal deviation is triggered, the system explicitly communicates:
     `"No configured signal deviation was detected. This does not assess or exclude pain, illness, or distress."`
-- **Cost Asymmetry Rationale:**
-  The safety gate triggers aggressively on sensory distress anomalies. This conservative posture is deliberate: a false-positive prompt causes a harmless 2-minute physical check by a loving parent, whereas a false-negative risks mistaking acute otitis media, dental abscess, GI reflux, or acute abdomen for a sensory stim or behavioral bid.
+- **Cost Asymmetry & Triage Priority:**
+  Physical distress and somatic discomfort must always take absolute priority over behavioral or sensory explanations. While alerts require parental attention and caregiving effort, prioritizing physical comfort checks prevents acute somatic conditions (such as otitis media, dental abscess, or GI pain) from being misattributed to behavioral bids or sensory seeking.
 
 ---
 
@@ -243,7 +252,8 @@ CREATE TABLE model_checkpoints (
     checkpoint_path TEXT NOT NULL,
     retrieval_mrr REAL NOT NULL,       -- Top-k retrieval Mean Reciprocal Rank
     holdout_coverage REAL NOT NULL,    -- Percentage of holdout queries with d <= tau_abstain
-    zero_distress_misses INTEGER DEFAULT 1, -- 1 if 0/50 red flags missed, else 0
+    ece_score REAL,                    -- Expected Calibration Error on validation splits
+    zero_distress_misses INTEGER DEFAULT 0, -- Fail-closed: must be verified on locked test set
     caregiver_utility_score REAL,      -- Average Likert score on validation sets
     is_production INTEGER DEFAULT 0,
     promoted_at TEXT,
@@ -259,9 +269,9 @@ CREATE TABLE child_profile_facts (
     clinician_role TEXT,               -- e.g. 'OT', 'SLP', 'Pediatrician' (De-identified role; Zero personal names/PHI)
     clinician_id TEXT,                 -- De-identified pseudonymized identifier (e.g. 'clinician_01')
     provenance_episode_id TEXT,        -- Foreign key to episodes.id
-    confirmed_by_caregiver INTEGER DEFAULT 1, -- Human-in-the-loop gate before entering active retrieval
-    times_tried INTEGER DEFAULT 1,     -- Denominator: total times this action was offered
-    times_helpful INTEGER DEFAULT 1,   -- Numerator: times followed by verified settling
+    confirmed_by_caregiver INTEGER DEFAULT 0, -- Fail-closed: requires human review before active retrieval
+    times_tried INTEGER DEFAULT 0,     -- Denominator: total times this action was offered
+    times_helpful INTEGER DEFAULT 0,   -- Numerator: times followed by verified settling
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -387,7 +397,7 @@ graph TD
    - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
    - Clicking any cluster dot opens the underlying video clip and recorded caregiver outcome.
 3. **Candidate Model Promotion Gate:**
-   - Visual displays of leave-one-day-out validation curves, Expected Calibration Error (ECE) histogram, and safety assertion logs.
+   - Visual displays of forward-chaining temporal validation curves, selective risk coverage, calibration reliability diagrams, and safety assertion logs.
    - One-click button to promote candidate weights to active production.
 
 ---
@@ -410,8 +420,10 @@ Project N: Core Multimodal Metric Learning, Safety & Rendering Pipeline Interfac
 Targeted natively for Apple Silicon Metal Unified Memory (mlx >= 0.22.0).
 """
 
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Set, ClassVar
+from dataclasses import dataclass, asdict
 from collections import Counter
+import json
 import mlx.core as mx
 import mlx.nn as nn
 import numpy as np
@@ -532,15 +544,14 @@ class EpisodicPrototypeMatcher:
         for meta, dist in zip(results["metadatas"][0], distances):
             candidates.append(
                 {
+                    "episode_id": meta.get("episode_id", "unknown_ep"),
                     "action_offered": meta.get("action_offered"),
-                    "caregiver_accepted": bool(meta.get("caregiver_accepted", 1)),
+                    "caregiver_accepted": bool(meta.get("caregiver_accepted") == 1),
                     "outcome_state": meta.get("outcome_state"),
                     "settled_within_sec": meta.get("settled_within_sec"),
                     "child_response": meta.get("child_response", "none"),
                     "response_channel": meta.get("response_channel", "none"),
-                    "child_confirmed": bool(
-                        meta.get("child_response") and meta.get("child_response") != "none"
-                    ),
+                    "child_communicative_response": meta.get("child_response", "none"),
                     "distance": dist,
                 }
             )
@@ -552,28 +563,40 @@ class AcuteDistressAnomalyDetector:
     """
     Automated acoustic and kinematic anomaly screener executing on raw 5s sensory frames.
     Screens for acute acoustic excursions and flinching/guarding kinematics relative to
-    the child's established personal baseline (or safe fallback distributions).
-    Configured signal-deviation trigger only; does not assess or exclude somatic pain, illness,
-    or distress. Prompts caregiver to conduct their family pediatrician-approved comfort check.
+    the child's calibrated personal baseline. If no calibrated personal baseline is
+    available, the screener explicitly abstains from anomaly evaluation.
+    Configured signal-deviation trigger only; does not diagnose or exclude somatic pain, illness,
+    or distress. Prompts caregiver to conduct a physical comfort check.
     """
 
     @classmethod
     def evaluate(
         cls, measured_features: Dict[str, Any], baseline_stats: Optional[Dict[str, float]] = None
     ) -> Dict[str, Any]:
+        if not baseline_stats or "f0_upper_limit_hz" not in baseline_stats:
+            return {
+                "screener_available": False,
+                "distress_anomaly": False,
+                "reason": "No calibrated personal baseline available; anomaly screener abstaining.",
+                "recommendation": (
+                    "No calibrated personal baseline available. Automated anomaly screening paused. "
+                    "This does not assess or exclude pain, illness, or distress."
+                ),
+            }
+
         f0_mean = measured_features.get("f0_mean_hz")
         cpp_val = measured_features.get("cpp_db")
         flinch_guarding = measured_features.get("acute_guarding_detected", False)
 
-        # Personal baseline thresholds (e.g. mean + 3*std from calibration) or safe fallbacks
-        f0_thresh = baseline_stats.get("f0_upper_limit_hz", 450.0) if baseline_stats else 450.0
-        cpp_thresh = baseline_stats.get("cpp_lower_limit_db", 4.0) if baseline_stats else 4.0
+        f0_thresh = baseline_stats["f0_upper_limit_hz"]
+        cpp_thresh = baseline_stats.get("cpp_lower_limit_db", 4.0)
 
         f0_spike = bool(isinstance(f0_mean, (int, float)) and f0_mean > f0_thresh)
         cpp_strain = bool(isinstance(cpp_val, (int, float)) and cpp_val < cpp_thresh)
 
         is_anomaly = bool(f0_spike or cpp_strain or flinch_guarding)
         return {
+            "screener_available": True,
             "distress_anomaly": is_anomaly,
             "indicators": {
                 "f0_spike": f0_spike,
@@ -581,8 +604,8 @@ class AcuteDistressAnomalyDetector:
                 "flinch_guarding": flinch_guarding,
             },
             "recommendation": (
-                "CONFIGURED SIGNAL DEVIATION DETECTED: Acoustic or kinematic signals show acute deviation from configured baseline. "
-                "Prompt caregiver to perform pediatrician-approved comfort check. "
+                "PHYSICAL COMFORT CHECK SUGGESTED: Bioacoustic or kinematic signals deviate from calibrated baseline. "
+                "Prompt caregiver to check physical comfort, hydration, temperature, or sensory environment. "
                 "Behavioral and sensory interpretations are suppressed."
                 if is_anomaly
                 else "No configured signal deviation was detected. This does not assess or exclude pain, illness, or distress."
@@ -594,20 +617,65 @@ class NCCPCChecklist:
     """
     Caregiver-completed Non-Communicating Children's Pain Checklist (Breau et al., 2002).
     - NCCPC-PV (Breau et al., 2002, Anesthesiology, doi:10.1097/00000542-200203000-00004):
-      27 items across 6 subscales (0 to 81) over a 10-minute observation. Cut-off >= 11 indicates moderate-to-severe pain.
+      27 canonical items across 6 subscales (0 to 81) over a 10-minute observation. Cut-off >= 11 indicates moderate-to-severe pain.
       Exploratory in-home adaptation on mobile companion devices; requires pediatrician review and selection.
     - NCCPC-R (Breau et al., 2002, Pain, doi:10.1016/S0304-3959(02)00179-3):
-      30 items across 7 subscales (0 to 90) over a 2-hour observation. Cut-off >= 7 indicates presence of pain.
+      30 canonical items across 7 subscales (0 to 90) over a 2-hour observation. Cut-off >= 7 indicates presence of pain.
     """
 
     NCCPC_PV_MODERATE_CUTOFF = 11
     NCCPC_R_CUTOFF = 7
 
+    CANONICAL_PV_ITEMS: ClassVar[Set[str]] = {
+        # Vocal (3)
+        "whimpering_crying",
+        "screaming_yelling",
+        "groaning_moaning",
+        # Social (3)
+        "not_cooperative",
+        "less_interaction",
+        "seeking_comfort",
+        # Facial (3)
+        "furrowed_brow",
+        "change_in_eyes",
+        "clenched_teeth",
+        # Activity (3)
+        "not_moving",
+        "less_active",
+        "jumping_around",
+        # Body & Limbs (7)
+        "floppy",
+        "stiff_spastic",
+        "gesturing_to_part",
+        "guarding_protecting",
+        "flinching_retracting",
+        "moving_limbs",
+        "curled_up",
+        # Physiological (8)
+        "shivering",
+        "cold_sweating",
+        "tears",
+        "sharp_breath",
+        "breath_holding",
+        "pale_flushed",
+        "racing_heart",
+        "gasps",
+    }
+
+    CANONICAL_R_ITEMS: ClassVar[Set[str]] = CANONICAL_PV_ITEMS | {
+        # Eating / Sleeping (3 additional items for NCCPC-R 2-hr observation)
+        "eating_less",
+        "sleep_disrupted",
+        "restless_posture",
+    }
+
     @classmethod
     def score_pv(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
-        if len(item_scores) != 27:
+        if set(item_scores.keys()) != cls.CANONICAL_PV_ITEMS:
+            missing = cls.CANONICAL_PV_ITEMS - set(item_scores.keys())
+            unexpected = set(item_scores.keys()) - cls.CANONICAL_PV_ITEMS
             raise ValueError(
-                f"NCCPC-PV requires exactly 27 observation items; received {len(item_scores)}."
+                f"NCCPC-PV requires canonical 27 item identifiers. Missing: {missing}, Unexpected: {unexpected}"
             )
         for k, v in item_scores.items():
             if not isinstance(v, int) or v < 0 or v > 3:
@@ -621,9 +689,11 @@ class NCCPCChecklist:
 
     @classmethod
     def score_r(cls, item_scores: Dict[str, int]) -> Dict[str, Any]:
-        if len(item_scores) != 30:
+        if set(item_scores.keys()) != cls.CANONICAL_R_ITEMS:
+            missing = cls.CANONICAL_R_ITEMS - set(item_scores.keys())
+            unexpected = set(item_scores.keys()) - cls.CANONICAL_R_ITEMS
             raise ValueError(
-                f"NCCPC-R requires exactly 30 observation items; received {len(item_scores)}."
+                f"NCCPC-R requires canonical 30 item identifiers. Missing: {missing}, Unexpected: {unexpected}"
             )
         for k, v in item_scores.items():
             if not isinstance(v, int) or v < 0 or v > 3:
@@ -634,6 +704,17 @@ class NCCPCChecklist:
             "instrument": "NCCPC-R (30 items, 2-hr, community validated)",
             "exceeds_threshold": total_score >= cls.NCCPC_R_CUTOFF,
         }
+
+
+@dataclass
+class ParentCard:
+    """Typed Parent View card strictly enforcing epistemic grounding and provenance."""
+
+    observed_signals: str
+    precedent_summary: str
+    context_notes: str
+    gentle_possibilities: List[Dict[str, str]]  # list of {"action": ..., "source_id": ...}
+    non_diagnostic_notice: str
 
 
 def execute_inference_cycle(
@@ -662,7 +743,7 @@ def execute_inference_cycle(
     Returns a comprehensive caregiver analysis card with observational insights, historical
     precedents, antecedent context, and grounded hypotheses to support parent decision-making.
     """
-    # 1. MEDICAL SAFETY RULE-OUT & DISTRESS SCREENING (Triage First)
+    # 1. MEDICAL SAFETY & DISTRESS TRIAGE (Triage First)
     anomaly_check = AcuteDistressAnomalyDetector.evaluate(measured_features, baseline_stats)
     caregiver_pain_flag = False
     nccpc_total = None
@@ -671,21 +752,45 @@ def execute_inference_cycle(
         nccpc_total = nccpc_result["total_score"]
         caregiver_pain_flag = nccpc_result["exceeds_threshold"]
 
-    if anomaly_check["distress_anomaly"] or caregiver_pain_flag:
+    # Stage 1: True Medical Escalation (Caregiver pain instrument or clinical red flag)
+    if caregiver_pain_flag:
         return {
-            "layer": "SAFETY_ESCALATION",
-            "anomaly_detected": anomaly_check["distress_anomaly"],
+            "layer": "MEDICAL_ESCALATION",
+            "escalation_type": "clinical_pain_threshold_exceeded",
             "caregiver_nccpc_score": nccpc_total,
             "escalation_card": (
-                "MEDICAL ESCALATION REQUIRED: Distress anomaly detected or caregiver pain checklist threshold exceeded. "
-                "Prompt caregiver to conduct pediatrician-approved physical comfort check. "
+                "MEDICAL ESCALATION REQUIRED: Caregiver pain observation checklist threshold exceeded. "
+                "Prompt caregiver to follow family pediatrician-approved comfort and medical escalation protocol. "
+                "All behavioral, communicative, and sensory interpretations are suppressed."
+            ),
+            "actionable_hints": [
+                "Examine child for acute somatic symptoms, illness, or physical distress",
+                "Execute pediatrician-approved comfort and escalation protocol",
+            ],
+            "suggested_observations": ["pediatrician_protocol", "physical_symptom_check"],
+        }
+
+    # Stage 2: Physical Comfort Check (Triggered by automated acoustic/kinematic deviation)
+    if anomaly_check.get("distress_anomaly"):
+        return {
+            "layer": "COMFORT_CHECK",
+            "escalation_type": "sensor_signal_deviation",
+            "indicators": anomaly_check.get("indicators", {}),
+            "comfort_card": (
+                "PHYSICAL COMFORT CHECK SUGGESTED: Bioacoustic or kinematic signals deviate from calibrated baseline. "
+                "Examine child for physical discomfort, hydration, temperature, or sensory noise before behavioral exploration. "
                 "Behavioral and sensory interpretations are suppressed."
             ),
             "actionable_hints": [
-                "Examine child for physical symptoms, temperature, or acute somatic discomfort",
-                "Follow family pediatrician-approved comfort and escalation protocol",
+                "Offer water or check time since last meal/hydration",
+                "Check room temperature, clothing comfort, or tactile irritants",
+                "Assess ambient noise or lighting changes; offer quiet sensory refuge",
             ],
-            "suggested_observations": ["physical_comfort_check", "pediatrician_protocol"],
+            "suggested_observations": [
+                "hydration_check",
+                "environmental_noise_check",
+                "temperature_check",
+            ],
         }
 
     # 2. METRIC PROJECTION (128-dim L2 space)
@@ -707,54 +812,105 @@ def execute_inference_cycle(
         }
 
     # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
-    # Track numerator (times settled) and denominator (times offered) to avoid ranking by raw count
     candidates = match_result["candidates"]
     action_stats: Dict[str, Dict[str, int]] = {}
+    candidate_source_map: Dict[str, List[str]] = {}
     for c in candidates:
         act = c.get("action_offered")
+        ep_id = c.get("episode_id", "unknown_ep")
         if not act:
             continue
         if act not in action_stats:
             action_stats[act] = {"offered": 0, "settled": 0}
+            candidate_source_map[act] = []
         action_stats[act]["offered"] += 1
-        if c.get("outcome_state") in ("settled_immediately", "settled_delayed") and c.get(
-            "caregiver_accepted", True
+        candidate_source_map[act].append(ep_id)
+        if (
+            c.get("outcome_state") in ("settled_immediately", "settled_delayed")
+            and c.get("caregiver_accepted") is True
         ):
             action_stats[act]["settled"] += 1
 
-    if action_stats:
+    # Filter strictly for actions that have observed at least one settling outcome
+    beneficial_actions = [
+        (act, stats) for act, stats in action_stats.items() if stats["settled"] > 0
+    ]
+
+    top_action: Optional[str] = None
+    provenance_id: Optional[str] = None
+    if beneficial_actions:
+        # Sort by Laplace-smoothed settle rate: (settled + 1) / (offered + 2), tie-break by total settled count
         sorted_actions = sorted(
-            action_stats.items(),
-            key=lambda item: (item[1]["settled"] / max(item[1]["offered"], 1), item[1]["settled"]),
+            beneficial_actions,
+            key=lambda item: (
+                (item[1]["settled"] + 1) / (item[1]["offered"] + 2),
+                item[1]["settled"],
+            ),
             reverse=True,
         )
         top_action, stats = sorted_actions[0]
+        provenance_id = (
+            candidate_source_map[top_action][0]
+            if candidate_source_map.get(top_action)
+            else "ep_prior"
+        )
         history_ratio_str = f"{top_action} (settling observed in {stats['settled']} of {stats['offered']} similar episodes)"
     else:
-        top_action = "supportive co-regulation"
-        history_ratio_str = "supportive co-regulation (no previous action recorded)"
+        top_action = None
+        provenance_id = None
+        history_ratio_str = "no previous calming action recorded for this pattern"
 
     evidence_query = (
         f"Sensory regulation and environmental support for {top_action} in pediatric autism"
+        if top_action
+        else "Sensory regulation and co-regulatory scaffolding in pediatric autism"
     )
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
-    evidence_text = (
-        lit_results["documents"][0][0]
-        if (lit_results.get("documents") and lit_results["documents"][0])
-        else None
-    )
+    if lit_results.get("documents") and lit_results["documents"][0]:
+        doc_text = lit_results["documents"][0][0]
+        meta = (
+            lit_results["metadatas"][0][0]
+            if lit_results.get("metadatas") and lit_results["metadatas"][0]
+            else {}
+        )
+        author = meta.get("author", "Peer-Reviewed Literature")
+        year = meta.get("year", "n.d.")
+        framework = meta.get("framework", "Clinical Framework")
+        evidence_level = meta.get("evidence_level", "Observational")
+        l4 = f"Research literature: {author} ({year}) [{framework}, Level {evidence_level}]: {doc_text[:200]}..."
+    else:
+        l4 = "Research literature: No direct literature match found."
 
     # Retrieve personalized child anchors and professional techniques learned in OT/SLP clinic sessions
     personal_facts = []
+    personal_fact_items = []
     if personal_knowledge_collection is not None:
-        fact_query = f"{top_action} comfort toy calming phrase sensory trigger OT technique"
-        fact_results = personal_knowledge_collection.query(query_texts=[fact_query], n_results=3)
+        fact_query = (
+            f"{top_action} comfort toy calming phrase sensory trigger OT technique"
+            if top_action
+            else "comfort toy calming phrase sensory trigger OT technique"
+        )
+        fact_results = personal_knowledge_collection.query(
+            query_texts=[fact_query],
+            n_results=3,
+            where={"confirmed_by_caregiver": 1},  # Strict human gate: only verified facts eligible
+        )
         if fact_results.get("documents") and fact_results["documents"][0]:
             personal_facts = fact_results["documents"][0]
+            metas = fact_results.get("metadatas", [[]])[0]
+            for doc, m in zip(personal_facts, metas):
+                personal_fact_items.append(
+                    {
+                        "text": doc,
+                        "category": m.get("category", "personal_anchor"),
+                        "source_id": m.get("fact_id", "fact_prior"),
+                        "clinician_role": m.get("clinician_role", "caregiver"),
+                    }
+                )
     personal_facts_str = (
         "; ".join(personal_facts)
         if personal_facts
-        else "No specific personal anchors or clinic techniques recorded yet."
+        else "No specific verified personal anchors or clinic techniques recorded yet."
     )
 
     # 5. DYNAMIC FOUR-LAYER EVIDENCE ASSEMBLY (Without Fabricated Defaults)
@@ -780,47 +936,43 @@ def execute_inference_cycle(
     hydration = caregiver_context.get("elapsed_min_since_hydration", "unknown")
     noise = caregiver_context.get("noise_level", "unknown")
     l3 = f"Antecedents: transition={transition}, elapsed_min_since_water={hydration}, ambient_noise={noise}."
-    l4 = (
-        f"Research literature: {evidence_text[:180]}..."
-        if evidence_text
-        else "Research literature: No direct literature match found."
-    )
 
     # 6. SCHEMA-CONSTRAINED RENDERING WITH DETERMINISTIC FALLBACK
-    # Dual-Perspective Structured Formatting:
-    # 1. Parent View (Default): Warm, jargon-free everyday English with practical things to try
-    parent_render_prompt = (
-        f"You are a compassionate, practical, and evidence-grounded companion for the parents of Child N.\n"
-        f"Translate the four-layer technical evidence into warm, accessible everyday language without clinical jargon:\n"
-        f"1. Describe the measured physical patterns in plain language relative to recent baseline (e.g., vocal pitch or rhythmic movement) and present gentle possibilities to explore (e.g., environmental factors like sound or transition fatigue), explicitly avoiding dogmatic claims about internal mental states or intent.\n"
-        f"2. Suggest 2-3 gentle, practical, low-risk things parents can explore right now based on past co-regulatory successes, known comfort items (e.g., favorite toys, calming phrases), and techniques demonstrated by his OT or SLP in clinic sessions.\n"
-        f"3. Frame ideas as gentle hypotheses to investigate rather than dogmatic claims. Include a brief reminder that these are supportive exploratory ideas, not medical advice.\n\n"
-        f"[L1 Measured]: {l1}\n"
-        f"[L2 History]: {l2}\n"
-        f"[L3 Context]: {l3}\n"
-        f"[L4 Evidence]: {l4}\n"
-        f"[Personal Anchors & Clinic-Learned Techniques]: {personal_facts_str}\n"
-    )
+    gentle_possibilities: List[Dict[str, str]] = []
+    if top_action and provenance_id:
+        gentle_possibilities.append(
+            {
+                "action": f"Offer previous calming support: {top_action}",
+                "provenance_id": provenance_id,
+                "source_type": "historical_precedent",
+            }
+        )
+    for item in personal_fact_items[:2]:
+        gentle_possibilities.append(
+            {
+                "action": f"Offer known anchor ({item['clinician_role']}): {item['text']}",
+                "provenance_id": item["source_id"],
+                "source_type": f"verified_{item['category']}",
+            }
+        )
+    if not gentle_possibilities:
+        gentle_possibilities.append(
+            {
+                "action": "Observe child without immediate intervention; offer open choice board or quiet space",
+                "provenance_id": "clinical_scerts_baseline",
+                "source_type": "scerts_transactional_support",
+            }
+        )
 
-    therapist_render_prompt = (
-        f"You are an interdisciplinary clinical support assistant for the SLP and Occupational Therapist of Child N.\n"
-        f"Summarize this episode using formal bioacoustic, kinematic, SCERTS, and Ayres Sensory Integration terminology.\n"
-        f"Present raw physical telemetry (F0, CPP, pose frequencies), historical precedent frequencies, "
-        f"and formal literature citations without ungrounded claims:\n\n"
-        f"[L1 Measured]: {l1}\n"
-        f"[L2 History]: {l2}\n"
-        f"[L3 Context]: {l3}\n"
-        f"[L4 Evidence]: {l4}\n"
-    )
-
-    # Deterministic Warm Template Fallback
-    fallback_parent_card = (
-        f"Child N's vocal pitch ({f0_str}) and movement ({motion_type} at {freq_str}) show noticeable rhythm. "
-        f"In similar past episodes, {history_ratio_str}. "
-        f"Context notes: {transition} transition, {hydration} min since hydration. "
-        f"Gentle possibilities to explore: offer {top_action}, check sensory environment (noise: {noise}), "
-        f"or offer preferred comfort object.\n\n"
-        f"Notice: Exploratory co-regulatory hypotheses, not a medical evaluation."
+    fallback_parent_card = ParentCard(
+        observed_signals=f"Child N's vocal pitch ({f0_str}) and movement ({motion_type} at {freq_str}) show noticeable rhythm.",
+        precedent_summary=f"In similar past episodes, {history_ratio_str}.",
+        context_notes=f"Context notes: {transition} transition, {hydration} min since hydration, ambient noise {noise}.",
+        gentle_possibilities=gentle_possibilities,
+        non_diagnostic_notice=(
+            "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
+            "not a medical diagnosis. Prioritize physical comfort and consult your pediatrician for health concerns."
+        ),
     )
     fallback_therapist_card = (
         f"[Therapist Telemetry Card]\n"
@@ -837,26 +989,48 @@ def execute_inference_cycle(
         try:
             import mlx_lm
 
-            gen_parent = mlx_lm.generate(
-                llm_renderer, tokenizer, prompt=parent_render_prompt, max_tokens=350, verbose=False
+            parent_render_prompt = (
+                f"You are a compassionate companion for the parents of Child N. Output a valid JSON object matching ParentCard.\n"
+                f"Do not invent diagnoses or untracked actions. Suggested actions must be selected strictly from available possibilities.\n\n"
+                f"[L1 Measured]: {l1}\n"
+                f"[L2 History]: {l2}\n"
+                f"[L3 Context]: {l3}\n"
+                f"[L4 Evidence]: {l4}\n"
+                f"[Available Grounded Possibilities]: {json.dumps(gentle_possibilities)}\n"
             )
-            # Post-generation validation: ensure output mentions exploratory stance and does not hallucinate medical certainty
-            if gen_parent and len(gen_parent.strip()) > 30:
-                rendered_parent_card = gen_parent.strip()
-            gen_therapist = mlx_lm.generate(
-                llm_renderer,
-                tokenizer,
-                prompt=therapist_render_prompt,
-                max_tokens=350,
-                verbose=False,
+            gen_parent_json = mlx_lm.generate(
+                llm_renderer, tokenizer, prompt=parent_render_prompt, max_tokens=400, verbose=False
             )
-            if gen_therapist and len(gen_therapist.strip()) > 30:
-                rendered_therapist_card = gen_therapist.strip()
+            parsed = json.loads(gen_parent_json)
+            # Strict Post-Generation Grounding Validation
+            if (
+                isinstance(parsed, dict)
+                and "observed_signals" in parsed
+                and "precedent_summary" in parsed
+                and "gentle_possibilities" in parsed
+                and isinstance(parsed["gentle_possibilities"], list)
+                and len(parsed["gentle_possibilities"]) > 0
+            ):
+                # Verify that all returned actions reference valid provenance IDs
+                valid_ids = {p["provenance_id"] for p in gentle_possibilities}
+                validated_possibilities = [
+                    p
+                    for p in parsed["gentle_possibilities"]
+                    if isinstance(p, dict) and p.get("provenance_id") in valid_ids
+                ]
+                if validated_possibilities:
+                    rendered_parent_card = ParentCard(
+                        observed_signals=str(parsed["observed_signals"]),
+                        precedent_summary=str(parsed["precedent_summary"]),
+                        context_notes=str(
+                            parsed.get("context_notes", fallback_parent_card.context_notes)
+                        ),
+                        gentle_possibilities=validated_possibilities,
+                        non_diagnostic_notice=fallback_parent_card.non_diagnostic_notice,
+                    )
         except Exception:
             rendered_parent_card = fallback_parent_card
-            rendered_therapist_card = fallback_therapist_card
 
-    # Observed historical child responses recorded during past similar episodes
     child_responses = [
         c.get("child_response")
         for c in match_result["candidates"]
@@ -871,18 +1045,14 @@ def execute_inference_cycle(
             "L4_evidence": l4,
         },
         "view_mode": view_mode,
-        "parent_view": rendered_parent_card,
+        "parent_card": asdict(rendered_parent_card),
         "therapist_view": rendered_therapist_card,
-        "active_card": rendered_parent_card if view_mode == "parent" else rendered_therapist_card,
-        "practical_things_to_try": [
-            f"Check if child responds to previous comfort action: {top_action}",
-            f"Review environmental antecedents (transition={transition}, noise={noise})",
-        ],
-        "historical_child_responses": child_responses,
-        "disclaimer": (
-            "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
-            "not a medical diagnosis. Prioritize physical comfort and consult your pediatrician for health concerns."
+        "active_card": (
+            asdict(rendered_parent_card) if view_mode == "parent" else rendered_therapist_card
         ),
+        "practical_things_to_try": [p["action"] for p in rendered_parent_card.gentle_possibilities],
+        "historical_child_responses": child_responses,
+        "disclaimer": rendered_parent_card.non_diagnostic_notice,
     }
 ```
 

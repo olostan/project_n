@@ -16,13 +16,13 @@
 
 ## A Note from the Project Initiator
 
-> *"I am [Valentyn Shybanov](https://olostan.me/), a software engineer, systems architect, and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my son. Nolan is non-verbal. Completely.*
+> "*I am [Valentyn Shybanov](https://olostan.me/), a software engineer, systems architect, and the father of Nolan, a 7-year-old completely non-verbal boy with Level 3 autism. Every single day of my life is shaped by the profound love, challenge, and heartbreak of trying to understand my son. Nolan is non-verbal. Completely.*
 >
 > *My son cannot use spoken words, but he is never silent. He communicates continuously: through subtle pitch inflections in his throat, micro-tremors in his hands, bodily orientations, and rhythms of movement. Traditional foundation models and commercial cloud AI discard these signals as 'meaningless background noise.' But to me, as his father, that 'noise' is his entire voice.*
 >
 > *I started Project N not as a commercial product, not to make money, and not to promote a startup. I started it out of a father’s deep desire to understand his child. I want to dedicate my twenty-plus years of engineering experience, systems knowledge, and machine learning skills to build a free, open-source, local-first tool that can help parents like me and the dedicated therapists who support our children.*
 >
-> *If you are a speech-language pathologist, an occupational therapist, an autism researcher, or an engineer who cares about non-verbal communication: I invite you with an open heart to review this work, critique it, and help us make it better."*
+> *If you are a speech-language pathologist, an occupational therapist, an autism researcher, or an engineer who cares about non-verbal communication: I invite you with an open heart to review this work, critique it, and help us make it better.*"
 >
 > — **Valentyn Shybanov** (Father & Project Initiator · [olostan.me](https://olostan.me/) · [GitHub](https://github.com/olostan))
 
@@ -50,7 +50,7 @@ All scientific whitepapers, clinical protocols, architectural designs, and engin
 | [📄 **Scientific Whitepaper**](docs/WHITE_PAPER.md) | Clinical foundations, dyadic transactional model, SCERTS alignment, and bioacoustics for SLPs, OTs, and autism researchers. |
 | [📋 **Evaluation Protocol**](docs/evaluation_protocol.md) | Prospective single-participant longitudinal evaluation design, forward-chaining splits, and model promotion criteria. |
 | [🧠 **Theoretical Architecture & Design**](docs/DESIGN.md) | Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation. |
-| [📐 **Technical Specifications**](docs/SPECS.md) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and executable MLX implementations. |
+| [📐 **Technical Specifications**](docs/SPECS.md) | Mathematical definitions, tensor shapes, REST endpoints, SSE event streams, and normative MLX component interfaces. |
 | [🛡️ **System & Safety Invariants**](INVARIANTS.md) | Non-negotiable repository guardrails: 100% offline boundary, zero cloud SDKs, frozen base LLM, and encrypted storage. |
 | [🔍 **Multi-Reviewer Scientific Audit**](docs/REVIEW_REFINEMENTS.md) | Comprehensive finding-by-finding peer review and corrective action matrix. |
 | [🤖 **Autonomous Agent Directives**](AGENTS.md) | Engineering standards, Apple MLX memory management conventions, and documentation synchronization rules. |
@@ -62,7 +62,7 @@ All scientific whitepapers, clinical protocols, architectural designs, and engin
 ### Prerequisites
 
 - **Hardware:** Apple Silicon Mac (M-series with 32 GB+ Unified Memory; 48 GB recommended).
-- **Operating System:** macOS 14.0 (Sonoma) or newer.
+- **Operating System:** macOS 15.0 (Sequoia) or newer.
 - **Python Environment:** Python 3.11+ with the [`uv`](https://github.com/astral-sh/uv) package manager.
 
 ### 1. Clone the Repository
@@ -137,7 +137,7 @@ project_n/
 │   ├── WHITE_PAPER.md             # Scientific whitepaper
 │   ├── evaluation_protocol.md     # Single-participant longitudinal evaluation protocol
 │   ├── DESIGN.md                  # Theoretical design & architecture
-│   ├── SPECS.md                   # Technical specifications & executable MLX pipelines
+│   ├── SPECS.md                   # Technical specifications & normative MLX component interfaces
 │   ├── INVARIANTS.md              # Documentation mirror of root invariants
 │   ├── REVIEW_REFINEMENTS.md      # Multi-reviewer scientific audit matrix
 │   ├── report-source.md           # Preserved original audit critique

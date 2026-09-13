@@ -89,7 +89,7 @@ graph LR
 
 - 📄 **[Scientific & Architectural Whitepaper](WHITE_PAPER.md):** Clinical and computational foundations paper for Speech-Language Pathologists, OTs, and autism researchers detailing the transactional paradigm, bioacoustics, and dyadic co-regulation support.
 - 📋 **[Prespecified Evaluation Protocol](evaluation_protocol.md):** Prospective single-participant longitudinal evaluation design with forward-chaining temporal splits, mandatory baselines B1–B4, and safety metrics.
-- 📐 **[Technical Specifications](SPECS.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and executable MLX pseudo-code.
+- 📐 **[Technical Specifications](SPECS.md):** Complete mathematical definitions, tensor shapes, REST endpoints, SSE event schemas, and normative MLX component interfaces.
 - 🧠 **[Theoretical Architecture & Design](DESIGN.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
 - 🛡️ **[System & Safety Invariants](INVARIANTS.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
 - 🔍 **[Multi-Reviewer Scientific Audit](REVIEW_REFINEMENTS.md):** Comprehensive finding-by-finding peer review and corrective action matrix.

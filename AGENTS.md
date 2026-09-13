@@ -21,7 +21,7 @@ Whenever an agent introduces modifications that alter:
    - The agent **MUST** update Section 2 of `docs/SPECS.md`.
    - The agent **MUST** update Section 3 of `docs/DESIGN.md`.
 2. **Hyperparameters & Training Ratios** (e.g., re-fit schedules, metric learning margins, masking ratios, clustering thresholds):
-   - The agent **MUST** update Invariant 2 of `INVARIANTS.md`.
+   - The agent **MUST** update Section 2 of `INVARIANTS.md`.
    - The agent **MUST** update Section 3 of `docs/SPECS.md`.
    - The agent **MUST** update Section 7 of `docs/DESIGN.md`.
 3. **Hardware Budgets & VRAM Envelopes** (e.g., model quantization, context buffer size, measured peak memory):

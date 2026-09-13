@@ -48,7 +48,7 @@ To prevent temporal lookahead leakage (where future observations inform past pre
 - **Locked Safety & Holdout Benchmark Set:**
   - A curated, immutable set of 50 verified historical episodes (including confirmed pain/distress instances, happy self-regulatory stimming, hydration requests, and ambiguous edge cases) is permanently withheld from all training and re-fit routines.
   - Candidate models must be benchmarked against this locked set prior to any deployment.
-  - **Statistical Power & Safety Bound:** Observing zero distress misclassifications across $N=50$ holdout episodes ($0/50$) is an essential operational smoke test, but by the statistical Rule of Three, it corresponds to an approximate one-sided 95% confidence upper bound on the true failure rate of $3/50 \approx 6.0\%$. To prevent repeated adaptation to this holdout set across continuous re-fit cycles, a secondary sealed validation vault is permanently preserved and uninspected during intermediate development.
+   - **Statistical Power & Safety Bound:** Observing zero distress misclassifications across positive distress/pain holdout cases ($N_{distress} \le 50$, e.g., 20 confirmed distress cases within the 50-episode locked set) is an essential operational smoke test; by the statistical Rule of Three, observing 0 failures in $N_{distress}$ trials yields an approximate one-sided 95% confidence upper bound on the true failure rate of $3/N_{distress}$ (e.g., $3/20 \approx 15.0\%$, or $3/50 \approx 6.0\%$). To prevent repeated adaptation to this holdout set across continuous re-fit cycles, a secondary sealed validation vault is permanently preserved and uninspected during intermediate development.
 
 ---
 
@@ -61,7 +61,7 @@ Every reported evaluation of Project N's multimodal metric learning pipeline mus
 | **B1: Metadata-Only Baseline** | Regularized Logistic Regression / Random Forest operating strictly on non-sensory metadata: time of day, time elapsed since last meal, time since school dismissal, and caregiver antecedent notes. | Tests whether sensory audio/video signals provide any predictive power beyond simple clock-and-routine scheduling. Any sensory model must beat B1 to justify its complexity. |
 | **B2: Shuffled Labels Null Distribution** | The multimodal metric pipeline evaluated on identical features where target labels are randomly permuted across episodes. | Establishes the true empirical null distribution and chance floor under class imbalance. |
 | **B3: Raw 1-Nearest-Neighbor (1-NN)** | Simple Euclidean / Cosine 1-NN lookup over raw acoustic features (mean pitch, duration, energy) without learned metric projection. | Measures the specific performance gain introduced by the learned 128-dimensional metric projection head over off-the-shelf DSP. |
-| **B4: Structured Output (No-LLM) Baseline & Blinded Contrast** | Direct presentation of retrieved L1 (measured features) and L2 (historical matches) data to the caregiver in tabular form, bypassing the LLM text renderer. | Evaluates whether the LLM's natural language formatting improves caregiver decision speed and reduces cognitive load compared to raw data. To mitigate single-rater observer bias, the caregiver evaluates card helpfulness **blinded** to whether output was rendered by the LLM or tabular baseline B4. |
+| **B4: Structured Output (No-LLM) Baseline & Blinded Contrast** | Direct presentation of retrieved L1 (measured features) and L2 (historical matches) data to the caregiver in tabular form, bypassing the LLM text renderer. | Evaluates whether the LLM's natural language formatting improves caregiver decision speed and reduces cognitive load compared to raw data. To mitigate single-rater observer bias, presentation order is randomized and condition labels are concealed (Condition A vs. Condition B) so the caregiver rates utility without knowing which pipeline rendered the card. |
 
 ---
 
@@ -85,9 +85,11 @@ Evaluates the geometric fidelity of the 128-dimensional metric head in clusterin
 - **Top-3 Retrieval Precision:** Fraction of top-3 retrieved historical neighbors that share verified antecedent or co-regulatory profiles. Target: $\ge 0.70$.
 
 ### 4.3 Expected Calibration Error (ECE) & Reliability Diagrams
-A model deployed in pediatric care must not produce overconfident false predictions. Predictions must be statistically calibrated:
+A model deployed in pediatric care must not produce overconfident false predictions. The predicted confidence signal is defined as the calibrated probability of observing settling given the candidate's nearest-neighbor distance:
+$$P(\text{settles} \mid \text{action}, d) = \sigma(w \cdot d + b)$$
+calibrated via Platt scaling or isotonic regression on forward-chaining validation splits. Predictions must be statistically calibrated:
 $$\text{ECE} = \sum_{m=1}^M \frac{|B_m|}{N} \left| \text{acc}(B_m) - \text{conf}(B_m) \right|$$
-On the 50-episode locked holdout set, ECE is computed using $M=5$ confidence bins (ensuring $\ge 8–10$ samples per bin for empirical variance reduction). Candidate models are rejected if $\text{ECE} > 0.12$.
+On validation splits, ECE is computed using $M=5$ confidence bins (noting that on smaller sample subsets, empirical bin counts fluctuate, and variance must be reported alongside point estimates). The provisional operational target is $\text{ECE} \le 0.12$.
 
 ### 4.4 Abstention Rate & Prediction Set Coverage
 Project N treats **Abstention** ("Unrecognized pattern / I do not know") as a first-class safe output state:
@@ -142,18 +144,17 @@ flowchart TD
 ```
 
 ### 5.1 Gated Promotion Checklist
-A candidate model may only be promoted to active inference if all conditions are satisfied:
-- [ ] Candidate beats the Metadata-Only Baseline (B1) on historical retrieval MRR.
+A candidate model may only be promoted to active inference if all provisional preregistered targets are satisfied:
+- [ ] Candidate beats the **Raw 1-NN Lookup Baseline (B3)** on historical retrieval MRR.
 - [ ] Candidate Retrieval MRR is greater than or equal to current Production Model ($\text{MRR} \ge 0.65$).
-- [ ] Candidate Top-3 Retrieval Precision is $\ge 0.70$.
+- [ ] Candidate Top-3 Retrieval Precision is $\ge 0.70$ (sharing verified antecedent or settling outcome profiles).
 - [ ] Calibrated prediction set coverage is within the operational target ($60\% \le \mathcal{C} \le 85\%$).
-- [ ] Zero missed acute distress anomaly escalations on the Locked Safety Set (0/50 missed red flags).
-- [ ] Expected Calibration Error (ECE) is $\le 0.12$.
-- [ ] Caregiver decision utility rating on validation trials averages $\ge 4.0 / 5.0$.
+- [ ] Zero missed acute distress anomaly escalations on the positive safety holdout cases ($0/N_{distress}$ missed red flags).
+- [ ] Expected Calibration Error (ECE) is $\le 0.12$ on forward-chaining splits.
+- [ ] Blinded Caregiver Decision Utility rating on validation trials averages $\ge 4.0 / 5.0$.
 - [ ] Caregiver explicitly inspects the validation summary card on the local dashboard and confirms promotion.
 
-### 5.2 Automated Rollback Trigger
-If during active production use:
-1. A caregiver records 3 consecutive "Incorrect / None of these" feedback events, or
-2. An unhandled exception occurs during feature extraction or metric projection,
-the server immediately rolls back the metric head pointer to the previous stable release checkpoint and alerts the caregiver.
+### 5.2 Automated Rollback Trigger & Incident Handling
+To prevent model regression during active deployment:
+1. **Model Regression Rollback:** If a caregiver records 3 consecutive "Incorrect / None of these" feedback events during active home use, the server immediately rolls back the metric head pointer to the previous stable release checkpoint, activates safe abstention, and alerts the caregiver.
+2. **Infrastructure & Pipeline Exceptions:** If an unhandled runtime exception occurs during sensor extraction or metric projection, the system logs diagnostic telemetry, notifies the caregiver, and restarts the local worker daemon without conflating infrastructure crashes with model weight regression.

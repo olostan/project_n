@@ -5,7 +5,7 @@
 ## 1. Biological and Neurological Foundations
 
 ### 1.1 Neurobiology & Communication in Non-Verbal Individuals
-Autism Spectrum Disorder (ASD) encompasses heterogeneous neurodevelopmental profiles. For non-verbal children—specifically conceptualized around Nolan (Child N), a 7-year-old completely non-verbal autistic boy—expressive spoken language is absent. Childhood apraxia of speech (CAS), atypical oral-motor coordination, or motor-planning challenges frequently co-occur, dissociating cognitive capacity from phonetic articulation.
+Autism Spectrum Disorder (ASD) encompasses heterogeneous neurodevelopmental profiles. For non-verbal children—specifically conceptualized around Child N, a 7-year-old completely non-verbal autistic boy—expressive spoken language is absent. Childhood apraxia of speech (CAS), atypical oral-motor coordination, or motor-planning challenges frequently co-occur, dissociating cognitive capacity from phonetic articulation.
 
 Crucially, **the absence of verbal speech does not indicate the absence of language, cognition, agency, or communicative intent**. The scientific grounding for Project N rests on several foundational principles:
 
@@ -191,7 +191,7 @@ graph TD
 The high-dimensional sensory representations are mapped into a compact, 128-dimensional metric space:
 $$\mathbf{z} = \text{L2\_Normalize}\left( \text{AttentionPool}(\mathbf{X}_{sensory}) \mathbf{W}_{proj} \right) \in \mathbb{R}^{128}$$
 
-Using a 128-dimensional metric space (rather than 4096 dimensions) prevents geometric collapse when operating with hundreds of labeled historical examples rather than hundreds of thousands. Matching is performed using cosine similarity or Euclidean distance over class prototype centers $\mathbf{c}_k$:
+Using a 128-dimensional metric space (rather than 4096 dimensions) is an empirical design choice hypothesized to mitigate representation collapse when operating with hundreds of labeled historical examples rather than hundreds of thousands, subject to benchmark verification. Matching is performed using cosine similarity or Euclidean distance over class prototype centers $\mathbf{c}_k$:
 $$\mathbf{c}_k = \frac{1}{|S_k|} \sum_{i \in S_k} \mathbf{z}_i$$
 
 ### 4.2 Calibrated Abstention & Epistemic Decision Gating
@@ -246,15 +246,15 @@ Recommended Action: Observe environmental context, offer preferred comfort items
 A common pitfall in assistive technology is presenting either fabricated narratives ("mind-reading") or dense clinical jargon that is alienating to parents during moments of acute behavioral distress. Project N implements a **Dual-Perspective Interaction Model** governed by schema-constrained prompt templating over the four-layer evidence foundation:
 
 1. **Parent View (Default — Accessible, Empathetic Co-Regulatory Support):**
-   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday observations (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation"* into plain-English observations: *"Nolan's vocal tension and wrist movement are elevated relative to recent baseline; gentle possibilities to explore: in similar past episodes, this pattern occurred during room transitions or ambient noise changes; low-risk things to try include a quiet break, hydration, or offering his favorite comfort toy"*).
+   - **Epistemic Translation:** The frozen LLM acts as an empathetic translator, converting complex sensory and acoustic telemetry into warm, accessible, everyday observations (e.g., translating *"high-frequency vocal tension with 3.8 Hz wrist oscillation"* into plain-English observations: *"Child N's vocal tension and wrist movement are elevated relative to recent baseline; gentle possibilities to explore: in similar past episodes, this pattern occurred during room transitions or ambient noise changes; low-risk things to try include a quiet break, hydration, or offering his favorite comfort toy"*).
    - **Actionable, Low-Risk Co-Regulatory Ideas:** Rather than issuing dogmatic medical directives, the system surfaces 2–3 practical, non-invasive strategies based on what has historically comforted Child N (e.g., offering his favorite red squishy toy, dimming room lights, offering water, or providing gentle deep pressure if he leans in).
-   - **Hypothesis-Testing Framing:** Candidate interpretations are explicitly framed as gentle hypotheses to investigate (*"Possibilities to explore..."*), acknowledging that even a 30% plausible lead provides vital scaffolding for parents navigating moments of uncertainty, while clearly clarifying that sensors do not reveal internal subjective experience.
+   - **Hypothesis-Testing Framing:** Candidate interpretations are explicitly framed as gentle hypotheses to investigate (*"Possibilities to explore..."*), acknowledging that structured observational hypotheses provide vital scaffolding for parents navigating moments of uncertainty, while clearly clarifying that sensors do not reveal internal subjective experience.
    - **Prominent Non-Diagnostic Notice:** Every card prominently displays: *"These are supportive co-regulatory hypotheses based on past verified episodes and sensory literature, not medical diagnoses. Always prioritize physical comfort and consult your pediatrician for medical concerns."*
 
 2. **Therapist View (Bioacoustic & Motion Telemetry):**
    - **Full Sensor Precision:** Surfaces raw fundamental frequency ($F_0$ mean, trajectory, jitter, shimmer), Cepstral Peak Prominence (CPP), CQT harmonic overtone spacing, and 3D pose/optical flow oscillation frequencies.
    - **Interdisciplinary Framework Alignment:** Maps patterns directly to Ayres Sensory Integration categories (sensory defensiveness, vestibular/proprioceptive seeking) and the SCERTS model (Mutual Regulation, Social Communication).
-   - **Direct Literature Citations:** Cites peer-reviewed literature (e.g., Schaaf et al., 2018; Van de Cruys et al., 2014) with evidence levels for review during formal Occupational Therapy and Speech-Language Pathology sessions.
+   - **Direct Literature Citations:** Cites peer-reviewed literature (e.g., Schaaf et al., 2018; Schoen et al., 2019; Van de Cruys et al., 2014) with evidence levels for review during formal Occupational Therapy and Speech-Language Pathology sessions.
 
 The caregiver can switch between perspectives with a single click (`view_mode: "parent" | "therapist"`). Both views are derived from the exact same deterministic underlying record (L1–L4), designed to strictly constrain the LLM to facts present in the deterministic L1–L4 records and prevent unsupported causal assertions.
 
