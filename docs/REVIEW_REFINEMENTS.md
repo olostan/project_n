@@ -667,7 +667,7 @@ stays available while the Mac is awake.
 flowchart LR
     PHONE["<b>Flutter Companion App</b><br/>Paired once via local QR"]
     HELPER["<b>Mac Per-User Helper</b><br/>LaunchAgent in user login context"]
-    
+
     subgraph VAULT["Cryptographic Storage Vault"]
         direction TB
         DEK["<b>Per-Clip Random AES-256-GCM Key (DEK)</b><br/>Encrypts media, features & metadata"]

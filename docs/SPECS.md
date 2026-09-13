@@ -124,7 +124,7 @@ When wearable sensor streams (e.g., paired Apple Watch or research biosensors) a
 
 1. **Electrodermal Activity (EDA @ 4 Hz):** Continuous decomposition into tonic Skin Conductance Level (SCL) and phasic Skin Conductance Response (SCR) using convex optimization:
    $$G(t) = SCL(t) + SCR(t) + \epsilon(t)$$
-2. **Heart Rate & Autonomic Variability (HRV):** 
+2. **Heart Rate & Autonomic Variability (HRV):**
    - Over short 5-second video windows, physiological telemetry provides exploratory **time-domain metrics**: mean Heart Rate (BPM), pulse-interval variance, and Root Mean Square of Successive Differences (RMSSD).
    - Frequency-domain spectral metrics (such as High-Frequency vagal power, HF $0.15–0.40\text{ Hz}$) require rolling buffers of 1–5 minutes of continuous data (ESC/NASPE standards) and are computed only when continuous background buffers are available.
    - When ingesting from consumer devices like Apple Watch via HealthKit, samples are received as discrete episodic quantities (e.g. episodic HR, SDNN) rather than continuous 100 Hz raw photoplethysmography (PPG), whereas research devices (e.g., Empatica) stream continuous raw PPG/EDA when paired.
@@ -381,7 +381,7 @@ graph TD
 Below is an illustrative architectural specification and pseudo-code sketch outlining the component interfaces: the multimodal metric projection head with missing-modality gating, episodic prototype retrieval, acute distress anomaly screening, and schema-constrained Qwen2.5-14B rendering.
 
 > [!NOTE]
-> **Implementation Scope Note**  
+> **Implementation Scope Note**
 > This section serves as an interface contract and dataflow blueprint for Phase 1 implementation. Production feature extraction routines, validation assertions, and runtime pipeline modules reside in the repository source packages (`extraction/`, `models/`, `rag/`, `server/`).
 
 ```python

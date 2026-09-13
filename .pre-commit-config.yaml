@@ -1,0 +1,64 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.6.0
+          - types-certifi
+        args: [--strict]
+        files: ^(extraction|models|rag|server|training|tests)/.*\.py$
+
+  - repo: local
+    hooks:
+      - id: invariant-forbidden-imports
+        name: "Invariant 10: Forbidden Cloud & PyTorch Imports Scan"
+        entry: bash -c "! grep -rnE '(openai|anthropic|vertexai|google\\.generativeai|import torch)' extraction/ models/ rag/ server/ training/"
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: markdown-relative-links
+        name: "Documentation: Verify Markdown Relative Links"
+        entry: python3 tests/check_markdown_links.py
+        language: system
+        types: [markdown]
+        pass_filenames: false
+
+      - id: mkdocs-strict-build
+        name: "Documentation: MkDocs Strict Build Verification"
+        entry: uv run --with mkdocs --with mkdocs-material mkdocs build --strict
+        language: system
+        files: ^(docs/.*|mkdocs\.yml|README\.md|INVARIANTS\.md|AGENTS\.md)$
+        pass_filenames: false
+
+      - id: verify-citations
+        name: "Documentation: Verify Academic Citations (Pre-Push)"
+        entry: python3 tests/verify_citations.py
+        language: system
+        stages: [pre-push]
+        pass_filenames: false

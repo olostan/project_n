@@ -13,26 +13,34 @@ import urllib.request
 from difflib import SequenceMatcher
 from pathlib import Path
 
+
 def normalize(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower())
 
+
 def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, normalize(a), normalize(b)).ratio()
+
 
 def fetch_metadata_title(doi: str, ctx: ssl.SSLContext) -> str:
     # ArXiv DOIs use DataCite
     if doi.startswith("10.48550/"):
         url = f"https://api.datacite.org/dois/{doi}"
-        req = urllib.request.Request(url, headers={"User-Agent": "ProjectN-CitationVerifier/1.0 (mailto:ci@project-n.local)"})
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "ProjectN-CitationVerifier/1.0 (mailto:ci@project-n.local)"}
+        )
         with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
             data = json.loads(resp.read().decode())
-            return data["data"]["attributes"]["titles"][0]["title"]
+            return str(data["data"]["attributes"]["titles"][0]["title"])
     else:
         url = f"https://api.crossref.org/works/{doi}"
-        req = urllib.request.Request(url, headers={"User-Agent": "ProjectN-CitationVerifier/1.0 (mailto:ci@project-n.local)"})
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "ProjectN-CitationVerifier/1.0 (mailto:ci@project-n.local)"}
+        )
         with urllib.request.urlopen(req, context=ctx, timeout=15) as resp:
             data = json.loads(resp.read().decode())
-            return data["message"]["title"][0]
+            return str(data["message"]["title"][0])
+
 
 def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
     text = file_path.read_text(encoding="utf-8")
@@ -48,8 +56,8 @@ def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
         if not dois:
             continue
 
-        # Extract title: check italic format (*Title.*) first, then standard (Title. *Journal*)
-        m_italic = re.search(r"\*\*[^\*]+\*\*\s+\*([^*]+?)\.\*", line_s)
+        # Extract title: check italic format (*Title.* or _Title._) first, then standard (Title. *Journal*)
+        m_italic = re.search(r"\*\*[^\*]+\*\*\s+[\*_]([^*_]+?)\.[\*_]", line_s)
         if m_italic:
             printed_title = m_italic.group(1).strip()
         else:
@@ -79,9 +87,11 @@ def verify_file_citations(file_path: Path, ctx: ssl.SSLContext) -> int:
     print(f"Summary for {file_path.name}: {checked} checked, {errors} errors.")
     return errors
 
+
 def main() -> int:
     try:
         import certifi
+
         ctx = ssl.create_default_context(cafile=certifi.where())
     except ImportError:
         ctx = ssl.create_default_context()
@@ -103,6 +113,7 @@ def main() -> int:
     else:
         print(f"\nVerification failed with {total_errors} total citation error(s).")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

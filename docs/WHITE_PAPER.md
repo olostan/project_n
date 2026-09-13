@@ -1,9 +1,9 @@
 # Project N: A Dyadic, Multimodal, and Transactional Framework for Communication Support in Completely Non-Verbal Autism
 
-**Lead Researcher & Project Architect:** Valentyn Shybanov ([olostan.me](https://olostan.me/) · [GitHub](https://github.com/olostan))  
-**Collaborative Scope:** Speech-Language Pathologists (SLPs), Occupational Therapists (OTs), Developmental Pediatricians, Neurodiversity Researchers, and Assistive Technology Practitioners  
-**Document Classification:** Scientific Whitepaper & Clinical Foundations  
-**Version:** 1.1.0 — September 2026  
+**Lead Researcher & Project Architect:** Valentyn Shybanov ([olostan.me](https://olostan.me/) · [GitHub](https://github.com/olostan))
+**Collaborative Scope:** Speech-Language Pathologists (SLPs), Occupational Therapists (OTs), Developmental Pediatricians, Neurodiversity Researchers, and Assistive Technology Practitioners
+**Document Classification:** Scientific Whitepaper & Clinical Foundations
+**Version:** 1.1.0 — September 2026
 
 ---
 
@@ -23,7 +23,7 @@
 
 ## Abstract
 
-Completely non-verbal autistic individuals (such as children requiring Level 3 supports) communicate through an intricate, non-phonetic multimodal repertoire: idiosyncratic vocalizations, continuous tonal hums, micro-pitch inflections, repetitive kinetic motor stims, postural adjustments, and physiological shifts. Traditional artificial intelligence paradigms attempt to process non-verbal communication through an extractive "intent translation" lens—treating the child as an isolated, closed-box signal generator and attempting to decode an internal mental state into neurotypical English text. 
+Completely non-verbal autistic individuals (such as children requiring Level 3 supports) communicate through an intricate, non-phonetic multimodal repertoire: idiosyncratic vocalizations, continuous tonal hums, micro-pitch inflections, repetitive kinetic motor stims, postural adjustments, and physiological shifts. Traditional artificial intelligence paradigms attempt to process non-verbal communication through an extractive "intent translation" lens—treating the child as an isolated, closed-box signal generator and attempting to decode an internal mental state into neurotypical English text.
 
 This paper presents the scientific rationale and methodological foundation for **Project N**, a local-first, privacy-preserving computational framework that departs fundamentally from extractive decoding. Grounded in the **Transactional Model of Communication** ([Sameroff, 1975](#ref-16); [Wetherby & Prizant, 2000](#ref-20)) and the **SCERTS Framework** ([Prizant et al., 2006](#ref-14)), Project N conceptualizes non-verbal communication as an active, **dyadic co-regulatory loop** between the child and their communicative partners (caregivers, therapists, educators). Rather than relying on acoustic features alone or optimizing on retrospective adult labels—which risks manufacturing confirmation bias and Facilitated Communication (FC) epistemic traps ([National Autism Center, 2026](#ref-13))—Project N anchors its truth criterion in **prospective Behavioral Resolution** (verifying whether an offered co-regulatory support objectively resolves distress and restores baseline within an observed latency window) augmented by direct, optional child-authored AAC selection. By combining bioacoustics, computer vision kinematics, and episodic memory, the framework provides clinicians, occupational therapists, and families with an evidence-grounded, four-layer decision-support assistant that honors child agency and preserves scientific integrity.
 
@@ -135,7 +135,7 @@ Grounded in the clinical principles of the **SCERTS Model** ([Prizant et al., 20
 - **TS (Transactional Support):** The interpersonal supports, environmental modifications, and learning tools provided by communication partners.
 
 ### 3.3 Why Labeling Adult Interaction Is Vital
-A central insight of speech-language pathology is that a non-speaking child’s communication is shaped by their communicative partner's behavior ([Sameroff, 1975](#ref-16); [McLean & Snyder-McLean, 1978](#ref-9)). 
+A central insight of speech-language pathology is that a non-speaking child’s communication is shaped by their communicative partner's behavior ([Sameroff, 1975](#ref-16); [McLean & Snyder-McLean, 1978](#ref-9)).
 
 Project N incorporates adult interaction data into its core relational schema:
 - **What did the adult say or ask?** (e.g., *"Are you hungry?"*, *"Let's go outside"*, verbal pause/wait time).

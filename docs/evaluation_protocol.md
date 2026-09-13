@@ -100,7 +100,7 @@ The model promotion gate evaluates three critical safety failure modes:
 ```mermaid
 flowchart TD
     RETRAIN["<b>Candidate Model Retraining</b><br/>Triggered periodically upon accumulation of ≥ 10 verified novel episodes"]
-    
+
     VALIDATE["<b>Automated Validation Pipeline</b><br/>• Evaluate candidate on forward-chaining temporal splits<br/>• Evaluate candidate on Locked Safety Holdout Set (50 episodes)<br/>• Compute: Macro-F1, ECE (≤ 0.12), Coverage, and Critical Safety Errors"]
 
     GATE{"<b>Validation Gate</b><br/>• Macro-F1 ≥ Production Model<br/>• ECE ≤ 0.12 (Well-calibrated)<br/>• Zero safety regressions (0 missed red flags)?"}

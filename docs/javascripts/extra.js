@@ -98,7 +98,7 @@
       // Create toolbar
       const toolbar = document.createElement("div");
       toolbar.className = "diagram-toolbar";
-      
+
       const expandBtn = document.createElement("button");
       expandBtn.type = "button";
       expandBtn.className = "diagram-expand-btn";

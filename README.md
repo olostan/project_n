@@ -8,8 +8,8 @@
 [![Docs: Live Research Site](https://img.shields.io/badge/Docs-olostan.github.io%2Fproject__n-blue?style=flat-square)](https://olostan.github.io/project_n/)
 
 > [!IMPORTANT]
-> 🌐 **Live Documentation & Research Website:**  
-> **[https://olostan.github.io/project_n/](https://olostan.github.io/project_n/)**  
+> 🌐 **Live Documentation & Research Website:**
+> **[https://olostan.github.io/project_n/](https://olostan.github.io/project_n/)**
 > *Explore interactive system diagrams, zoomable architectures, clinical evaluation protocols, and technical specifications.*
 
 ---
@@ -86,13 +86,38 @@ Then open [http://localhost:8000](http://localhost:8000) in your web browser.
 To run the automated Crossref and DataCite metadata verification suite across all academic citations:
 
 ```bash
-python3 tests/verify_citations.py
+uv run python tests/verify_citations.py
 ```
 
 To test building the documentation in strict mode (ensuring zero broken links or markdown warnings):
 
 ```bash
-uv run --with mkdocs --with mkdocs-material mkdocs build --strict
+uv run mkdocs build --strict
+```
+
+### 4. Linters, Type Checking & Pre-Commit Quality Gates
+
+Project N enforces strict quality and safety gates on every commit (`pre-commit`) and push (`pre-push`):
+- **Code & Style:** `ruff` (linter + formatter) with strict rule sets.
+- **Static Types:** `mypy` in full `--strict` mode.
+- **Safety Invariant 10:** Zero external cloud AI SDKs (`openai`, `anthropic`, `vertexai`, `google.generativeai`) and zero PyTorch imports in runtime modules.
+- **Docs & Links:** Relative markdown link verification (`tests/check_markdown_links.py`) and `mkdocs build --strict`.
+- **Academic Citations:** Crossref and DataCite DOI verification prior to pushing.
+
+To set up the development environment and install the git hooks:
+
+```bash
+# Install dependencies using uv
+uv sync --all-extras
+
+# Install git pre-commit and pre-push hooks
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+To execute all quality checks manually across all files:
+
+```bash
+uv run pre-commit run --all-files
 ```
 
 ---
@@ -104,6 +129,8 @@ project_n/
 ├── README.md                      # Project portal & onboarding (this file)
 ├── INVARIANTS.md                  # Non-negotiable safety guardrails (offline, privacy, frozen LLM)
 ├── AGENTS.md                      # AI coding agent operating directives & MLX standards
+├── pyproject.toml                 # Project metadata, dependencies, ruff & strict mypy config
+├── .pre-commit-config.yaml        # Git pre-commit & pre-push quality gates
 ├── mkdocs.yml                     # Documentation site configuration
 ├── docs/                          # The single source of truth for all documentation
 │   ├── index.md                   # Live documentation website homepage
@@ -117,6 +144,7 @@ project_n/
 │   ├── stylesheets/               # Theme styling
 │   └── javascripts/               # Theme scripts & MathJax
 ├── tests/
+│   ├── check_markdown_links.py    # Automated relative markdown link validator
 │   └── verify_citations.py        # Automated Crossref/DataCite DOI verifier
 ├── app/                           # Cross-platform Flutter mobile client (offline outbox)
 ├── extraction/                    # Bioacoustic (F0, CQT) & kinematic feature extraction
