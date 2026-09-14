@@ -94,3 +94,14 @@ def test_offline_sandbox_zero_exfiltration() -> None:
     assert "layer2_hypotheses" in res
     assert "layer3_dyadic" in res
     assert "layer4_safety" in res
+
+
+def test_ast_forbidden_imports_invariant() -> None:
+    """Verifies that no production Python module imports external cloud AI SDKs or PyTorch."""
+    from pathlib import Path
+
+    from tests.verify_imports import verify_no_forbidden_imports
+
+    repo_root = Path(__file__).resolve().parent.parent
+    violations = verify_no_forbidden_imports(repo_root)
+    assert not violations, f"Forbidden imports detected: {violations}"

@@ -36,7 +36,7 @@ jobs:
 
       - name: "Invariant 10: Forbidden Cloud & PyTorch Imports Scan"
         run: |
-          ! grep -rnE '(openai|anthropic|vertexai|google\.generativeai|import torch)' extraction/ models/ rag/ server/ training/
+          uv run python tests/verify_imports.py
 
       - name: "Code Quality: Ruff Lint Check"
         run: |

@@ -1092,7 +1092,7 @@ def execute_inference_cycle(
     suggestion_feedback_counts: Dict[str, int] = {
         "accepted": 0,
         "modified": 0,
-        "declined": 0,
+        "rejected": 0,
         "open_observation": 0,
     }
 

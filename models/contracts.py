@@ -140,6 +140,14 @@ PERFORMANCE_STATUSES: Final[set[str]] = {
 CAREGIVER_DECISIONS: Final[set[str]] = {
     "accepted",
     "modified",
-    "declined",
+    "rejected",
     "open_observation",
+}
+
+PROMPT_LEVELS: Final[set[str]] = {
+    "none",
+    "visual_cue",
+    "verbal_model",
+    "gestural",
+    "physical_prompt",
 }

@@ -20,6 +20,7 @@ from models.contracts import (
     ACOUSTIC_LATENT_D,
     ACOUSTIC_LATENT_T,
     CAREGIVER_DECISIONS,
+    CHILD_RESPONSES,
     CONTROLLED_ACTIONS,
     CONTROLLED_ANTECEDENTS,
     CQT_BINS_PER_OCTAVE,
@@ -42,6 +43,7 @@ from models.contracts import (
     OPTICAL_FLOW_DIMS,
     OPTICAL_FLOW_GRID_X,
     OPTICAL_FLOW_GRID_Y,
+    OUTCOME_STATES,
     PERFORMANCE_STATUSES,
     PHYSIOLOGY_LATENT_D,
     PHYSIOLOGY_STEPS,
@@ -49,7 +51,10 @@ from models.contracts import (
     PITCH_FRAMES,
     POSE_COORDS_PER_LANDMARK,
     POSE_LANDMARKS,
+    PROMPT_LEVELS,
     RAW_AUDIO_SAMPLES,
+    RESPONSE_CHANNELS,
+    RESPONSE_INDEPENDENCE,
     STFT_BIN_WIDTH_HZ,
     STFT_UNCENTERED_FRAMES,
     TOTAL_LANDMARK_COORDS,
@@ -171,8 +176,12 @@ def test_controlled_vocabularies() -> None:
     assert len(CAREGIVER_DECISIONS) == 4
     assert "accepted" in CAREGIVER_DECISIONS
     assert "modified" in CAREGIVER_DECISIONS
-    assert "declined" in CAREGIVER_DECISIONS
+    assert "rejected" in CAREGIVER_DECISIONS
     assert "open_observation" in CAREGIVER_DECISIONS
+
+    assert len(PROMPT_LEVELS) == 5
+    assert "none" in PROMPT_LEVELS
+    assert "visual_cue" in PROMPT_LEVELS
 
 
 def test_nccpc_instrument_specifications() -> None:
@@ -247,6 +256,60 @@ def test_nccpc_instrument_specifications() -> None:
     assert res_r_zero.cutoff_threshold == R_CUTOFF_SCORE
 
 
+def test_sqlite_check_constraints_parity() -> None:
+    """Verifies that SQLite CHECK constraints in db_schema.py strictly match models/contracts.py."""
+    import re
+    import sqlite3
+
+    from storage.db_schema import CREATE_EPISODES_TABLE, init_db
+
+    conn = init_db(":memory:")
+
+    # 1. Functional Integrity Test:
+    cursor = conn.cursor()
+    base_sql = """
+        INSERT INTO episodes (
+            id, vault_uri, encoder_version_id, captured_at, duration_ms, windows_count,
+            antecedent_id, action_offered, caregiver_decision
+        ) VALUES ('ep_test', 'vault://1', 'v1', '2026-01-01', 5000, 1, 'unknown', 'open_observation', ?)
+    """
+    for valid_decision in CAREGIVER_DECISIONS:
+        cursor.execute(base_sql, (valid_decision,))
+        conn.rollback()
+
+    # Verify 'declined' is rejected by SQLite CHECK constraint
+    try:
+        cursor.execute(base_sql, ("declined",))
+        conn.commit()
+        raise AssertionError("Database allowed invalid caregiver_decision 'declined'")
+    except sqlite3.IntegrityError:
+        conn.rollback()
+
+    # 2. Schema Regex Parity Test across all controlled vocabulary CHECK constraints
+    check_matches = re.findall(
+        r"(\w+)\s+TEXT.*?CHECK\(\1\s+IN\s*\(([^)]+)\)\)",
+        CREATE_EPISODES_TABLE,
+        re.DOTALL,
+    )
+    extracted: dict[str, set[str]] = {}
+    for col, values_str in check_matches:
+        vals = {v.strip().strip("'\"") for v in values_str.split(",") if v.strip()}
+        extracted[col] = vals
+
+    assert extracted["antecedent_id"] == CONTROLLED_ANTECEDENTS
+    assert extracted["action_offered"] == CONTROLLED_ACTIONS
+    assert extracted["action_performed"] == CONTROLLED_ACTIONS
+    assert extracted["caregiver_decision"] == CAREGIVER_DECISIONS
+    assert extracted["performance_status"] == PERFORMANCE_STATUSES
+    assert extracted["outcome_state"] == OUTCOME_STATES
+    assert extracted["child_response"] == CHILD_RESPONSES
+    assert extracted["response_channel"] == RESPONSE_CHANNELS
+    assert extracted["response_independence"] == RESPONSE_INDEPENDENCE
+    assert extracted["prompt_level"] == PROMPT_LEVELS
+
+    conn.close()
+
+
 if __name__ == "__main__":
     test_audio_pipeline_shapes()
     test_kinematic_pipeline_shapes()
@@ -255,4 +318,5 @@ if __name__ == "__main__":
     test_metric_space_shapes()
     test_controlled_vocabularies()
     test_nccpc_instrument_specifications()
+    test_sqlite_check_constraints_parity()
     print("All shape, dimension, vocabulary, and clinical instrument assertions PASSED!")
