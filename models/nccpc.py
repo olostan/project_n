@@ -42,8 +42,8 @@ NCCPC_PV_FACIAL_ITEMS: Final[list[tuple[str, str]]] = [
         "Lips puckering up, tight, pouting, or quivering",
     ),
     (
-        "clenching_teeth_chewing_chin",
-        "Clenching or grinding teeth, chewing, or jutting chin",
+        "clenching_teeth_chewing_thrusting_tongue",
+        "Clenching or grinding teeth, chewing, or thrusting tongue out",
     ),
 ]
 
@@ -121,6 +121,9 @@ class NCCPCScoreResult:
     na_count: int
     subscale_scores: dict[str, int]
     high_missingness_advisory: bool
+    is_indeterminate: (
+        bool  # True if na_count > threshold, meaning the assessment cannot rule out pain
+    )
 
 
 def score_nccpc_pv(
@@ -129,6 +132,7 @@ def score_nccpc_pv(
 ) -> NCCPCScoreResult:
     """
     Scores the 27-item NCCPC-PV instrument.
+    Accepts only exact integers 0, 1, 2, 3, or 'NA'. Rejects booleans and floats.
     'NA' responses contribute 0 to the raw sum while tracking na_count.
     """
     if strict_keys:
@@ -148,18 +152,21 @@ def score_nccpc_pv(
         subscale_total = 0
         for item_id, _ in subscale_items:
             val = items.get(item_id, 0)
-            if isinstance(val, str) and val.upper() == "NA":
+            if isinstance(val, str) and val.strip().upper() == "NA":
                 na_count += 1
-            elif isinstance(val, int | float):
-                int_val = int(val)
-                if not 0 <= int_val <= 3:
+            elif isinstance(val, int) and not isinstance(val, bool):
+                if not 0 <= val <= 3:
                     raise ValueError(f"Item '{item_id}' score {val} out of bounds [0, 3].")
-                subscale_total += int_val
+                subscale_total += val
             else:
-                raise ValueError(f"Invalid response '{val}' for item '{item_id}'.")
+                raise ValueError(
+                    f"Invalid response '{val}' (type {type(val).__name__}) for item '{item_id}'. "
+                    f"Must be an integer in [0, 3] or 'NA'."
+                )
         subscale_scores[subscale_name] = subscale_total
         total_score += subscale_total
 
+    is_indeterminate = na_count > 5
     return NCCPCScoreResult(
         instrument="nccpc_pv",
         score=total_score,
@@ -168,7 +175,8 @@ def score_nccpc_pv(
         cutoff_breached=total_score >= PV_CUTOFF_SCORE,
         na_count=na_count,
         subscale_scores=subscale_scores,
-        high_missingness_advisory=na_count > 5,
+        high_missingness_advisory=is_indeterminate,
+        is_indeterminate=is_indeterminate,
     )
 
 
@@ -178,6 +186,7 @@ def score_nccpc_r(
 ) -> NCCPCScoreResult:
     """
     Scores the 30-item NCCPC-R instrument.
+    Accepts only exact integers 0, 1, 2, 3, or 'NA'. Rejects booleans and floats.
     'NA' responses contribute 0 to the raw sum while tracking na_count.
     """
     if strict_keys:
@@ -197,18 +206,21 @@ def score_nccpc_r(
         subscale_total = 0
         for item_id, _ in subscale_items:
             val = items.get(item_id, 0)
-            if isinstance(val, str) and val.upper() == "NA":
+            if isinstance(val, str) and val.strip().upper() == "NA":
                 na_count += 1
-            elif isinstance(val, int | float):
-                int_val = int(val)
-                if not 0 <= int_val <= 3:
+            elif isinstance(val, int) and not isinstance(val, bool):
+                if not 0 <= val <= 3:
                     raise ValueError(f"Item '{item_id}' score {val} out of bounds [0, 3].")
-                subscale_total += int_val
+                subscale_total += val
             else:
-                raise ValueError(f"Invalid response '{val}' for item '{item_id}'.")
+                raise ValueError(
+                    f"Invalid response '{val}' (type {type(val).__name__}) for item '{item_id}'. "
+                    f"Must be an integer in [0, 3] or 'NA'."
+                )
         subscale_scores[subscale_name] = subscale_total
         total_score += subscale_total
 
+    is_indeterminate = na_count > 6
     return NCCPCScoreResult(
         instrument="nccpc_r",
         score=total_score,
@@ -217,5 +229,6 @@ def score_nccpc_r(
         cutoff_breached=total_score >= R_CUTOFF_SCORE,
         na_count=na_count,
         subscale_scores=subscale_scores,
-        high_missingness_advisory=na_count > 6,
+        high_missingness_advisory=is_indeterminate,
+        is_indeterminate=is_indeterminate,
     )

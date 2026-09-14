@@ -7,6 +7,7 @@ Verifies mathematical dimensional integrity and psychometric fidelity across SPE
 import math
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -191,6 +192,7 @@ def test_nccpc_instrument_specifications() -> None:
     assert "floppy" in CANONICAL_PV_ITEMS
     assert "lips_puckering_tight_pouting_quivering" in CANONICAL_PV_ITEMS
     assert "not_moving_less_active_quiet" in CANONICAL_PV_ITEMS
+    assert "clenching_teeth_chewing_thrusting_tongue" in CANONICAL_PV_ITEMS
     assert "trembling_shaking" not in CANONICAL_PV_ITEMS  # confirmed absent in canonical PV
 
     # Test PV Scoring
@@ -198,6 +200,7 @@ def test_nccpc_instrument_specifications() -> None:
     res_zero = score_nccpc_pv(mock_pv_zeros)
     assert res_zero.score == 0
     assert not res_zero.cutoff_breached
+    assert not res_zero.is_indeterminate
 
     mock_pv_cutoff = dict.fromkeys(CANONICAL_PV_ITEMS, 0)
     mock_pv_cutoff["crying"] = 3
@@ -208,14 +211,33 @@ def test_nccpc_instrument_specifications() -> None:
     assert res_cutoff.score == 11
     assert res_cutoff.cutoff_threshold == PV_CUTOFF_SCORE
     assert res_cutoff.cutoff_breached
+    assert not res_cutoff.is_indeterminate
 
-    # Test "NA" handling
+    # Test "NA" handling & indeterminate status
     mock_pv_na: dict[str, int | str] = {
         k: "NA" if i % 2 == 0 else 1 for i, k in enumerate(sorted(CANONICAL_PV_ITEMS))
     }
     res_na = score_nccpc_pv(mock_pv_na)
     assert res_na.na_count == 14
     assert res_na.high_missingness_advisory is True
+    assert res_na.is_indeterminate is True
+
+    # Test input validation: reject booleans and floats
+    mock_bad_bool: dict[str, Any] = dict.fromkeys(CANONICAL_PV_ITEMS, 0)
+    mock_bad_bool["crying"] = True  # bool must be rejected despite isinstance(True, int) == True
+    try:
+        score_nccpc_pv(mock_bad_bool)
+        raise AssertionError("Failed to reject boolean score input")
+    except ValueError:
+        pass
+
+    mock_bad_float: dict[str, Any] = dict.fromkeys(CANONICAL_PV_ITEMS, 0)
+    mock_bad_float["crying"] = 2.5
+    try:
+        score_nccpc_pv(mock_bad_float)
+        raise AssertionError("Failed to reject float score input")
+    except ValueError:
+        pass
 
     # Test R Scoring
     mock_r_zeros = dict.fromkeys(CANONICAL_R_ITEMS, 0)
