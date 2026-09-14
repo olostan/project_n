@@ -124,10 +124,10 @@ A 5-second video recording yields exactly $T_v = 150$ frames at $30\text{ fps}$.
    - **Torso-Relative Normalization:** Coordinates are normalized relative to shoulder-hip center and scaled by inter-shoulder width:
      $$\tilde{\mathbf{p}}_k = \frac{\mathbf{p}_k - \mathbf{p}_{mid\_hip}}{\|\mathbf{p}_{left\_shoulder} - \mathbf{p}_{right\_shoulder}\|_2}$$
      This reduces distance, zoom, and scale variations (though monocular depth and severe 3D rotation limits apply).
-
    - Landmark matrix: $\mathbf{K} \in \mathbb{R}^{B \times 150 \times 258}$.
-2. **Dense Optical Flow (OpenCV Farnebäck):**
-   Extracts horizontal and vertical displacement fields $(u, v)$ between consecutive frames using OpenCV's native, CPU-bound Farnebäck algorithm (`cv2.calcOpticalFlowFarneback`; $T_{diff} = 149$ steps), spatially pooled to an $8 \times 8$ grid ($128$ dimensions per frame). This eliminates external PyTorch dependencies while running with minimal CPU overhead. To align temporally with the 150-frame pose sequence, the flow sequence is left-padded with a zero-displacement initial frame $\mathbf{0} \in \mathbb{R}^{B \times 1 \times 128}$, yielding $\tilde{\mathbf{O}} \in \mathbb{R}^{B \times 150 \times 128}$.
+2. **Dense Optical Flow with Pre-Downscaling (OpenCV Farnebäck):**
+   - **Pre-Flow Spatial Downscaling ($4\times$):** To prevent CPU bottlenecks on full-resolution 720p/1080p frames, frame pairs are downscaled by $4\times$ to $320 \times 180$ (`FLOW_PRE_DOWNSCALE_WIDTH = 320`, `FLOW_PRE_DOWNSCALE_HEIGHT = 180`) before optical flow calculation. This accelerates computation by $\sim 10\times$ without signal loss, as subsequent spatial grid pooling ($8 \times 8$ bins) discards high-frequency pixel variations.
+   - **Flow Extraction:** Extracts horizontal and vertical displacement fields $(u, v)$ between consecutive frames using OpenCV's native Farnebäck algorithm (`cv2.calcOpticalFlowFarneback`; $T_{diff} = 149$ steps), spatially pooled to an $8 \times 8$ grid ($128$ dimensions per frame). This eliminates external PyTorch dependencies while running with deterministic CPU bounds. To align temporally with the 150-frame pose sequence, the flow sequence is left-padded with a zero-displacement initial frame $\mathbf{0} \in \mathbb{R}^{B \times 1 \times 128}$, yielding $\tilde{\mathbf{O}} \in \mathbb{R}^{B \times 150 \times 128}$.
 3. **Kinematic Projection:** $\mathbf{X}_{kinematic} = \text{TemporalTransformer}([\mathbf{K} \;\|\; \tilde{\mathbf{O}}]) \in \mathbb{R}^{B \times 150 \times 512}$.
 
 ### 2.3 Physiological Feature Extraction (Optional Auxiliary Channel)
@@ -138,21 +138,45 @@ When wearable sensor streams (e.g., paired Apple Watch or research biosensors) a
 2. **Heart Rate & Autonomic Variability (HRV):**
    - Over short 5-second video windows, physiological telemetry provides exploratory **time-domain metrics**: mean Heart Rate (BPM), pulse-interval variance, and Root Mean Square of Successive Differences (RMSSD).
    - Frequency-domain spectral metrics (such as High-Frequency vagal power, HF $0.15–0.40\text{ Hz}$) require rolling buffers of 1–5 minutes of continuous data (ESC/NASPE standards) and are computed only when continuous background buffers are available.
-   - When ingesting from consumer devices like Apple Watch via HealthKit, samples are received as discrete episodic quantities (e.g. episodic HR, SDNN) rather than continuous 100 Hz raw photoplethysmography (PPG), whereas research devices (e.g., Empatica) stream continuous raw PPG/EDA when paired.
+   - When ingesting from consumer devices like Apple Watch via HealthKit, samples are received as discrete episodic quantities (e.g. episodic HR, SDNN) rather than continuous 100 Hz raw photoplethysmography (PPG), whereas research devices stream continuous raw PPG/EDA when paired.
 3. **3-Axis Accelerometry (@ 50 Hz):** Wrist tremor energy and gross motor magnitude: $a_{mag}(t) = \sqrt{a_x^2 + a_y^2 + a_z^2}$.
-4. **Resampling, Temporal Alignment & Masking Policy:**
+4. **Resampling, Temporal Alignment & Unified Mask Polarity:**
    - Multi-rate physiological telemetry is resampled onto a uniform temporal grid of $T_{physio} = 50$ steps (10 Hz) using linear interpolation for continuous signals (EDA, HR) and anti-aliased polyphase decimation for 50 Hz accelerometry.
-   - An explicit binary modality mask $\mathbf{M}_{physio} \in \{0, 1\}^{B \times 50}$ tracks temporal coverage (1 = valid sample, 0 = dropped/unworn).
-   - When wearable sensors are unpaired, $\mathbf{M}_{physio} = \mathbf{0}$, and missing streams are zero-imputed.
+   - **Unified Mask Polarity (`True = valid`):** Project-wide convention establishes that boolean mask $\mathbf{M}_{physio} \in \{\text{True}, \text{False}\}^{B \times 50}$ indicates valid observations ($\text{True} = 1 = \text{valid sample}$, $\text{False} = 0 = \text{dropped/missing}$). When passed into Metal scaled dot product attention, the valid mask is converted via `mx.where(mask, 0.0, -1e9)` to supply additive $-\infty$ attention masking for invalid timesteps.
+   - When wearable sensors are unpaired, $\mathbf{M}_{physio} = \text{False}$, and missing streams are zero-imputed.
 5. **Output Dimension:** $\mathbf{X}_{physio} \in \mathbb{R}^{B \times 50 \times 64}$.
 
-### 2.4 Graceful Degradation & Missing Modality Masking
-Because wearable sensors are **completely optional** (and may not be tolerated by Child N), the multimodal projection head implements explicit modality gating:
-$$\mathbf{m} = [m_{audio}, m_{kinematic}, m_{physio}] \in \{0, 1\}^3$$
-When wearable telemetry is absent ($m_{physio} = 0$):
+### 2.4 Hierarchical Clip-to-Window Modeling & Multi-Stream Ingestion
 
-- $\mathbf{X}_{physio}$ is replaced by a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio} \in \mathbb{R}^{64}$ broadcast across the temporal sequence.
-- The resulting metric vector $\mathbf{z}_{metric} \in \mathbb{R}^{128}$ resides in the identical geometric space, allowing continuous matching against historical episodes with or without physiological records.
+Mobile companion recordings capture real-world behavioral episodes spanning $L \in [30.0, 120.0]\text{ seconds}$. Rather than collapsing or truncating long-range context, Project N implements a two-tier hierarchical temporal architecture:
+
+```
+30–120s Episode Clip (e.g. L = 60s -> W = 12 contiguous 5.0s windows)
+│
+├── Tier 1: Micro-Dynamics (5.0s Window Encoders @ 30 fps)
+│   • Acoustic: 240,000 samples -> P (500x16), C (84 bins), M -> X_audio (500x512)
+│   • Kinematic: 150 frames @ 30 fps -> K (150x258), O (150x128) -> X_kinematic (150x512)
+│   • Physiological: 50 steps (10 Hz) -> X_physio (50x64) [Optional]
+│   • Window Projection Head: z^(w) in R^128 (L2-normalized)
+│
+└── Tier 2: Macro-Trajectory Modeling (Clip-Level Sequence Pooling)
+    • Sequence of window embeddings: [z^(1), z^(2), ..., z^(W)] in R^(W x 128)
+    • Temporal Positional Encoding: p_w added to preserve temporal progression (t_1 to t_W)
+    • Narrative Arc: Captures transition [Baseline Calm -> Escalation -> Action Offered -> Settling]
+    • Clip-Level Attention Pool: z_clip = L2Norm(TemporalAttentionPool([z^(1)+p_1, ..., z^(W)+p_W])) in R^128
+    • Stored in ChromaDB `nd_confirmed_episodes` as the canonical episode representation
+```
+
+1. **Window Slicing:** A clip of duration $L$ seconds is partitioned into $W = \lfloor L / 5.0 \rfloor$ non-overlapping, contiguous $5.0\text{s}$ windows ($W \in [6, 24]$ for clips spanning $30\text{--}120\text{s}$). Any remainder $L - 5.0 \cdot W < 5.0\text{s}$ is handled via trailing edge padding or included in the final window.
+2. **Window-Level Embeddings:** Each window $w \in \{1, \dots, W\}$ is independently processed through the acoustic, kinematic, and physiological encoders, producing window latent embedding $\mathbf{z}^{(w)} \in \mathbb{R}^{128}$ via `MetricProjectionHead`.
+3. **Macro-Trajectory Sequence Attention:** To retain the complete narrative arc without smearing temporal context, window vectors are combined with sinusoidal temporal positional encodings $\mathbf{p}_w \in \mathbb{R}^{128}$ and aggregated via clip-level temporal attention pooling:
+   $$\mathbf{z}_{clip} = \text{L2Normalize}\left(\sum_{w=1}^W \alpha_w (\mathbf{z}^{(w)} + \mathbf{p}_w)\right) \in \mathbb{R}^{128}$$
+   where $\alpha_w = \text{Softmax}\left(\frac{(\mathbf{z}^{(w)} + \mathbf{p}_w) \mathbf{q}_{clip}^T}{\sqrt{128}}\right)$ and $\mathbf{q}_{clip}$ is a learned episode query vector.
+4. **Multi-Camera & External Microphone Extensibility:**
+   - **Multi-Camera Alignment:** When multiple cameras capture an episode (e.g. mobile phone camera + room tripod camera), streams are time-aligned via UTC timestamps or audio cross-correlation. For any window $w$, kinematic pose and flow features from all available angles are fused using cross-view attention pooling, ensuring robust tracking even if Child N turns away from one camera view.
+   - **Multi-Microphone Ingestion:** When an external microphone (lapel or room boundary mic) is active, audio channels are aligned, and the feature extractor selects the channel with the highest Signal-to-Noise Ratio (SNR) or fuses multi-channel spectral envelopes.
+5. **Graceful Degradation & Null Modality Gating:**
+   When physiological telemetry is absent ($m_{physio} = 0$), $\mathbf{X}_{physio}$ is replaced by a learned null-modality embedding $\mathbf{e}_{\emptyset}^{physio} \in \mathbb{R}^{64}$ broadcast across the temporal sequence, ensuring all metric vectors $\mathbf{z}_{clip}$ inhabit an identical geometric space.
 
 ---
 
@@ -242,14 +266,25 @@ CREATE TABLE episodes (
     id TEXT PRIMARY KEY,
     vault_uri TEXT NOT NULL,           -- Encrypted file URI in macOS Data Protection vault
     encoder_version_id TEXT NOT NULL,  -- Git commit / checkpoint ID
-    captured_at TEXT NOT NULL,
-    duration_ms INTEGER NOT NULL,
+    captured_at TEXT NOT NULL,         -- ISO 8601 UTC
+    duration_ms INTEGER NOT NULL,      -- Full clip length (30,000 to 120,000 ms)
+    windows_count INTEGER NOT NULL,    -- Number of 5.0s windows aggregated (W in [6, 24])
     observed_f0_mean REAL,
     observed_motion_rhythm_hz REAL,
     eda_tonic_level REAL,
-    antecedent_context TEXT,
+    antecedent_id TEXT NOT NULL CHECK(antecedent_id IN (
+        'post_school_transition',
+        'mealtime',
+        'bedtime_routine',
+        'loud_environment',
+        'unfamiliar_setting',
+        'physical_transition',
+        'preferred_activity_ended',
+        'unknown'
+    )),                                -- Controlled antecedent vocabulary for reproducible retrieval metrics
+    antecedent_notes TEXT,             -- Contextual free-text notes (e.g., 'playground noisy transition')
     caregiver_hypothesis TEXT,
-    action_id TEXT NOT NULL CHECK(action_id IN (
+    action_offered TEXT NOT NULL CHECK(action_offered IN (
         'quiet_refuge',
         'dimmed_lighting',
         'hydration_water',
@@ -262,14 +297,46 @@ CREATE TABLE episodes (
         'aac_choice_board',
         'open_observation',
         'other_custom'
-    )),                                -- Controlled action vocabulary preventing denominator fragmentation
-    action_custom_label TEXT,          -- Caregiver custom label if action_id == 'other_custom'
-    action_notes TEXT,                 -- Descriptive notes / context
-    caregiver_accepted INTEGER DEFAULT 0 CHECK(caregiver_accepted IN (0, 1)), -- Fail-closed: 1 if caregiver approved/conducted action, else 0
-    outcome_state TEXT CHECK(outcome_state IN ('settled_immediately', 'settled_delayed', 'no_change', 'escalated')),
-    settled_within_sec INTEGER,        -- Measured or caregiver-reported latency to baseline return
+    )),                                -- Controlled suggested action vocabulary preventing denominator fragmentation
+    action_custom_label TEXT,          -- Caregiver custom label if action_offered == 'other_custom'
+    action_performed TEXT CHECK(action_performed IN (
+        'quiet_refuge',
+        'dimmed_lighting',
+        'hydration_water',
+        'deep_pressure_proprioceptive',
+        'vestibular_rocking',
+        'preferred_comfort_object',
+        'sensory_break',
+        'motor_movement_break',
+        'warm_compress',
+        'aac_choice_board',
+        'open_observation',
+        'other_custom'
+    )),                                -- Actual action executed by caregiver
+    performance_status TEXT CHECK(performance_status IN (
+        'completed',
+        'attempted_refused',
+        'aborted',
+        'not_attempted'
+    )),                                -- Operational status of the intervention
+    action_notes TEXT,                 -- Descriptive notes / execution context
+    caregiver_decision TEXT CHECK(caregiver_decision IN (
+        'accepted',
+        'modified',
+        'rejected',
+        'open_observation'
+    )),                                -- Caregiver's human decision on the suggestion
+    outcome_state TEXT CHECK(outcome_state IN (
+        'settled_immediately',
+        'settled_delayed',
+        'no_change',
+        'escalated'
+    )),                                -- Observational outcome state following intervention
+    settled_within_sec INTEGER,        -- Measured or reported latency in seconds from start of clip to baseline return
     child_response TEXT CHECK(child_response IN ('reach', 'gesture', 'vocal_signal', 'aac_selection', 'none')),
     response_channel TEXT CHECK(response_channel IN ('motor', 'vocal', 'aac', 'none')),
+    response_independence TEXT CHECK(response_independence IN ('independent', 'prompted', 'passive', 'refusal', 'none')),
+    prompt_level TEXT CHECK(prompt_level IN ('none', 'visual_cue', 'verbal_model', 'gestural', 'physical_prompt')),
     observer TEXT,                     -- De-identified role (e.g., 'primary_caregiver', 'ot_clinician')
     nccpc_instrument TEXT CHECK(nccpc_instrument IN ('nccpc_pv', 'nccpc_r', 'none')),
     nccpc_score INTEGER,               -- Validated checklist total (0-81 for PV, 0-90 for R)
@@ -287,7 +354,11 @@ CREATE TABLE model_checkpoints (
     retrieval_mrr REAL NOT NULL,       -- Top-k retrieval Mean Reciprocal Rank
     holdout_coverage REAL NOT NULL,    -- Percentage of holdout queries with d <= tau_abstain
     ece_score REAL,                    -- Expected Calibration Error on validation splits
-    zero_distress_misses INTEGER DEFAULT 0, -- Fail-closed: must be verified on locked test set
+    evaluation_status TEXT NOT NULL DEFAULT 'pending' CHECK(evaluation_status IN ('pending', 'passed', 'failed')),
+    distress_cases_evaluated INTEGER DEFAULT 0, -- Total positive distress/pain cases in evaluation split
+    zero_distress_misses INTEGER,      -- NULL until validated on locked test set (0 if passed)
+    validation_timestamp TEXT,         -- ISO 8601 UTC timestamp of formal evaluation run
+    validation_report_hash TEXT,       -- Cryptographic hash of evaluation artifact
     caregiver_utility_score REAL,      -- Average Likert score on validation sets
     is_production INTEGER DEFAULT 0,
     promoted_at TEXT,
@@ -315,9 +386,9 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 
 ### 4.3 ChromaDB Collections
 1. **`nd_confirmed_episodes`:**
-   - Vector: 128-dimensional L2-normalized metric embedding.
+   - Vector: 128-dimensional L2-normalized metric embedding ($\mathbf{z}_{clip}$).
    - Distance metric: `cosine`.
-   - Metadata: `episode_id`, `encoder_version_id`, `action_id`, `action_custom_label`, `caregiver_accepted`, `outcome_state`, `settled_within_sec`, `child_response`, `response_channel`, `nccpc_instrument`, `nccpc_score`, `pain_cutoff_breached`.
+   - Metadata: `episode_id`, `encoder_version_id`, `windows_count`, `antecedent_id`, `action_offered`, `action_performed`, `action_custom_label`, `caregiver_decision`, `outcome_state`, `settled_within_sec`, `child_response`, `response_channel`, `response_independence`, `nccpc_instrument`, `nccpc_score`, `pain_cutoff_breached`.
 2. **`clinical_evidence`:**
    - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
    - Distance metric: `cosine`.
@@ -333,40 +404,49 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 
 ### 5.1 REST API Endpoint Specifications
 
-All endpoints (except initial user-present pairing) require a local mutual-pairing token passed via `Authorization: Bearer <local_paired_token>`. Sensitive media access and model modifications require biometric confirmation (Touch ID / system admin credential).
+All endpoints (except initial user-present pairing) require an authenticated local mutual-pairing token passed via `Authorization: Bearer <local_paired_token>`. Unattended streaming and review are supported for paired clients without requiring biometric interruptions during everyday caregiver playback. Biometric confirmation (Touch ID / system admin credential) is strictly reserved for high-risk administrative operations (such as model promotion, rollback, key rotation, or database purge).
+
+**Transport Authentication & Replay Prevention:**
+- Requests over local Wi-Fi use mutual TLS (mTLS) with client certificates issued during initial pairing.
+- Each sensitive request carries `X-Timestamp` (valid within a 300-second window) and `X-Signature` computed via HMAC-SHA256 over `<timestamp>.<method>.<path>.<body_sha256>`. The local daemon maintains a rolling in-memory nonce cache to reject replayed requests.
 
 | HTTP Verb | Path | Request Payload / Headers | Response Payload | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/pair` | `{ "device_id": str, "csr_pem": str, "pairing_pin": str }` | `{ "client_cert_pem": str, "token": str, "expires_at": str }` | User-present PIN pairing: client submits Secure Enclave CSR; server signs 1-year client cert. |
+| `POST` | `/api/v1/auth/pair` | `{ "device_id": str, "csr_pem": str, "pairing_pin": str }` | `{ "client_cert_pem": str, "token": str, "expires_at": str }` | User-present PIN pairing: client submits Keystore/Secure Enclave CSR; server signs 1-year client cert. |
 | `POST` | `/api/v1/clips/upload/init` | `{ "file_name": str, "file_size": int, "sha256": str, "total_chunks": int }`<br/>Header: `Authorization: Bearer` | `{ "upload_id": str, "chunk_size": int }` | Initializes authenticated resumable chunked upload. |
 | `PUT` | `/api/v1/clips/upload/{id}/chunk/{idx}` | Binary chunk payload<br/>Header: `Authorization: Bearer`, `X-Chunk-SHA256` | `{ "chunk_index": int, "received": bool }` | Streams sequential authenticated chunk to upload buffer. |
 | `POST` | `/api/v1/clips/upload/{id}/finalize` | `{ "metadata_json": dict }`<br/>Header: `Authorization: Bearer` | `{ "clip_id": str, "sha256": str, "status": "stored" }` | Validates assembled hash, encrypts into vault with per-clip DEK. |
 | `POST` | `/api/v1/clips/{id}/analyze` | `{ "generate_render": bool }`<br/>Header: `Authorization: Bearer` | `{ "task_id": str, "stream_url": str }` | Triggers feature extraction & retrieval pass. |
 | `POST` | `/api/v1/episodes/{id}/nccpc` | `{ "instrument": "nccpc_pv" \| "nccpc_r", "scores": dict, "duration_min": int }`<br/>Header: `Authorization: Bearer` | `{ "episode_id": str, "total_score": int, "pain_cutoff_breached": bool, "na_count": int, "escalation_required": bool, "guidance": str }` | Submits caregiver pain observation checklist, triggers immediate medical triage scoring. |
-| `GET` | `/api/v1/episodes` | Query: `limit`, `offset`, `tag`, `distress`<br/>Header: `Authorization: Bearer` | `{ "episodes": List[Episode], "total": int }` | Timeline and diary browser for dashboard. |
-| `GET` | `/api/v1/episodes/{id}/media` | Header: `Authorization: Bearer`<br/>Header: `X-TouchID-Auth: token` | Decrypted binary video stream (`video/mp4`) | Stream video for review (Touch ID gated). |
+| `GET` | `/api/v1/episodes` | Query: `limit`, `offset`, `antecedent_id`, `distress`<br/>Header: `Authorization: Bearer` | `{ "episodes": List[Episode], "total": int }` | Timeline and diary browser for mobile app and dashboard. |
+| `GET` | `/api/v1/episodes/{id}/media` | Header: `Authorization: Bearer` | Decrypted binary video stream (`video/mp4`) | Streams video for review to paired Flutter client or dashboard (unattended playback). |
+| `GET` | `/api/v1/facts` | Query: `category`, `source_type`, `confirmed_only`<br/>Header: `Authorization: Bearer` | `{ "facts": List[ChildProfileFact], "total": int }` | Lists personal facts and clinic-learned techniques. |
+| `POST` | `/api/v1/facts` | `{ "category": str, "fact_title": str, "description": str, "source_type": str, "clinician_role": str, "clinician_id": str }`<br/>Header: `Authorization: Bearer` | `{ "fact_id": str, "status": "created", "confirmed_by_caregiver": false }` | Stages extracted clinical technique into Confirmation Gate. |
+| `POST` | `/api/v1/facts/{id}/confirm` | `{ "confirmed": bool, "custom_notes": Optional[str] }`<br/>Header: `Authorization: Bearer` | `{ "fact_id": str, "confirmed_by_caregiver": bool }` | Human-in-the-Loop confirmation card for therapist technique. |
 | `GET` | `/api/v1/events/stream` | Header: `Accept: text/event-stream`<br/>Header: `Authorization: Bearer` | Continuous Server-Sent Events (SSE) stream | Real-time progress, telemetry, and training logs. |
-| `POST` | `/api/v1/models/promote` | `{ "candidate_id": str }`<br/>Header: `X-TouchID-Auth: token` | `{ "status": "promoted", "timestamp": str }` | One-click candidate model promotion (biometric gated). |
-| `POST` | `/api/v1/models/rollback` | `{}`<br/>Header: `X-TouchID-Auth: token` | `{ "status": "rolled_back", "active_id": str }` | Rollback to prior stable checkpoint (biometric gated). |
+| `POST` | `/api/v1/models/promote` | `{ "candidate_id": str }`<br/>Header: `X-Admin-Auth: token` | `{ "status": "promoted", "timestamp": str }` | One-click candidate model promotion (admin/Touch ID gated). |
+| `POST` | `/api/v1/models/rollback` | `{}`<br/>Header: `X-Admin-Auth: token` | `{ "status": "rolled_back", "active_id": str }` | Rollback to prior stable checkpoint (admin/Touch ID gated). |
 
-### 5.2 Storage Encryption Hierarchy & macOS Keychain Semantics
+### 5.2 Storage Encryption Hierarchy & Unattended macOS Keychain Semantics
 
 - **Encryption Hierarchy:** Media files are encrypted with per-clip random AES-256-GCM Data Encryption Keys (DEKs). Relational records in `project_n.db` are encrypted using SQLCipher with a dedicated database key.
-- **Keychain Access Semantics:** Both keys are secured in the macOS Data Protection Keychain using `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`. Following a Mac restart, the background LaunchAgent remains paused until the user logs in and unlocks the Mac once. Once unlocked, background LaunchAgent ingestion and processing continue operating seamlessly while the Mac screen is locked.
-- **Pairing Key Separation:** Mobile companion pairing keys are generated in hardware-backed Secure Enclave / Keystore and are never exported or combined with host master keys.
+- **Unattended Keychain Access:** Both keys are secured in the macOS Data Protection Keychain using `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`. Following a Mac restart, the background LaunchAgent remains paused until the user logs in and unlocks the Mac once. Once unlocked, background LaunchAgent ingestion, ML inference, and video streaming continue operating seamlessly while the Mac screen is locked or unattended, allowing immediate playback on paired Flutter apps without requiring Touch ID interaction.
+- **Biometric Separation:** Touch ID is reserved strictly for destructive administrative actions (such as database wipe, key rotation, or unencrypted bulk export), keeping everyday family use and therapy review frictionless.
+- **Pairing Key Separation:** Mobile companion pairing keys are generated in hardware-backed Android Keystore / iOS Keychain and are never exported or combined with host master keys.
 
-### 5.3 Server-Sent Events (SSE) Protocol Specification
-Clients subscribe to `GET /api/v1/events/stream`. Events are formatted as standard UTF-8 text frames:
+### 5.3 Server-Sent Events (SSE) Protocol & Latency Expectations
+
+Clients subscribe to `GET /api/v1/events/stream`. For a 60-second clip, dense feature extraction ($4\times$ downscaled Farnebäck flow + MediaPipe pose + STFT/CQT pitch) and temporal attention pooling execute in approximately **$15\text{--}35\text{ seconds}$** on an Apple Silicon M-series chip. Progress events reflect realistic pipeline stages:
 
 ```text
 event: processing_progress
-data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "stage": "acoustic_extraction", "progress": 0.45, "metrics": {"f0_current_hz": 268.4, "cpp_db": 4.1}, "timestamp": "2026-09-09T20:45:00.123Z"}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "stage": "kinematic_flow_extraction", "progress": 0.35, "windows_processed": 4, "total_windows": 12, "timestamp": "2026-09-09T20:45:00.123Z"}
 
 event: system_telemetry
 data: {"active_vram_gb": 12.4, "peak_vram_gb": 17.2, "memory_ceiling_gb": 36.0, "thermal_state": "nominal", "mlx_device": "Apple M5 Pro (Metal GPU)"}
 
 event: four_layer_card
-data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school fatigue, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Child N's vocal pitch and wrist movement are elevated, which in past episodes occurred during noise overload or fatigue; you might explore offering deep pressure or water.", "abstained": false}
+data: {"task_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "L1_measured": "Vocalization: 4.2s, F0 mean 268 Hz. Kinematics: 3.8 Hz wrist oscillation across 12 windows.", "L2_historical": "Matched 3 prior episodes. Top resolution: deep pressure (2 of 3).", "L3_context": "Caregiver noted post-school transition, 45 min since water.", "L4_evidence": "Van de Cruys et al. (2014) - repetitive motions as uncertainty reduction.", "view_mode": "parent", "parent_view_text": "Child N's vocal pitch and wrist movement are elevated, which in past episodes occurred during noise overload or fatigue; you might explore offering deep pressure or water.", "abstained": false}
 ```
 
 ---
@@ -390,10 +470,11 @@ graph TD
             Nav1["• Live Stream & Telemetry"]
             Nav2["• Clip Diary & Historical Diary"]
             Nav3["• Multimodal Video Inspector"]
-            Nav4["• 2D UMAP Behavioral Map"]
-            Nav5["• Clinical RAG Library"]
-            Nav6["• Model Promotion Gate"]
-            Nav1 --- Nav2 --- Nav3 --- Nav4 --- Nav5 --- Nav6
+            Nav4["• Caregiver Pain & NCCPC Triage"]
+            Nav5["• 2D UMAP Behavioral Map"]
+            Nav6["• Clinical RAG Library"]
+            Nav7["• Model Promotion Gate"]
+            Nav1 --- Nav2 --- Nav3 --- Nav4 --- Nav5 --- Nav6 --- Nav7
         end
 
         subgraph ContentArea ["Main Content Area: Episode Inspector"]
@@ -564,32 +645,58 @@ class MetricProjectionHead(nn.Module):
 class EpisodicPrototypeMatcher:
     """
     Episodic prototype and k-NN retrieval engine with calibrated abstention
-    and cold-start onboarding protocol.
+    and a 4-state onboarding lifecycle:
+    - 'collecting': Insufficient records (<20 verified episodes logged).
+    - 'awaiting_calibration': Sufficient records (>=20) but distance threshold tau_abstain uncalibrated on temporal split.
+    - 'active': Distance threshold calibrated on temporal holdout split; normal inference enabled.
+    - 'stale': Extractor, encoder, or schema version mismatch with active checkpoint.
     """
 
-    def __init__(self, tau_abstain: float = 0.35):
+    def __init__(
+        self,
+        tau_abstain: float = 0.35,
+        is_calibrated: bool = False,
+        active_encoder_version: str = "v1.0.0",
+    ):
         self.tau_abstain = tau_abstain
+        self.is_calibrated = is_calibrated
+        self.active_encoder_version = active_encoder_version
 
     def match(
         self, query_vector: mx.array, confirmed_collection: Any, top_k: int = 3
     ) -> Dict[str, Any]:
-        # Cold-Start Protocol (Phase 0 Onboarding): minimum N=20 confirmed episodes required
         total_records = (
             confirmed_collection.count()
             if hasattr(confirmed_collection, "count")
             else len(confirmed_collection)
         )
+
+        # State 1: Collecting (<20 confirmed episodes)
         if total_records < 20:
             return {
                 "abstained": True,
-                "matcher_state": "cold_start_collecting",
-                "reason": f"Cold-start onboarding in progress ({total_records}/20 verified episodes logged). Prototype retrieval is suspended.",
+                "matcher_state": "collecting",
+                "reason": f"Cold-start onboarding in progress ({total_records}/20 verified episodes logged). Episodic retrieval is suspended.",
+                "nearest_distance": 1.0,
+                "candidates": [],
+            }
+
+        # State 2: Awaiting Calibration (>=20 records, but calibration split not yet computed)
+        if not self.is_calibrated:
+            return {
+                "abstained": True,
+                "matcher_state": "awaiting_calibration",
+                "reason": f"Sufficient records collected ({total_records} >= 20), but distance threshold tau_abstain is not yet calibrated on temporal split.",
                 "nearest_distance": 1.0,
                 "candidates": [],
             }
 
         q_list = query_vector[0].tolist()
-        results = confirmed_collection.query(query_embeddings=[q_list], n_results=top_k)
+        results = confirmed_collection.query(
+            query_embeddings=[q_list],
+            n_results=top_k,
+            where={"encoder_version_id": self.active_encoder_version},  # Version consistency
+        )
 
         distances = results["distances"][0] if results["distances"] else [1.0]
         nearest_distance = distances[0]
@@ -599,7 +706,7 @@ class EpisodicPrototypeMatcher:
             return {
                 "abstained": True,
                 "matcher_state": "active_abstaining",
-                "reason": f"Distance ({nearest_distance:.3f}) exceeds threshold ({self.tau_abstain:.3f})",
+                "reason": f"Distance ({nearest_distance:.3f}) exceeds calibrated threshold ({self.tau_abstain:.3f})",
                 "nearest_distance": nearest_distance,
                 "candidates": [],
             }
@@ -609,22 +716,21 @@ class EpisodicPrototypeMatcher:
             candidates.append(
                 {
                     "episode_id": meta.get("episode_id", "unknown_ep"),
-                    "action_id": meta.get("action_id", "open_observation"),
+                    "action_offered": meta.get("action_offered", meta.get("action_id", "open_observation")),
+                    "action_performed": meta.get("action_performed"),
                     "action_custom_label": meta.get("action_custom_label"),
-                    "action_notes": meta.get("action_notes"),
-                    "caregiver_accepted": bool(meta.get("caregiver_accepted") == 1),
+                    "caregiver_decision": meta.get("caregiver_decision", "accepted"),
                     "outcome_state": meta.get("outcome_state"),
                     "settled_within_sec": meta.get("settled_within_sec"),
                     "child_response": meta.get("child_response", "none"),
                     "response_channel": meta.get("response_channel", "none"),
-                    "child_communicative_response": meta.get("child_response", "none"),
                     "distance": dist,
                 }
             )
 
         return {
             "abstained": False,
-            "matcher_state": "active_matching",
+            "matcher_state": "active",
             "nearest_distance": nearest_distance,
             "candidates": candidates,
         }
@@ -632,7 +738,7 @@ class EpisodicPrototypeMatcher:
 
 class AcuteDistressAnomalyDetector:
     """
-    Automated acoustic and kinematic anomaly screener executing on raw 5s sensory frames.
+    Automated acoustic and kinematic anomaly screener executing on raw sensory frames.
     Screens for acute acoustic excursions and flinching/guarding kinematics relative to
     the child's calibrated personal baseline. Requires a minimum personal baseline of >=10
     verified clean episodes across >=5 days before activating to prevent alarm fatigue.
@@ -690,124 +796,74 @@ class AcuteDistressAnomalyDetector:
 class NCCPCChecklist:
     """
     Caregiver-completed Non-Communicating Children's Pain Checklist (Breau et al., 2002).
-    - NCCPC-PV (Breau et al., 2002, Anesthesiology, doi:10.1097/00000542-200203000-00004):
-      27 canonical items across 6 subscales (0 to 81) over a 10-minute observation. Cut-off >= 11 indicates moderate-to-severe pain.
-      Items scored 0-3 or 'NA' (not applicable; scored as 0 in numerical sum per manual).
-    - NCCPC-R (Breau et al., 2002, Pain, doi:10.1016/S0304-3959(02)00179-3):
-      30 canonical items across 7 subscales (0 to 90) over a 2-hour observation. Cut-off >= 7 indicates presence of pain.
-    Note: Redistribution of official clinical forms is subject to terms by the Centre for Pediatric Pain Research.
+    Delegates to canonical models.nccpc definitions and scoring engine:
+    - NCCPC-PV: 27 canonical items across 6 subscales (cut-off >= 11 indicates pain, Breau et al. 2002).
+    - NCCPC-R: 30 canonical items across 7 subscales (cut-off >= 7 indicates pain, Breau et al. 2002).
     """
 
-    NCCPC_PV_MODERATE_CUTOFF = 11
-    NCCPC_R_CUTOFF = 7
-
-    CANONICAL_PV_ITEMS: ClassVar[Set[str]] = {
-        # I. Vocal (4)
-        "moaning_whining_whimpering",
-        "crying",
-        "screaming_yelling",
-        "pain_sound_word",
-        # II. Social (4)
-        "not_cooperating_cranky",
-        "less_interaction_withdrawn",
-        "seeking_comfort_closeness",
-        "difficult_to_comfort_please",
-        # III. Facial Expression (4)
-        "furrowed_brow",
-        "change_in_eyes_squinching",
-        "turning_mouth_down",
-        "clenching_teeth_chewing",
-        # IV. Activity (3)
-        "not_moving_less_active",
-        "jumping_agitated_fidgety",
-        "less_active_quiet",
-        # V. Body & Limbs (6)
-        "stiff_spastic_rigid_tense",
-        "gesturing_touching_hurt_part",
-        "protecting_favoring_guarding",
-        "flinching_moving_away",
-        "moving_body_specifically",
-        "trembling_shaking",
-        # VI. Physiological (6)
-        "shivering",
-        "change_in_color_pallor",
-        "sweating_perspiring",
-        "tears",
-        "sharp_breath_gasping",
-        "breath_holding",
-    }
-
-    CANONICAL_R_ITEMS: ClassVar[Set[str]] = CANONICAL_PV_ITEMS | {
-        # VII. Eating / Sleeping (3 additional items for NCCPC-R 2-hr observation)
-        "eating_less_not_interested",
-        "increased_sleep",
-        "decreased_sleep",
-    }
+    PV_CUTOFF = 11
+    R_CUTOFF = 7
 
     @classmethod
-    def score_pv(cls, item_scores: Dict[str, Any]) -> Dict[str, Any]:
-        if set(item_scores.keys()) != cls.CANONICAL_PV_ITEMS:
-            missing = cls.CANONICAL_PV_ITEMS - set(item_scores.keys())
-            unexpected = set(item_scores.keys()) - cls.CANONICAL_PV_ITEMS
-            raise ValueError(
-                f"NCCPC-PV requires canonical 27 item identifiers. Missing: {missing}, Unexpected: {unexpected}"
-            )
-        total_score = 0
-        na_count = 0
-        for k, v in item_scores.items():
-            if v == "NA" or v is None:
-                na_count += 1
-                continue
-            if not isinstance(v, int) or v < 0 or v > 3:
-                raise ValueError(
-                    f"Item '{k}' score must be integer between 0 and 3 or 'NA'; received {v}."
-                )
-            total_score += v
+    def score_pv(cls, item_scores: Mapping[str, int | str]) -> Dict[str, Any]:
+        from models.nccpc import score_nccpc_pv
 
+        res = score_nccpc_pv(item_scores)
         return {
-            "total_score": total_score,
-            "na_count": na_count,
+            "total_score": res.score,
+            "na_count": res.na_count,
             "instrument": "NCCPC-PV (27 items, 10-min observation)",
-            "exceeds_threshold": total_score >= cls.NCCPC_PV_MODERATE_CUTOFF,
-            "caution_high_na_count": na_count > 5,
+            "exceeds_threshold": res.cutoff_breached,
+            "caution_high_na_count": res.high_missingness_advisory,
+            "subscales": res.subscale_scores,
         }
 
     @classmethod
-    def score_r(cls, item_scores: Dict[str, Any]) -> Dict[str, Any]:
-        if set(item_scores.keys()) != cls.CANONICAL_R_ITEMS:
-            missing = cls.CANONICAL_R_ITEMS - set(item_scores.keys())
-            unexpected = set(item_scores.keys()) - cls.CANONICAL_R_ITEMS
-            raise ValueError(
-                f"NCCPC-R requires canonical 30 item identifiers. Missing: {missing}, Unexpected: {unexpected}"
-            )
-        total_score = 0
-        na_count = 0
-        for k, v in item_scores.items():
-            if v == "NA" or v is None:
-                na_count += 1
-                continue
-            if not isinstance(v, int) or v < 0 or v > 3:
-                raise ValueError(
-                    f"Item '{k}' score must be integer between 0 and 3 or 'NA'; received {v}."
-                )
-            total_score += v
+    def score_r(cls, item_scores: Mapping[str, int | str]) -> Dict[str, Any]:
+        from models.nccpc import score_nccpc_r
 
+        res = score_nccpc_r(item_scores)
         return {
-            "total_score": total_score,
-            "na_count": na_count,
+            "total_score": res.score,
+            "na_count": res.na_count,
             "instrument": "NCCPC-R (30 items, 2-hr observation)",
-            "exceeds_threshold": total_score >= cls.NCCPC_R_CUTOFF,
-            "caution_high_na_count": na_count > 5,
+            "exceeds_threshold": res.cutoff_breached,
+            "caution_high_na_count": res.high_missingness_advisory,
+            "subscales": res.subscale_scores,
         }
 
 
 @dataclass
 class SignalQuality:
+    """Deterministic, tamper-proof signal quality model computed directly from sensor telemetry."""
+
     audio_snr_db: float
+    clipping_ratio: float
     pose_tracking_confidence: float
-    lighting_adequate: bool
-    quality_passed: bool
-    rejection_reason: Optional[str] = None
+    lighting_lux: float
+    optical_flow_magnitude: float
+
+    @property
+    def quality_passed(self) -> bool:
+        return (
+            self.audio_snr_db >= 10.0
+            and self.clipping_ratio <= 0.02
+            and self.pose_tracking_confidence >= 0.50
+            and self.lighting_lux >= 15.0
+        )
+
+    @property
+    def rejection_reason(self) -> Optional[str]:
+        reasons = []
+        if self.audio_snr_db < 10.0:
+            reasons.append(f"Audio SNR too low ({self.audio_snr_db:.1f} dB < 10.0 dB)")
+        if self.clipping_ratio > 0.02:
+            reasons.append(f"Audio clipping too high ({self.clipping_ratio*100:.1f}% > 2.0%)")
+        if self.pose_tracking_confidence < 0.50:
+            reasons.append(f"Pose tracking confidence too low ({self.pose_tracking_confidence:.2f} < 0.50)")
+        if self.lighting_lux < 15.0:
+            reasons.append(f"Ambient lighting inadequate ({self.lighting_lux:.1f} lux < 15.0 lux)")
+        return "; ".join(reasons) if reasons else None
 
 
 @dataclass
@@ -815,11 +871,14 @@ class MetricInputs:
     x_audio: mx.array  # (B, 500, 512)
     x_kinematic: mx.array  # (B, 150, 512)
     x_physio: Optional[mx.array] = None  # (B, 50, 64)
+    audio_mask: Optional[mx.array] = None  # (B, 500) boolean (True = valid)
+    kinematic_mask: Optional[mx.array] = None  # (B, 150) boolean (True = valid)
+    physio_mask: Optional[mx.array] = None  # (B, 50) boolean (True = valid)
 
 
 @dataclass
 class ParentCard:
-    """Typed Parent View card strictly enforcing epistemic grounding and provenance."""
+    """Typed Parent View card strictly enforcing epistemic grounding and bound pair provenance."""
 
     observed_signals: str
     precedent_summary: str
@@ -852,7 +911,7 @@ def execute_inference_cycle(
     measured_features: Dict[str, Any],  # Extracted L1 features (F0, CPP, motion freq, etc.)
     caregiver_context: Dict[str, Any],  # L3 antecedents (time elapsed, transition state, etc.)
     caregiver_nccpc_scores: Optional[
-        Dict[str, Any]
+        Mapping[str, int | str]
     ],  # Optional caregiver 10-min observation scores
     caregiver_red_flags: Optional[
         List[str]
@@ -871,24 +930,10 @@ def execute_inference_cycle(
 ) -> Dict[str, Any]:
     """
     Executes an end-to-end Project N inference cycle adhering to the four-layer output contract.
-    Returns a comprehensive caregiver analysis card with observational insights, historical
-    precedents, antecedent context, and grounded hypotheses to support parent decision-making.
+    Medical Safety Precedence: Caregiver red flags and validated pain checklists are evaluated
+    FIRST, guaranteeing that sensor quality issues (dark rooms, noise) never suppress medical triage.
     """
-    # 0. DETERMINISTIC SIGNAL QUALITY GATE
-    if not signal_quality.quality_passed:
-        return {
-            "layer": "ABSTAIN",
-            "message": f"Signal quality insufficient for reliable inference: {signal_quality.rejection_reason}",
-            "signal_quality": asdict(signal_quality),
-            "actionable_hints": [
-                "Reposition companion camera for direct line of sight",
-                "Ensure adequate ambient lighting for kinematic tracking",
-                "Reduce acoustic background noise or move closer to Child N",
-            ],
-            "suggested_observations": ["lighting_check", "camera_line_of_sight"],
-        }
-
-    # 1. MEDICAL SAFETY & DISTRESS TRIAGE (Triage First)
+    # 1. MEDICAL SAFETY & DISTRESS TRIAGE (Evaluated FIRST unconditionally)
     # Stage 1A: Caregiver Reported Clinical Red Flags
     if caregiver_red_flags:
         return {
@@ -935,7 +980,21 @@ def execute_inference_cycle(
             "suggested_observations": ["pediatrician_protocol", "physical_symptom_check"],
         }
 
-    # Stage 1C: Physical Comfort Check (Triggered by automated acoustic/kinematic deviation)
+    # 2. DETERMINISTIC SENSOR SIGNAL QUALITY GATE
+    if not signal_quality.quality_passed:
+        return {
+            "layer": "ABSTAIN",
+            "message": f"Signal quality insufficient for reliable automated inference: {signal_quality.rejection_reason}",
+            "signal_quality": asdict(signal_quality),
+            "actionable_hints": [
+                "Reposition companion camera for direct line of sight",
+                "Ensure adequate ambient lighting for kinematic tracking",
+                "Reduce acoustic background noise or move closer to Child N",
+            ],
+            "suggested_observations": ["lighting_check", "camera_line_of_sight"],
+        }
+
+    # 3. PHYSICAL COMFORT CHECK (Triggered by automated acoustic/kinematic deviation)
     anomaly_check = AcuteDistressAnomalyDetector.evaluate(measured_features, baseline_stats)
     if anomaly_check.get("distress_anomaly"):
         return {
@@ -959,11 +1018,10 @@ def execute_inference_cycle(
             ],
         }
 
-    # 2. METRIC PROJECTION (128-dim L2 space)
+    # 4. METRIC PROJECTION & EPISODIC RETRIEVAL
     z_metric = metric_head(metric_inputs.x_audio, metric_inputs.x_kinematic, metric_inputs.x_physio)
     mx.eval(z_metric)
 
-    # 3. EPISODIC RETRIEVAL & ABSTENTION
     match_result = matcher.match(z_metric, confirmed_collection, top_k=3)
     if match_result["abstained"]:
         return {
@@ -980,35 +1038,37 @@ def execute_inference_cycle(
             "suggested_observations": ["open_choice_board", "check_in"],
         }
 
-    # 4. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (L4 + Clinic-to-Home RAG)
+    # 5. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (Grouped by action_id + custom_label)
     candidates = match_result["candidates"]
-    action_stats: Dict[str, Dict[str, int]] = {}
-    candidate_source_map: Dict[str, List[str]] = {}
+    action_stats: Dict[Tuple[str, Optional[str]], Dict[str, int]] = {}
+    candidate_source_map: Dict[Tuple[str, Optional[str]], List[str]] = {}
+
     for c in candidates:
-        act = c.get("action_id")
+        act_id = c.get("action_offered", "open_observation")
+        custom_label = c.get("action_custom_label")
+        group_key = (act_id, custom_label if act_id == "other_custom" else None)
         ep_id = c.get("episode_id", "unknown_ep")
-        if not act:
-            continue
-        if act not in action_stats:
-            action_stats[act] = {"offered": 0, "settled": 0}
-            candidate_source_map[act] = []
-        action_stats[act]["offered"] += 1
-        candidate_source_map[act].append(ep_id)
+
+        if group_key not in action_stats:
+            action_stats[group_key] = {"offered": 0, "settled": 0}
+            candidate_source_map[group_key] = []
+        action_stats[group_key]["offered"] += 1
+        candidate_source_map[group_key].append(ep_id)
+
         if (
             c.get("outcome_state") in ("settled_immediately", "settled_delayed")
-            and c.get("caregiver_accepted") is True
+            and c.get("caregiver_decision") in ("accepted", "open_observation")
         ):
-            action_stats[act]["settled"] += 1
+            action_stats[group_key]["settled"] += 1
 
-    # Filter strictly for actions that have observed at least one settling outcome
+    # Filter strictly for actions that observed at least one settling outcome
     beneficial_actions = [
-        (act, stats) for act, stats in action_stats.items() if stats["settled"] > 0
+        (key, stats) for key, stats in action_stats.items() if stats["settled"] > 0
     ]
 
-    top_action: Optional[str] = None
+    top_group_key: Optional[Tuple[str, Optional[str]]] = None
     provenance_id: Optional[str] = None
     if beneficial_actions:
-        # Sort by Laplace-smoothed settle rate: (settled + 1) / (offered + 2), tie-break by total settled count
         sorted_actions = sorted(
             beneficial_actions,
             key=lambda item: (
@@ -1017,22 +1077,24 @@ def execute_inference_cycle(
             ),
             reverse=True,
         )
-        top_action, stats = sorted_actions[0]
+        top_group_key, stats = sorted_actions[0]
         provenance_id = (
-            candidate_source_map[top_action][0]
-            if candidate_source_map.get(top_action)
+            candidate_source_map[top_group_key][0]
+            if candidate_source_map.get(top_group_key)
             else "ep_prior"
         )
-        act_label = CONTROLLED_ACTION_LABELS.get(top_action, top_action)
+        top_act_id, top_custom = top_group_key
+        act_label = top_custom if top_act_id == "other_custom" and top_custom else CONTROLLED_ACTION_LABELS.get(top_act_id, top_act_id)
         history_ratio_str = f"{act_label} (settling observed in {stats['settled']} of {stats['offered']} similar episodes)"
     else:
-        top_action = None
+        top_group_key = None
         provenance_id = None
         history_ratio_str = "no previous calming action recorded for this pattern"
 
+    top_action_id = top_group_key[0] if top_group_key else None
     evidence_query = (
-        f"Sensory regulation and environmental support for {top_action} in pediatric autism"
-        if top_action
+        f"Sensory regulation and environmental support for {top_action_id} in pediatric autism"
+        if top_action_id
         else "Sensory regulation and co-regulatory scaffolding in pediatric autism"
     )
     lit_results = evidence_collection.query(query_texts=[evidence_query], n_results=1)
@@ -1051,19 +1113,18 @@ def execute_inference_cycle(
     else:
         l4 = "Research literature: No direct literature match found."
 
-    # Retrieve personalized child anchors and professional techniques learned in OT/SLP clinic sessions
     personal_facts = []
     personal_fact_items = []
     if personal_knowledge_collection is not None:
         fact_query = (
-            f"{top_action} comfort toy calming phrase sensory trigger OT technique"
-            if top_action
+            f"{top_action_id} comfort toy calming phrase sensory trigger OT technique"
+            if top_action_id
             else "comfort toy calming phrase sensory trigger OT technique"
         )
         fact_results = personal_knowledge_collection.query(
             query_texts=[fact_query],
             n_results=3,
-            where={"confirmed_by_caregiver": 1},  # Strict human gate: only verified facts eligible
+            where={"confirmed_by_caregiver": 1},
         )
         if fact_results.get("documents") and fact_results["documents"][0]:
             personal_facts = fact_results["documents"][0]
@@ -1077,13 +1138,8 @@ def execute_inference_cycle(
                         "clinician_role": m.get("clinician_role", "caregiver"),
                     }
                 )
-    personal_facts_str = (
-        "; ".join(personal_facts)
-        if personal_facts
-        else "No specific verified personal anchors or clinic techniques recorded yet."
-    )
 
-    # 5. DETERMINISTIC FOUR-LAYER EVIDENCE ASSEMBLY (Without Generative Telemetry)
+    # 6. DETERMINISTIC FOUR-LAYER EVIDENCE ASSEMBLY
     f0_mean = measured_features.get("f0_mean_hz")
     cpp_val = measured_features.get("cpp_db")
     motion_type = measured_features.get("dominant_motion", "unspecified motion")
@@ -1102,18 +1158,20 @@ def execute_inference_cycle(
         f"Matched {len(match_result['candidates'])} prior episodes in historical vault. "
         f"Historical co-regulation precedent: {history_ratio_str}."
     )
-    transition = caregiver_context.get("transition_state", "unknown")
+    antecedent_val = caregiver_context.get("antecedent_id", "unknown")
     hydration = caregiver_context.get("elapsed_min_since_hydration", "unknown")
     noise = caregiver_context.get("noise_level", "unknown")
-    l3 = f"Antecedents: transition={transition}, elapsed_min_since_water={hydration}, ambient_noise={noise}."
+    l3 = f"Antecedents: context={antecedent_val}, elapsed_min_since_water={hydration}, ambient_noise={noise}."
 
-    # 6. SCHEMA-CONSTRAINED RENDERING WITH DETERMINISTIC FALLBACK
+    # 7. BOUND PAIR POSSIBILITIES & GROUNDED FALLBACK
     gentle_possibilities: List[Dict[str, str]] = []
-    if top_action and provenance_id:
+    if top_group_key and provenance_id:
+        top_act, top_custom = top_group_key
+        act_label = top_custom if top_act == "other_custom" and top_custom else CONTROLLED_ACTION_LABELS.get(top_act, top_act)
         gentle_possibilities.append(
             {
-                "action_id": top_action,
-                "action": CONTROLLED_ACTION_LABELS.get(top_action, top_action),
+                "action_id": top_act,
+                "action": act_label,
                 "provenance_id": provenance_id,
                 "source_type": "historical_precedent",
             }
@@ -1140,7 +1198,7 @@ def execute_inference_cycle(
     fallback_parent_card = ParentCard(
         observed_signals=f"Child N's vocal pitch ({f0_str}) and movement ({motion_type} at {freq_str}) show noticeable rhythm.",
         precedent_summary=f"In similar past episodes, {history_ratio_str}.",
-        context_notes=f"Context notes: {transition} transition, {hydration} min since hydration, ambient noise {noise}.",
+        context_notes=f"Context notes: {antecedent_val}, {hydration} min since hydration, ambient noise {noise}.",
         gentle_possibilities=gentle_possibilities,
         non_diagnostic_notice=(
             "Supportive co-regulatory hypotheses based on past verified episodes and sensory literature, "
@@ -1175,7 +1233,7 @@ def execute_inference_cycle(
                 llm_renderer, tokenizer, prompt=parent_render_prompt, max_tokens=400, verbose=False
             )
             parsed = json.loads(gen_parent_json)
-            # Strict Post-Generation Grounding Validation
+            # Strict Post-Generation Grounding Validation: Validate Bound (action_id, provenance_id) Pairs
             if (
                 isinstance(parsed, dict)
                 and "observed_signals" in parsed
@@ -1184,15 +1242,12 @@ def execute_inference_cycle(
                 and isinstance(parsed["gentle_possibilities"], list)
                 and len(parsed["gentle_possibilities"]) > 0
             ):
-                # Verify that all returned actions reference valid canonical action_ids and provenance IDs
-                valid_act_ids = {p.get("action_id") for p in gentle_possibilities}
-                valid_prov_ids = {p.get("provenance_id") for p in gentle_possibilities}
+                valid_pairs = {(p.get("action_id"), p.get("provenance_id")) for p in gentle_possibilities}
                 validated_possibilities = [
                     p
                     for p in parsed["gentle_possibilities"]
                     if isinstance(p, dict)
-                    and p.get("action_id") in valid_act_ids
-                    and p.get("provenance_id") in valid_prov_ids
+                    and (p.get("action_id"), p.get("provenance_id")) in valid_pairs
                 ]
                 if validated_possibilities:
                     rendered_parent_card = ParentCard(
@@ -1230,24 +1285,31 @@ def execute_inference_cycle(
         "historical_child_responses": child_responses,
         "disclaimer": rendered_parent_card.non_diagnostic_notice,
     }
-```
+
 
 ---
 
-## 8. Five Implementation Phases Roadmap
+## 8. Six Implementation Phases Roadmap
 
 ```mermaid
 graph TD
-    subgraph P1 ["Phase 1: Feature Extraction, Ingestion & Two-Key Vault"]
+    subgraph P0 ["Phase 0: Baseline Calibration & Cold-Start Onboarding (Months 0–1)"]
+        P0_1["0.1 Diary Collection: Uncalibrated diary & clip collection (<20 confirmed episodes)"]
+        P0_2["0.2 Baseline Calibration: Personal bioacoustic baseline calibration (>=10 episodes / >=5 days)"]
+        P0_3["0.3 Sensor Ergonomics: Caregiver placement tuning & lighting/acoustic calibration"]
+        P0_1 --> P0_2 --> P0_3
+    end
+
+    subgraph P1 ["Phase 1: Feature Extraction, Ingestion & Unattended Vault"]
         P1_1["1.1 extraction/acoustic.py: F0/jitter/shimmer + CQT 84-bin + Log-Mel"]
-        P1_2["1.2 extraction/kinematic.py: MediaPipe 75 landmarks + Farnebäck flow"]
-        P1_3["1.3 server/vault.py: AES-256 Two-Key Vault + macOS Keychain helper"]
+        P1_2["1.2 extraction/kinematic.py: MediaPipe 75 landmarks + 320x180 Farnebäck flow"]
+        P1_3["1.3 server/vault.py: AES-256 Unattended Vault + macOS Keychain daemon helper"]
         P1_4["1.4 server/api.py: Local FastAPI daemon with mTLS & SSE stream"]
         P1_1 --> P1_2 --> P1_3 --> P1_4
     end
 
     subgraph P2 ["Phase 2: Metric Projection Head & Episodic Memory"]
-        P2_1["2.1 models/projection.py: Modality-specific attention pooling (Normative Baseline)"]
+        P2_1["2.1 models/projection.py: Modality-specific attention pooling & clip sequence aggregation"]
         P2_2["2.2 rag/episodic_store.py: SQLite episodes + ChromaDB 128-dim metric store"]
         P2_3["2.3 models/distress_screener.py: Acute distress screener & pediatrician comfort prompt"]
         P2_1 --> P2_2 --> P2_3
@@ -1255,7 +1317,7 @@ graph TD
 
     subgraph P3 ["Phase 3: Mobile Flutter Companion & Hardware-Backed Pairing"]
         P3_1["3.1 app/: Flutter companion client with SQLite encrypted outbox"]
-        P3_2["3.2 app/lib/pairing.dart: Secure Enclave / Keystore mutual PIN pairing"]
+        P3_2["3.2 app/lib/pairing.dart: Android Keystore / iOS Keychain mutual PIN pairing"]
         P3_3["3.3 training/pretrain_av.py: Exploratory CAV-MAE / Perceiver branch benchmark"]
         P3_1 --> P3_2 --> P3_3
     end
@@ -1274,8 +1336,9 @@ graph TD
         P5_1 --> P5_2 --> P5_3
     end
 
-    P1 --> P2 --> P3 --> P4 --> P5
+    P0 --> P1 --> P2 --> P3 --> P4 --> P5
 
+    style P0 fill:#fafafa,stroke:#8c8c8c,stroke-width:2px
     style P1 fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
     style P2 fill:#f6ffed,stroke:#52c41a,stroke-width:2px
     style P3 fill:#fffbe6,stroke:#faad14,stroke-width:2px

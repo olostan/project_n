@@ -45,7 +45,7 @@ sequenceDiagram
     Engine->>Engine: Extracts holistic acoustics (F0, CQT) and 3D kinematics (pose, optical flow)
     Engine->>Engine: Evaluates Medical Safety Protocol (acute distress anomaly screener)
     Engine->>Engine: Retrieves matching historical episodes and clinical research precedents
-    Engine->>Partner: Delivers Caregiver and Therapist Insight Card:<br/>• Acoustic strain and motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques and low-risk things to try
+    Engine->>Partner: Delivers Caregiver and Therapist Insight Card:<br/>• Acoustic voice-quality and motion analysis<br/>• Historical co-regulatory matches (e.g., deep pressure settled 2/3)<br/>• Clinician-suggested techniques and low-risk things to try
     Partner->>Child: Delivers targeted co-regulatory support (Deep pressure / quiet space)
     opt Independent Child Communication
         Child->>Partner: Child communicates response (independent AAC, gesture, reach)
@@ -65,7 +65,7 @@ graph TD
     end
 
     subgraph Sensory Observables [Child Multimodal Repertoire]
-        Acoustic[Acoustic Physics: Micro-Pitch F0, CQT Harmonics, Strain CPP]
+        Acoustic[Acoustic Physics: Micro-Pitch F0, CQT Harmonics, Voice-Quality CPP]
         Kinematic[Body-Relative Kinematics: 75 Pose Keypoints, Optical Flow]
         Physio[Autonomic Physiology: EDA Conductance, HRV Vagal Tone]
     end
@@ -107,7 +107,7 @@ A substantial proportion (estimated at 25% to 30%) of autistic children remain m
 
 In clinical Speech-Language Pathology (SLP), communication is recognized as inherently multimodal ([Light & McNaughton, 2014](#ref-8)). Non-verbal children routinely mobilize an extensive communicative repertoire:
 
-- **Paralinguistic Acoustic Cues:** Continuous vocal fold vibrations, glottal stops, clicks, harmonic overtone sweeps, guttural resonance, and subtle micro-pitch inflections (hypothesized in this N-of-1 deployment to manifest within $\pm 15\text{ to } 50\text{ Hz}$ excursions) that reflect physiological equilibrium, affective valence, or protest.
+- **Paralinguistic Acoustic Cues:** Continuous vocal fold vibrations, glottal stops, clicks, harmonic overtone sweeps, guttural resonance, and subtle micro-pitch inflections (hypothesized in this N-of-1 deployment to manifest within $\pm 15\text{ to } 50\text{ Hz}$ excursions) that may be associated with caregiver-recorded contexts of physiological equilibrium, affective valence, or protest.
 - **Kinematic & Motor Dynamics:** High-frequency repetitive motor behaviors ("stims"), including 3–6 Hz wrist rotations, finger-flicking in peripheral vision, pacing, torso rocking, or intentional physical reaches.
 - **Physiological & Autonomic Fluctuations:** Sympathetic nervous system arousal, electrodermal reactivity, and cardiorespiratory shifts (HRV) driven by sensory demands.
 
@@ -128,11 +128,14 @@ Early artificial intelligence approaches to non-verbal autism conceptualized the
 
 In naturalistic pediatric communication, a vocalization or movement does not have an invariant, one-to-one semantic translation. A 350 Hz vocalization paired with hand flapping may represent intense joy during water play, severe vestibular seeking during room transitions, or overwhelming autonomic distress when ambient noise exceeds threshold. Identical surface behaviors arise from divergent internal needs, while a single functional need can manifest through varied behavioral expressions (by analogy with the context-dependent emotion-inference critique of [Barrett et al., 2019](#ref-1)).
 
-### 3.2 The SCERTS Framework & Interpersonal Scaffolding
-Project N is grounded in the clinical principles of the **SCERTS Model** ([Prizant et al., 2006](#ref-14)), an internationally recognized multidisciplinary framework with promising and emerging empirical evidence that focuses on three core domains:
-- **SC (Social Communication):** Developing spontaneous, functional communication and emotional expression across non-verbal and aided modalities.
+### 3.2 The SCERTS Dyadic Model
+Rather than attempting ungrounded mind-reading, Project N is grounded in the evidence-supported **SCERTS framework** ([Prizant et al., 2006](#ref-14)):
+
+- **SC (Social Communication):** Supporting spontaneous, functional communication and emotional expression across non-verbal and AAC modalities.
 - **ER (Emotional Regulation):** Supporting self-regulation and mutual regulation to maintain optimal arousal states for learning and interaction.
-- **TS (Transactional Support):** The interpersonal supports, environmental modifications, and learning tools provided by communication partners.
+- **TS (Transactional Support):** Fostering communication partners' ability to respond sensitively to the child's behavioral bids, adapt the environment, and provide multi-modal scaffolding (visual schedules, AAC).
+
+By modeling the **dyad** rather than the child in isolation, the system learns which adult transactional supports correlate with successful co-regulation and communicative connection.
 
 ### 3.3 Why Labeling Adult Interaction Is Vital
 A central insight of speech-language pathology is that a non-speaking child’s communication is shaped by their communicative partner's behavior ([Sameroff, 1975](#ref-16); [McLean & Snyder-McLean, 1978](#ref-9)).
@@ -148,6 +151,9 @@ By modeling the **dyad** rather than the child in isolation, the system learns w
 ---
 
 ## 4. Regulatory State Progression & Medical Safeguards
+
+> [!NOTE]
+> **Conceptual Workflow:** The following state diagram illustrates the assistive co-regulatory scaffolding logic and medical-first triage workflow implemented by the software, rather than asserting an objective or validated biological progression within the child.
 
 ```mermaid
 stateDiagram-v2
@@ -266,7 +272,7 @@ Both views are derived from the exact same deterministic underlying records, ens
 ## 7. Implications for Clinical Practice (SLP & OT)
 
 ### 7.1 For Speech-Language Pathologists (SLPs)
-1. **Ecologically Valid Longitudinal Repertoire:** Rather than relying on 45-minute weekly clinic sessions, SLPs gain access to a continuous, objective timeline of naturalistic vocalizations and communicative bids across home and community settings.
+1. **Ecologically Valid Longitudinal Repertoire:** Rather than relying on 45-minute weekly clinic sessions, SLPs gain access to a longitudinal observational timeline of naturalistic vocalizations and communicative bids across home and community settings.
 2. **Personalized Communication Support:** Identifies which naturalistic environments exhibit high child engagement, enabling therapists to support authentic dyadic interaction.
 3. **Tracking Dyadic Interaction & Scaffolding:** Allows therapists to review how different communication partner styles (wait time, simplified linguistic modeling, visual cues) correlate with child engagement and vocal variety.
 
@@ -277,7 +283,7 @@ Both views are derived from the exact same deterministic underlying records, ens
 ### 7.3 The Clinic-to-Home Knowledge Transfer Loop
 In pediatric therapy, a persistent clinical challenge is the generalization gap: effective co-regulatory and communicative strategies discovered by therapists during structured 45-minute clinical sessions often fail to transfer into family home environments. Project N bridges this divide through its **Personal & Therapist Knowledge Store**:
 1. **Clinical Strategy Ingestion:** Therapists can record brief clip exemplars or session notes detailing successful interventions (e.g., specific joint compression protocols, sensory swing sequences, or visual wait-time scaffolding).
-2. **Contextual Living Room Delivery:** When comparable acoustic strain or motor dysregulation occurs at home, the assistant retrieves the clinician-authored technique previously recorded as helpful and presents it directly to parents in plain, supportive language (*"Your OT suggested, Thursday session: Try firm joint compression on forearms"* — explicitly relaying the licensed clinician's own instructions for Child N rather than having the AI autonomously recommend medical treatment).
+2. **Contextual Living Room Delivery:** When comparable acoustic variation or motor agitation occurs at home, the assistant retrieves the clinician-authored technique previously recorded as helpful and presents it directly to parents in plain, supportive language (*"Your OT suggested, Thursday session: Try firm joint compression on forearms"* — explicitly relaying the licensed clinician's own instructions for Child N rather than having the AI autonomously recommend medical treatment).
 3. **Bidirectional Longitudinal Review:** Therapists review objective home resolution outcomes during weekly check-ins, verifying whether clinical scaffolding successfully generalized to naturalistic family routines.
 
 ---

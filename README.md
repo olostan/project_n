@@ -126,6 +126,7 @@ uv run pre-commit run --all-files
 ```
 project_n/
 ├── README.md                      # Project portal & onboarding (this file)
+├── CONTRIBUTING.md                 # Community, clinical & technical contributor guidelines
 ├── INVARIANTS.md                  # Non-negotiable safety guardrails (offline, privacy, frozen LLM)
 ├── AGENTS.md                      # AI coding agent operating directives & MLX standards
 ├── pyproject.toml                 # Project metadata, dependencies, ruff & strict mypy config
@@ -138,6 +139,8 @@ project_n/
 │   ├── DESIGN.md                  # Theoretical design & architecture
 │   ├── SPECS.md                   # Technical specifications & normative MLX component interfaces
 │   ├── INVARIANTS.md              # Documentation mirror of root invariants
+│   ├── AGENTS.md                  # Documentation mirror of root agent directives
+│   ├── CONTRIBUTING.md            # Documentation mirror of contributor guidelines
 │   ├── report-source.md           # Preserved original audit critique
 │   ├── stylesheets/               # Theme styling
 │   └── javascripts/               # Theme scripts & MathJax
@@ -156,15 +159,22 @@ project_n/
 
 ## Implementation Roadmap
 
-Project N is currently in **Phase 1 (Feature Extraction, Ingestion & Two-Key Vault)**:
+Project N follows a six-phase implementation roadmap:
 - [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
 - [x] Architecture, system invariants, and technical specifications formalized.
 - [x] Prespecified evaluation protocol and safety promotion gates established.
-- [ ] Phase 1: Feature extraction (acoustic, kinematic, physiology), Two-Key Vault, and local FastAPI daemon.
-- [ ] Phase 2: Modality-specific attention pooling (normative baseline), episodic memory (SQLite + ChromaDB), and acute distress screener.
-- [ ] Phase 3: Cross-platform Flutter companion client with encrypted outbox and hardware-backed PIN pairing.
-- [ ] Phase 4: Zero-cloud React dashboard, clinical RAG library, and clinic-to-home knowledge transfer engine.
-- [ ] Phase 5: Longitudinal single-participant N-of-1 evaluation, holdout assertion pipeline (B1–B4), and gated model promotion.
+- [ ] **Phase 0:** Baseline Calibration & Cold-Start Onboarding (passive ambient profiling, initial 20-episode uncalibrated store).
+- [ ] **Phase 1:** Feature Extraction, Ingestion & Encrypted Vault (acoustic, kinematic, unattended LaunchAgent vault, and local FastAPI daemon).
+- [ ] **Phase 2:** Modality-Specific Attention Pooling (hierarchical clip sequence model, episodic memory SQLite + ChromaDB, and medical triage screener).
+- [ ] **Phase 3:** Cross-Platform Flutter Companion Client (offline outbox, local mTLS pairing, and unattended media streaming).
+- [ ] **Phase 4:** Zero-Cloud React Dashboard, Clinical RAG Library, and Clinic-to-Home Knowledge Transfer Engine.
+- [ ] **Phase 5:** Longitudinal Single-Participant N-of-1 Evaluation, Holdout Assertion Pipeline (B1–B4), and Gated Model Promotion.
+
+---
+
+## Contributing
+
+We welcome contributions from speech-language pathologists, occupational therapists, neurodiversity advocates, and Apple Silicon ML engineers. Please review [`CONTRIBUTING.md`](CONTRIBUTING.md) for our clinical dyadic posture, code standards, and PR protocols.
 
 ---
 

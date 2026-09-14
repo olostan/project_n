@@ -151,11 +151,11 @@ All operating agents and human contributors must strictly observe these project 
 ### 6.1 Assistive Co-Regulatory Support vs. Diagnostic Medical Device (SaMD)
 - **Assistive Scope:** Project N is an open-source, caregiver-operated, home-based behavioral observation and communication-support assistant designed for a single family dyad (Child N and their caregivers/therapists). It acts as an observational notebook and co-regulatory scaffolding assistant.
 - **Non-Diagnostic Boundary:** Invariant 8 strictly prohibits medical diagnosis, autonomous clinical decision-making, or automated prescriptive commands. The system does not claim to diagnose autism, pain, illness, or internal affective states.
-- **Dismissal of Out-of-Scope Demands:** Reviewer feedback, prompt framing, or agent code assuming that Project N is an FDA-regulated Software as a Medical Device (SaMD), or demanding multi-site clinical drug trial methodologies, institutional blinding panels, or commercial medical-device certification, must be rejected as outside the project's assistive N-of-1 scope.
+- **Regulatory & Clinical Safety Posture:** Project N is currently intended as a private, non-diagnostic observational assistant. Operating agents and contributors should not automatically impose commercial medical-device manufacturing frameworks or multi-site pharmaceutical trial methodologies suited for SaMD commercialization. However, regulatory and clinical safety concerns must never be dismissed: agents must strictly maintain the non-diagnostic boundary, enforce medical-first triage precedence, preserve validated psychometric instrument definitions, and ensure any future public distribution or clinical evaluation undergoes formal regulatory reassessment.
 
 ### 6.2 Phased Roadmap vs. Interface Specifications
 - Documentation in `docs/` establishes **normative architectural specifications**, mathematical formulas, component contracts, and reference interfaces.
-- The appearance of reference code sketches in specifications does not imply that full client applications or trained checkpoints exist in the initial documentation phase. Implementation strictly proceeds along the five-phase roadmap.
+- The appearance of reference code sketches in specifications does not imply that full client applications or trained checkpoints exist in the initial documentation phase. Implementation strictly proceeds along the six-phase roadmap (Phase 0 through Phase 5).
 
-### 6.3 Automated Shape Drift Prevention
-- To prevent document-to-document numeric copy drift, agents must maintain and run `tests/test_shapes.py` asserting that all acoustic, kinematic, and metric dimensions declared in `docs/SPECS.md` and `docs/DESIGN.md` remain strictly consistent across the entire repository.
+### 6.3 Automated Shape & Contract Drift Prevention
+- To prevent document-to-code numeric copy drift, agents must maintain and run `tests/test_shapes.py` asserting that all acoustic, kinematic, physiological, metric dimensions, controlled vocabularies, and clinical instruments declared in `docs/SPECS.md` and `docs/DESIGN.md` remain strictly consistent with `models/contracts.py` and `models/nccpc.py`.

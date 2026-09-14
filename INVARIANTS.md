@@ -5,7 +5,7 @@
 ## Preamble
 This document establishes the system, architectural, mathematical, security, and governance boundaries governing **Project N**. Every contributor, automated script, and autonomous AI coding agent (e.g., Antigravity, Cursor, Claude Code) operating on this codebase is strictly bound by these rules.
 
-Following the comprehensive architectural review, this document makes an explicit distinction between:
+This document establishes an explicit distinction between:
 
 1. **True Non-Negotiable Invariants (§1):** Hard system, safety, privacy, and architectural constraints that must never be violated.
 2. **Tunable Empirical Defaults (§2):** Research and training hyperparameters that are explicitly configurable and subject to experimental ablation.
@@ -19,10 +19,10 @@ Following the comprehensive architectural review, this document makes an explici
 
 - **No Cloud AI APIs:** Inclusion or invocation of remote cloud AI APIs (OpenAI, Anthropic, Google Cloud Vertex/Gemini, AWS Bedrock, HuggingFace Inference API, or any remote telemetry collector) is strictly prohibited across all modules.
 - **Zero-Cloud Dashboard:** The local Caregiver Web Dashboard (React + Tailwind) must bundle all JavaScript, CSS, font, and asset dependencies locally. Loading remote CDNs or external web resources is forbidden.
-- **Two-Key Vault Posture:**
-  - Media, features, and metadata are encrypted at rest using per-clip random AES-256-GCM Data Encryption Keys (DEKs).
-  - Background ingestion and processing while the Mac screen is locked are executed via a signed per-user LaunchAgent helper using Apple's Data Protection Keychain (`SecItem` with `kSecUseDataProtectionKeychain=true`).
-  - Sensitive operations (revealing raw video, exporting data, viewing timelines, altering retention, pairing new devices) require explicit Touch ID / user-presence authentication via a separate private review key.
+- **Local Storage & Unattended Vault Posture:**
+  - Media, features, and database records are encrypted at rest using per-clip random AES-256-GCM Data Encryption Keys (DEKs) and SQLCipher.
+  - Background ingestion, ML inference, and streaming are executed via a signed per-user LaunchAgent daemon using Apple's Data Protection Keychain (`SecItem` with `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`). Once the caregiver boots the Mac and logs in, the daemon operates unattended—processing clips, computing behavioral embeddings, and streaming video and Parent View cards to paired mobile clients (Flutter) and local dashboards over authenticated local mTLS without requiring physical user presence for playback.
+  - Biometric Touch ID authentication is reserved strictly as an optional administrative safeguard for destructive high-risk operations (e.g., purging the historical vault, master key rotation, or exporting unencrypted raw archives), ensuring everyday family and clinical observation flows remain frictionless and unattended.
 - **Transport & Mobile Outbox Security:**
   - Companion apps (Flutter Android & iOS) communicate with the Mac helper over mutual TLS (mTLS) with per-request signatures and nonces over local Wi-Fi. mDNS discovery or LAN IP address presence alone is never treated as authentication.
   - Device credentials must reside in hardware-backed storage: **Android Keystore** on Android devices and **iOS Keychain** on iOS devices (never in application preferences or shared storage).

@@ -94,6 +94,8 @@ On validation splits, ECE is computed using $M=5$ confidence bins (noting that o
 ### 4.4 Abstention Rate & Prediction Set Coverage
 Project N treats **Abstention** ("Unrecognized pattern / I do not know") as a first-class safe output state:
 - **Coverage ($\mathcal{C}$):** The fraction of real-world queries where the nearest-neighbor distance $d \le \tau_{abstain}$ and the system offers candidate possibilities. Target operational coverage: $60\% \le \mathcal{C} \le 85\%$.
+  > [!NOTE]
+  > **Cold-Start Onboarding Caveat:** The $60\% \le \mathcal{C} \le 85\%$ coverage target applies post-Phase 0 once $\ge 20$ confirmed episodes and personal baseline calibration have been established. During Phase 0 onboarding, coverage is expected to be lower (approaching $0\%$ initially and gradually increasing) as the system safely abstains on novel patterns until an empirical precedent store accumulates.
 - **Selective Risk:** Error rate computed strictly over the non-abstained predictions.
 - **Mandatory Signal Quality Gates:** The system must abstain with $100\%$ probability if capture quality breaches deterministic bounds:
   - Acoustic $\text{SNR} < 12\text{ dB}$ or digital clipping $> 5\%$ of samples.

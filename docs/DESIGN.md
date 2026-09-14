@@ -49,11 +49,11 @@ Standard foundation models impose severe neurotypical inductive biases:
 
 - **Phonemic Discretization (The Whisper Failure):** ASR models are trained to map acoustic energy into discrete phonemic and lexical tokens. Whisper's autoregressive decoder discards non-lexical harmonic resonances, vowel hums, and pitch contours as "untranscribable noise." However, intermediate encoder representations (layers 6–12) retain rich paralinguistic and prosodic information. The failure lives in the autoregressive language decoder's strong lexical prior and token-level cross-entropy loss (which penalizes non-words and hallucinates standard English vocabulary), not necessarily in the acoustic encoder layers.
 - **Spatial Pooling (The Standard ViT Failure):** Standard vision transformers pool pixels spatially across frames, obliterating 3 Hz–6 Hz hand or finger stims into generic background scenery tokens.
-- **The Unaligned Prefix Fallacy (`F-01`):** Projecting continuous sensory vectors directly into a frozen LLM prefix without extensive end-to-end multimodal alignment training (which requires hundreds of thousands of paired examples) yields random vectors from the LLM's perspective. The LLM will generate fluent, confident, but **input-independent** clinical prose. Project N therefore removes the LLM from the primary inference path.
+- **The Unaligned Prefix Fallacy:** Projecting continuous sensory vectors directly into a frozen LLM prefix without extensive end-to-end multimodal alignment training (which requires hundreds of thousands of paired examples) yields random vectors from the LLM's perspective. The LLM will generate fluent, confident, but **input-independent** clinical prose. Project N therefore removes the LLM from the primary inference path.
 
 ---
 
-## 3. Sensory Extraction, Physics & Feature Determination
+## 3. Multimodal Sensory Physics & Bioacoustic Architecture
 
 Project N deploys a modular, multi-pathway sensory extraction architecture combining acoustics, kinematics, and direct physiology.
 
@@ -61,7 +61,7 @@ Project N deploys a modular, multi-pathway sensory extraction architecture combi
 graph TD
     subgraph Streams ["Sensory Input Streams"]
         Audio["Acoustic Stream (48 kHz WAV)<br/>Micro-pitch F0, CQT 84 bins, 128 Log-Mel"]
-        Video["Kinematic Stream (30 fps 720p)<br/>75 Body/Hand Pose Landmarks, Farnebäck Optical Flow"]
+        Video["Kinematic Stream (30 fps 720p)<br/>75 Body/Hand Pose Landmarks, 320x180 Farnebäck Flow"]
         Physio["Physiological Stream (Wearable)<br/>EDA Conductance, HRV Vagal Tone, Accelerometry"]
     end
 
@@ -71,9 +71,11 @@ graph TD
         X_p["Physiological Latent<br/>X_p ∈ ℝ^(T_p × 64)<br/>(Masked via e_∅ if unmonitored)"]
     end
 
-    subgraph Fusion ["Cross-Modal Binding (Apple Silicon MLX)"]
-        Resampler["Multimodal Perceiver Resampler<br/>Audio-Visual Correspondence (CAV-MAE)"]
-        Pool["Attention Pooling & L2 Normalization"]
+    subgraph Fusion ["Multimodal Metric Binding (Apple Silicon MLX)"]
+        Pool_a["Acoustic Attention Pool<br/>h_a ∈ ℝ^256"]
+        Pool_k["Kinematic Attention Pool<br/>h_k ∈ ℝ^256"]
+        Pool_p["Physio Attention Pool<br/>h_p ∈ ℝ^64"]
+        Concat["Fused Multi-Head Projection<br/>Linear(h_a || h_k || h_p)"]
         Metric["128-dim Normalized Metric Vector<br/>z_metric ∈ ℝ^128 (||z||₂ = 1)"]
     end
 
@@ -81,9 +83,11 @@ graph TD
     Video --> X_k
     Physio --> X_p
 
-    X_a & X_k & X_p --> Resampler
-    Resampler --> Pool
-    Pool --> Metric
+    X_a --> Pool_a
+    X_k --> Pool_k
+    X_p --> Pool_p
+    Pool_a & Pool_k & Pool_p --> Concat
+    Concat --> Metric
 
     style Streams fill:#f8fafc,stroke:#94a3b8,stroke-width:1px
     style Audio fill:#e6f7ff,stroke:#1890ff,stroke-width:2px
