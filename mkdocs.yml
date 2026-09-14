@@ -80,4 +80,5 @@ nav:
       - Technical Specifications: SPECS.md
       - System Invariants: INVARIANTS.md
       - Autonomous Agent Directives: AGENTS.md
+      - Engineering Standards: ENGINEERING_STANDARDS.md
   - Contributor Guidelines: CONTRIBUTING.md

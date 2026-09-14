@@ -33,7 +33,33 @@ Whenever an agent introduces modifications that alter:
 
 ---
 
-## 3. Apple MLX Engineering Standards & Conventions
+## 3. Code Quality, Modularity & The 400-Line Mandate
+
+All autonomous agents and human contributors must strictly observe the engineering guidelines codified in `docs/ENGINEERING_STANDARDS.md`:
+
+### 3.1 Hard File Size Ceiling (300–400 Lines Max)
+- **Hard Limit:** No source file (Python, TypeScript/React, Dart/Flutter) may exceed **400 lines of code**.
+- **Refactoring Trigger:** When any file reaches **350 lines**, it must immediately be decomposed into submodules, services, or sub-components.
+- **Enforcement:** The pre-commit quality gate `tests/check_file_sizes.py` strictly blocks any file exceeding 400 lines. Never bypass this hook.
+
+### 3.2 Unidirectional Dependency Hierarchy
+Dependencies must strictly flow downward:
+- **Tier 0 (Contracts):** `models/contracts.py`, `models/nccpc.py` (zero external dependencies, pure types).
+- **Tier 1 (Extractors):** `extraction/` (stateless signal processors).
+- **Tier 2 (ML Models):** `models/` (pure MLX modules and metric pooling).
+- **Tier 3 (Storage & Vault):** `storage/`, `rag/` (AES-256-GCM vault, SQLite, ChromaDB).
+- **Tier 4 (Server & Services):** `server/` (FastAPI daemon, async service orchestration, SSE bus).
+- **Tier 5 (Delivery Clients):** `ui/` (React + Vite + Tailwind) and `app/` (Flutter + Riverpod).
+- **Forbidden:** Circular imports or lower layers importing from higher layers.
+
+### 3.3 Multi-Stack Quality Standards
+- **Backend (Python 3.11+ / FastAPI / MLX):** Async I/O, `mypy --strict`, Pydantic v2 schemas, deterministic `mx.eval()`, zero cloud AI SDKs, zero `torch`.
+- **Frontend (React 18+ / Vite / Tailwind):** 100% offline bundle (zero remote CDNs/fonts), components $\le 250$ lines, typed SSE subscriptions, ESLint + Prettier.
+- **Mobile (Flutter 3.24+ / Riverpod):** Feature-first architecture, Riverpod code-generation, offline encrypted SQLite outbox, `dart analyze --fatal-infos`.
+
+---
+
+## 4. Apple MLX Engineering Standards & Conventions
 
 All model architectures, sensory projection layers, and training routines must follow these Apple MLX conventions:
 
@@ -90,18 +116,24 @@ print(f"Peak Metal Memory:   {peak_bytes / 1e9:.2f} GB")
 
 ---
 
-## 4. Verification & Testing Directives
+## 5. Verification & Testing Directives
 
 Before completing any task, an agent must execute the following verification steps:
 
-### 4.1 Invariant Linting
+### 5.1 Invariant Linting
 Run a static scan to guarantee zero external cloud SDKs or unauthorized framework imports exist in production source paths:
 ```bash
 # Check for forbidden imports
 grep -rnE "(openai|anthropic|vertexai|google\.generativeai|import torch)" extraction/ models/ rag/ server/ training/
 ```
 
-### 4.2 Tensor Shape Assertions
+### 5.2 File Size & Modularity Enforcement (400-Line Ceiling)
+Verify that no implementation file violates the 400-line modularity mandate:
+```bash
+uv run python tests/check_file_sizes.py
+```
+
+### 5.3 Tensor Shape Assertions
 Every module must include runtime shape verification assertions matching the dimensions in `SPECS.md`:
 ```python
 assert x_audio.shape == (B, T_a, D_a), f"Unexpected audio shape: {x_audio.shape}"
@@ -109,7 +141,7 @@ assert x_pose.shape == (B, T_p, D_p), f"Unexpected pose shape: {x_pose.shape}"
 assert z_metric.shape == (B, 128), f"Unexpected metric embedding shape: {z_metric.shape}"
 ```
 
-### 4.3 Hardware Memory Ceiling Check
+### 5.4 Hardware Memory Ceiling Check
 Benchmark scripts must execute under memory observation to verify peak VRAM $\le 28.0\text{ GB}$ (operational peak) and strictly under $36.0\text{ GB}$ (hard invariant):
 ```bash
 python -c "
@@ -119,7 +151,7 @@ print('Peak Metal Memory (GB):', mx.get_peak_memory() / 1e9)
 "
 ```
 
-### 4.4 Parameterized CLI Execution
+### 5.5 Parameterized CLI Execution
 All CLI entrypoints (e.g., in `training/` and `server/`) must support standard runtime arguments:
 
 - `--model_size`: e.g., `14b` (default `Qwen/Qwen2.5-14B-Instruct`), `32b`.
@@ -129,11 +161,13 @@ All CLI entrypoints (e.g., in `training/` and `server/`) must support standard r
 
 ---
 
-## 5. Summary Checklist for Code Reviews
+## 6. Summary Checklist for Code Reviews
 
 Before submitting or executing a change, verify:
 
 - [ ] Has `git status` been checked, ensuring no unwanted artifacts, binary video files, or `.safetensors` are staged?
+- [ ] Is every source file strictly **$\le 400$ lines** (target $150\text{--}300$ lines), confirmed by `tests/check_file_sizes.py`?
+- [ ] Does the change adhere to the **unidirectional dependency hierarchy** (no circular or reverse imports)?
 - [ ] Does every tensor transformation match the explicit shape definitions in `docs/SPECS.md`?
 - [ ] Is `mx.fast.scaled_dot_product_attention` utilized for all multi-head attention blocks?
 - [ ] Are `mx.eval()` calls placed at deterministic synchronization points?
@@ -144,7 +178,7 @@ Before submitting or executing a change, verify:
 
 ---
 
-## 6. Scope Boundaries & Foundational Posture
+## 7. Scope Boundaries & Foundational Posture
 
 All operating agents and human contributors must strictly observe these project boundaries:
 

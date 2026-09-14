@@ -108,4 +108,5 @@ Project N follows a six-phase implementation roadmap:
 - 🧠 **[Theoretical Architecture & Design](DESIGN.md):** Detailed neurobiology, acoustic physics, pose kinematics, literature grounding, and continuous adaptation.
 - 🛡️ **[System & Safety Invariants](INVARIANTS.md):** True non-negotiable invariants (100% offline, privacy vault, frozen LLM, medical rule-out) vs. tunable empirical defaults.
 - 🤖 **[Agent Directives](AGENTS.md):** Engineering standards, MLX memory conventions, and mandatory documentation synchronization protocol.
+- 🏗️ **[Engineering Standards & Code Quality](ENGINEERING_STANDARDS.md):** Architectural layering, 400-line modularity mandate, and standards for Python/FastAPI/MLX, React/Vite/Tailwind, and Flutter/Riverpod.
 - 🤝 **[Contributor Guidelines](CONTRIBUTING.md):** Clinical and technical contribution protocols for speech-language pathologists, occupational therapists, neurodiversity advocates, and ML engineers.

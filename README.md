@@ -127,6 +127,7 @@ uv run pre-commit run --all-files
 project_n/
 ├── README.md                      # Project portal & onboarding (this file)
 ├── CONTRIBUTING.md                 # Community, clinical & technical contributor guidelines
+├── ENGINEERING_STANDARDS.md       # 400-line modularity mandate & cross-stack quality rules
 ├── INVARIANTS.md                  # Non-negotiable safety guardrails (offline, privacy, frozen LLM)
 ├── AGENTS.md                      # AI coding agent operating directives & MLX standards
 ├── pyproject.toml                 # Project metadata, dependencies, ruff & strict mypy config
@@ -141,13 +142,16 @@ project_n/
 │   ├── INVARIANTS.md              # Documentation mirror of root invariants
 │   ├── AGENTS.md                  # Documentation mirror of root agent directives
 │   ├── CONTRIBUTING.md            # Documentation mirror of contributor guidelines
+│   ├── ENGINEERING_STANDARDS.md   # Architectural standards & code quality guidelines
 │   ├── report-source.md           # Preserved original audit critique
 │   ├── stylesheets/               # Theme styling
 │   └── javascripts/               # Theme scripts & MathJax
 ├── tests/
+│   ├── check_file_sizes.py        # Automated 400-line modularity quality gate
 │   ├── check_markdown_links.py    # Automated relative markdown link validator
+│   ├── test_shapes.py             # Automated tensor shapes & contract assertions
 │   └── verify_citations.py        # Automated Crossref/DataCite DOI verifier
-├── app/                           # Cross-platform Flutter mobile client (offline outbox)
+├── app/                           # Cross-platform Flutter mobile client (Riverpod + encrypted outbox)
 ├── extraction/                    # Bioacoustic (F0, CQT) & kinematic feature extraction
 ├── models/                        # Native Apple MLX neural encoders & metric projection
 ├── rag/                           # ChromaDB episodic memory & clinical knowledge base

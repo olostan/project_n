@@ -63,6 +63,13 @@ repos:
         always_run: true
         pass_filenames: false
 
+      - id: check-file-sizes
+        name: "Code Quality: Verify 400-Line File Size Hard Ceiling"
+        entry: python3 tests/check_file_sizes.py
+        language: system
+        always_run: true
+        pass_filenames: false
+
       - id: verify-citations
         name: "Documentation: Verify Academic Citations (Pre-Push)"
         entry: python3 tests/verify_citations.py
