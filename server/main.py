@@ -1,0 +1,78 @@
+"""
+Project N: Local FastAPI Daemon.
+Main application setup, SSE streaming bus, CORS, and modular router mounting.
+"""
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
+import mlx.core as mx
+from fastapi import Depends, FastAPI, Header
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+
+from server.deps import get_sse_bus
+from server.routes import auth, clips, episodes, facts
+from server.sse_bus import SSEBus
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan manager for background workers and resource initialization."""
+    # Startup
+    yield
+    # Shutdown
+
+
+app = FastAPI(
+    title="Project N Local Assistant Daemon",
+    description="Offline behavioral insight and co-regulatory assistant running locally on Apple Silicon.",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# CORS restricted strictly to localhost origins (Invariant 1: Offline local only)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8080", "http://localhost:8080", "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount domain routers
+app.include_router(auth.router)
+app.include_router(clips.router)
+app.include_router(episodes.router)
+app.include_router(facts.router)
+
+
+@app.get("/api/v1/health")
+def health_check() -> dict[str, str | float]:
+    """System health check returning active Metal memory and engine status."""
+    active_gb = mx.get_active_memory() / 1e9
+    peak_gb = mx.get_peak_memory() / 1e9
+    return {
+        "status": "healthy",
+        "engine": "Apple MLX",
+        "active_metal_memory_gb": round(active_gb, 3),
+        "peak_metal_memory_gb": round(peak_gb, 3),
+    }
+
+
+@app.get("/api/v1/events/stream")
+async def event_stream(
+    last_event_id: str | None = Header(default=None),
+    sse: SSEBus = Depends(get_sse_bus),
+) -> StreamingResponse:
+    """Server-Sent Events (SSE) stream delivering real-time pipeline events and telemetry."""
+    eid_int = int(last_event_id) if last_event_id and last_event_id.isdigit() else None
+    return StreamingResponse(
+        sse.subscribe(last_event_id=eid_int),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

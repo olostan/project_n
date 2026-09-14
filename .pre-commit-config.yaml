@@ -23,18 +23,15 @@ repos:
         args: [--fix]
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
-        additional_dependencies:
-          - pydantic>=2.6.0
-          - types-certifi
-        args: [--strict]
-        files: ^(extraction|models|rag|server|training|tests)/.*\.py$
-
   - repo: local
     hooks:
+      - id: mypy
+        name: "Code Quality: Strict Mypy Static Type Checking"
+        entry: uv run mypy models extraction storage server tests
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: invariant-forbidden-imports
         name: "Invariant 10: Forbidden Cloud & PyTorch Imports Scan"
         entry: bash -c "! grep -rnE '(openai|anthropic|vertexai|google\\.generativeai|import torch)' extraction/ models/ rag/ server/ training/"
@@ -44,7 +41,7 @@ repos:
 
       - id: markdown-relative-links
         name: "Documentation: Verify Markdown Relative Links"
-        entry: python3 tests/check_markdown_links.py
+        entry: uv run python tests/check_markdown_links.py
         language: system
         types: [markdown]
         pass_filenames: false
@@ -58,14 +55,14 @@ repos:
 
       - id: tensor-shapes-contract
         name: "Architecture: Verify Tensor Shapes & Dimension Contracts"
-        entry: python3 tests/test_shapes.py
+        entry: uv run python tests/test_shapes.py
         language: system
         always_run: true
         pass_filenames: false
 
       - id: check-file-sizes
         name: "Code Quality: Verify 400-Line File Size Hard Ceiling"
-        entry: python3 tests/check_file_sizes.py
+        entry: uv run python tests/check_file_sizes.py
         language: system
         always_run: true
         pass_filenames: false
