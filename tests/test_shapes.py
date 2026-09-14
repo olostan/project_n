@@ -8,6 +8,8 @@ import math
 import sys
 from pathlib import Path
 
+import numpy as np
+
 # Add repository root to python path for standalone execution
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -16,6 +18,7 @@ if str(ROOT_DIR) not in sys.path:
 from models.contracts import (
     ACOUSTIC_LATENT_D,
     ACOUSTIC_LATENT_T,
+    CAREGIVER_DECISIONS,
     CONTROLLED_ACTIONS,
     CONTROLLED_ANTECEDENTS,
     CQT_BINS_PER_OCTAVE,
@@ -38,6 +41,7 @@ from models.contracts import (
     OPTICAL_FLOW_DIMS,
     OPTICAL_FLOW_GRID_X,
     OPTICAL_FLOW_GRID_Y,
+    PERFORMANCE_STATUSES,
     PHYSIOLOGY_LATENT_D,
     PHYSIOLOGY_STEPS,
     PITCH_DIMENSIONS,
@@ -103,6 +107,39 @@ def test_clip_to_window_aggregation_shapes() -> None:
     assert MIN_CLIP_WINDOWS == 6
     assert MAX_CLIP_WINDOWS == 24
 
+    # Positional magnitude decoupling invariant:
+    # L2-normalized window vectors have norm 1.0; sinusoidal encodings have norm sqrt(128/2) = 8.0.
+    # Positional encodings must be used for attention scoring ONLY, not added into the pooled value.
+    w_count = 12
+    d = METRIC_EMBEDDING_D
+    # Random normalized window vectors
+    z_w = np.random.randn(w_count, d)
+    z_w = z_w / np.linalg.norm(z_w, axis=-1, keepdims=True)
+    assert np.allclose(np.linalg.norm(z_w, axis=-1), 1.0)
+
+    # Standard sinusoidal positional encodings
+    pos = np.arange(w_count)[:, None]
+    div_term = np.exp(np.arange(0, d, 2) * -(np.log(10000.0) / d))
+    p_w = np.zeros((w_count, d))
+    p_w[:, 0::2] = np.sin(pos * div_term)
+    p_w[:, 1::2] = np.cos(pos * div_term)
+
+    # Magnitude assertion: ||p_w|| = sqrt(128/2) = 8.0
+    p_norms = np.linalg.norm(p_w, axis=-1)
+    assert np.allclose(p_norms, np.sqrt(d / 2.0))
+
+    # Attention scoring with (z_w + p_w)
+    q_clip = np.random.randn(d) * 0.02
+    scores = np.dot(z_w + p_w, q_clip) / np.sqrt(d)
+    alpha = np.exp(scores - np.max(scores))
+    alpha = alpha / np.sum(alpha)
+
+    # Value pooling aggregates pure sensory vectors z_w (without p_w):
+    z_clip_raw = np.sum(alpha[:, None] * z_w, axis=0)
+    z_clip = z_clip_raw / np.linalg.norm(z_clip_raw)
+    assert z_clip.shape == (d,)
+    assert np.isclose(np.linalg.norm(z_clip), 1.0)
+
 
 def test_physiology_pipeline_shapes() -> None:
     assert PHYSIOLOGY_STEPS == 50
@@ -123,6 +160,18 @@ def test_controlled_vocabularies() -> None:
     assert "post_school_transition" in CONTROLLED_ANTECEDENTS
     assert "loud_environment" in CONTROLLED_ANTECEDENTS
     assert "unknown" in CONTROLLED_ANTECEDENTS
+
+    assert len(PERFORMANCE_STATUSES) == 4
+    assert "completed" in PERFORMANCE_STATUSES
+    assert "attempted_refused" in PERFORMANCE_STATUSES
+    assert "aborted" in PERFORMANCE_STATUSES
+    assert "not_attempted" in PERFORMANCE_STATUSES
+
+    assert len(CAREGIVER_DECISIONS) == 4
+    assert "accepted" in CAREGIVER_DECISIONS
+    assert "modified" in CAREGIVER_DECISIONS
+    assert "declined" in CAREGIVER_DECISIONS
+    assert "open_observation" in CAREGIVER_DECISIONS
 
 
 def test_nccpc_instrument_specifications() -> None:

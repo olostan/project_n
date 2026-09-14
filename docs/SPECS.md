@@ -161,17 +161,22 @@ Mobile companion recordings capture real-world behavioral episodes spanning $L \
 │
 └── Tier 2: Macro-Trajectory Modeling (Clip-Level Sequence Pooling)
     • Sequence of window embeddings: [z^(1), z^(2), ..., z^(W)] in R^(W x 128)
-    • Temporal Positional Encoding: p_w added to preserve temporal progression (t_1 to t_W)
+    • Temporal Positional Encoding: p_w used for attention scoring to preserve temporal order
     • Narrative Arc: Captures transition [Baseline Calm -> Escalation -> Action Offered -> Settling]
-    • Clip-Level Attention Pool: z_clip = L2Norm(TemporalAttentionPool([z^(1)+p_1, ..., z^(W)+p_W])) in R^128
+    • Clip-Level Attention Pool: z_clip = L2Norm(sum_w alpha_w * z^(w)) in R^128 (pure sensory values)
     • Stored in ChromaDB `nd_confirmed_episodes` as the canonical episode representation
 ```
 
 1. **Window Slicing:** A clip of duration $L$ seconds is partitioned into $W = \lfloor L / 5.0 \rfloor$ non-overlapping, contiguous $5.0\text{s}$ windows ($W \in [6, 24]$ for clips spanning $30\text{--}120\text{s}$). Any remainder $L - 5.0 \cdot W < 5.0\text{s}$ is handled via trailing edge padding or included in the final window.
 2. **Window-Level Embeddings:** Each window $w \in \{1, \dots, W\}$ is independently processed through the acoustic, kinematic, and physiological encoders, producing window latent embedding $\mathbf{z}^{(w)} \in \mathbb{R}^{128}$ via `MetricProjectionHead`.
-3. **Macro-Trajectory Sequence Attention:** To retain the complete narrative arc without smearing temporal context, window vectors are combined with sinusoidal temporal positional encodings $\mathbf{p}_w \in \mathbb{R}^{128}$ and aggregated via clip-level temporal attention pooling:
-   $$\mathbf{z}_{clip} = \text{L2Normalize}\left(\sum_{w=1}^W \alpha_w (\mathbf{z}^{(w)} + \mathbf{p}_w)\right) \in \mathbb{R}^{128}$$
-   where $\alpha_w = \text{Softmax}\left(\frac{(\mathbf{z}^{(w)} + \mathbf{p}_w) \mathbf{q}_{clip}^T}{\sqrt{128}}\right)$ and $\mathbf{q}_{clip}$ is a learned episode query vector.
+3. **Macro-Trajectory Sequence Attention & Positional Magnitude Decoupling:**
+   To retain the complete narrative arc without smearing temporal context, window vectors are augmented with sinusoidal temporal positional encodings $\mathbf{p}_w \in \mathbb{R}^{128}$ for **attention scoring only**.
+
+   > [!IMPORTANT]
+   > **Positional Magnitude Decoupling Invariant:** Each window embedding $\mathbf{z}^{(w)}$ is L2-normalized ($\|\mathbf{z}^{(w)}\|_2 = 1$), whereas standard sinusoidal positional encodings have magnitude $\|\mathbf{p}_w\|_2 = \sqrt{128/2} = 8$. Directly adding $\mathbf{p}_w$ into the pooled value vector would cause the positional component to dominate sensory features $8:1$, causing clips to cluster by duration rather than behavioral content. Therefore, $\mathbf{p}_w$ is used strictly to score attention weights $\alpha_w$, while pooling computes a weighted sum of pure sensory representations $\mathbf{z}^{(w)}$:
+   > $$\alpha_w = \text{Softmax}\left(\frac{(\mathbf{z}^{(w)} + \mathbf{p}_w) \mathbf{q}_{clip}^T}{\sqrt{128}}\right)$$
+   > $$\mathbf{z}_{clip} = \text{L2Normalize}\left(\sum_{w=1}^W \alpha_w \mathbf{z}^{(w)}\right) \in \mathbb{R}^{128}$$
+   > Temporal progression governs *which* windows get attended to, not the direction of the stored embedding vector.
 4. **Multi-Camera & External Microphone Extensibility:**
    - **Multi-Camera Alignment:** When multiple cameras capture an episode (e.g. mobile phone camera + room tripod camera), streams are time-aligned via UTC timestamps or audio cross-correlation. For any window $w$, kinematic pose and flow features from all available angles are fused using cross-view attention pooling, ensuring robust tracking even if Child N turns away from one camera view.
    - **Multi-Microphone Ingestion:** When an external microphone (lapel or room boundary mic) is active, audio channels are aligned, and the feature extractor selects the channel with the highest Signal-to-Noise Ratio (SNR) or fuses multi-channel spectral envelopes.
@@ -388,7 +393,7 @@ CREATE INDEX idx_fact_source ON child_profile_facts(source_type);
 1. **`nd_confirmed_episodes`:**
    - Vector: 128-dimensional L2-normalized metric embedding ($\mathbf{z}_{clip}$).
    - Distance metric: `cosine`.
-   - Metadata: `episode_id`, `encoder_version_id`, `windows_count`, `antecedent_id`, `action_offered`, `action_performed`, `action_custom_label`, `caregiver_decision`, `outcome_state`, `settled_within_sec`, `child_response`, `response_channel`, `response_independence`, `nccpc_instrument`, `nccpc_score`, `pain_cutoff_breached`.
+   - Metadata: `episode_id`, `encoder_version_id`, `windows_count`, `antecedent_id`, `action_offered`, `action_performed`, `action_custom_label`, `caregiver_decision`, `performance_status`, `outcome_state`, `settled_within_sec`, `child_response`, `response_channel`, `response_independence`, `nccpc_instrument`, `nccpc_score`, `pain_cutoff_breached`.
 2. **`clinical_evidence`:**
    - Vector: 768-dimensional text embedding (`nomic-embed-text-v1.5`).
    - Distance metric: `cosine`.
@@ -642,6 +647,43 @@ class MetricProjectionHead(nn.Module):
         return z_metric  # (B, 128)
 
 
+class ClipSequenceAttentionPool(nn.Module):
+    """
+    Macro-trajectory sequence attention pooling combining W window vectors z^(w)
+    into a clip-level embedding z_clip.
+
+    IMPORTANT (Positional Encoding Magnitude Decoupling):
+    Window vectors z^(w) are L2-normalized (||z^(w)|| = 1). Standard sinusoidal
+    positional encodings have norm ||p_w|| = sqrt(128/2) = 8. Adding p_w directly
+    to the pooled vectors would cause the positional component to overpower the
+    sensory content by 8:1. Therefore, p_w is used STRICTLY for computing attention
+    weights alpha_w, while the value vectors being pooled are the pure sensory
+    representations z^(w):
+        alpha_w = Softmax( (z^(w) + p_w) * q_clip / sqrt(128) )
+        z_clip = L2Norm( sum_w alpha_w * z^(w) )
+    """
+
+    def __init__(self, d_metric: int = 128):
+        super().__init__()
+        self.d_metric = d_metric
+        # Learned clip query vector
+        self.query = mx.random.normal((d_metric,)) * 0.02
+        self.scale = 1.0 / np.sqrt(d_metric)
+
+    def __call__(self, z_windows: mx.array, p_encodings: mx.array) -> mx.array:
+        # z_windows: (B, W, 128), L2-normalized window vectors
+        # p_encodings: (W, 128), sinusoidal positional encodings
+        # Use (z + p) for attention key/scoring only:
+        keys = z_windows + p_encodings[None, :, :]  # (B, W, 128)
+        scores = mx.sum(keys * self.query[None, None, :], axis=-1, keepdims=True) * self.scale  # (B, W, 1)
+        weights = mx.softmax(scores, axis=1)  # (B, W, 1)
+
+        # Pool pure sensory window representations z^(w) (WITHOUT p_w):
+        pooled = mx.sum(z_windows * weights, axis=1)  # (B, 128)
+        norm = mx.sqrt(mx.sum(mx.square(pooled), axis=-1, keepdims=True) + 1e-8)
+        return pooled / norm  # (B, 128)
+
+
 class EpisodicPrototypeMatcher:
     """
     Episodic prototype and k-NN retrieval engine with calibrated abstention
@@ -716,10 +758,11 @@ class EpisodicPrototypeMatcher:
             candidates.append(
                 {
                     "episode_id": meta.get("episode_id", "unknown_ep"),
-                    "action_offered": meta.get("action_offered", meta.get("action_id", "open_observation")),
-                    "action_performed": meta.get("action_performed"),
+                    "action_offered": meta.get("action_offered", "open_observation"),
+                    "action_performed": meta.get("action_performed") or meta.get("action_offered", "open_observation"),
                     "action_custom_label": meta.get("action_custom_label"),
                     "caregiver_decision": meta.get("caregiver_decision", "accepted"),
+                    "performance_status": meta.get("performance_status", "completed"),
                     "outcome_state": meta.get("outcome_state"),
                     "settled_within_sec": meta.get("settled_within_sec"),
                     "child_response": meta.get("child_response", "none"),
@@ -1038,27 +1081,44 @@ def execute_inference_cycle(
             "suggested_observations": ["open_choice_board", "check_in"],
         }
 
-    # 5. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL (Grouped by action_id + custom_label)
+    # 5. CLINICAL EVIDENCE & PERSONAL KNOWLEDGE RETRIEVAL
+    # Settle statistics group strictly on action_performed (filtered to performance_status == 'completed').
+    # This guarantees that when a caregiver modifies a suggestion, the intervention that ACTUALLY
+    # took place and settled the child receives proper empirical credit.
+    # Separately, action_offered + caregiver_decision tracks suggestion acceptance rates.
     candidates = match_result["candidates"]
     action_stats: Dict[Tuple[str, Optional[str]], Dict[str, int]] = {}
     candidate_source_map: Dict[Tuple[str, Optional[str]], List[str]] = {}
+    suggestion_feedback_counts: Dict[str, int] = {
+        "accepted": 0,
+        "modified": 0,
+        "declined": 0,
+        "open_observation": 0,
+    }
 
     for c in candidates:
-        act_id = c.get("action_offered", "open_observation")
+        # Track suggestion acceptance rate independently
+        decision = c.get("caregiver_decision", "accepted")
+        if decision in suggestion_feedback_counts:
+            suggestion_feedback_counts[decision] += 1
+
+        # Settle statistics group strictly on completed action_performed
+        perf_status = c.get("performance_status", "completed")
+        if perf_status != "completed":
+            continue  # Incomplete, refused, or abandoned actions do not receive settle-rate credit
+
+        act_performed = c.get("action_performed") or c.get("action_offered", "open_observation")
         custom_label = c.get("action_custom_label")
-        group_key = (act_id, custom_label if act_id == "other_custom" else None)
+        group_key = (act_performed, custom_label if act_performed == "other_custom" else None)
         ep_id = c.get("episode_id", "unknown_ep")
 
         if group_key not in action_stats:
-            action_stats[group_key] = {"offered": 0, "settled": 0}
+            action_stats[group_key] = {"performed": 0, "settled": 0}
             candidate_source_map[group_key] = []
-        action_stats[group_key]["offered"] += 1
+        action_stats[group_key]["performed"] += 1
         candidate_source_map[group_key].append(ep_id)
 
-        if (
-            c.get("outcome_state") in ("settled_immediately", "settled_delayed")
-            and c.get("caregiver_decision") in ("accepted", "open_observation")
-        ):
+        if c.get("outcome_state") in ("settled_immediately", "settled_delayed"):
             action_stats[group_key]["settled"] += 1
 
     # Filter strictly for actions that observed at least one settling outcome
@@ -1072,7 +1132,7 @@ def execute_inference_cycle(
         sorted_actions = sorted(
             beneficial_actions,
             key=lambda item: (
-                (item[1]["settled"] + 1) / (item[1]["offered"] + 2),
+                (item[1]["settled"] + 1) / (item[1]["performed"] + 2),
                 item[1]["settled"],
             ),
             reverse=True,
@@ -1084,8 +1144,15 @@ def execute_inference_cycle(
             else "ep_prior"
         )
         top_act_id, top_custom = top_group_key
-        act_label = top_custom if top_act_id == "other_custom" and top_custom else CONTROLLED_ACTION_LABELS.get(top_act_id, top_act_id)
-        history_ratio_str = f"{act_label} (settling observed in {stats['settled']} of {stats['offered']} similar episodes)"
+        act_label = (
+            top_custom
+            if top_act_id == "other_custom" and top_custom
+            else CONTROLLED_ACTION_LABELS.get(top_act_id, top_act_id)
+        )
+        history_ratio_str = (
+            f"{act_label} (settling observed in {stats['settled']} of "
+            f"{stats['performed']} times performed in similar episodes)"
+        )
     else:
         top_group_key = None
         provenance_id = None

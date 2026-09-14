@@ -129,3 +129,17 @@ RESPONSE_INDEPENDENCE: Final[set[str]] = {
     "refusal",
     "none",
 }
+
+PERFORMANCE_STATUSES: Final[set[str]] = {
+    "completed",
+    "attempted_refused",
+    "aborted",
+    "not_attempted",
+}
+
+CAREGIVER_DECISIONS: Final[set[str]] = {
+    "accepted",
+    "modified",
+    "declined",
+    "open_observation",
+}
