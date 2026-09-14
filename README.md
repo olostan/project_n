@@ -166,10 +166,10 @@ Project N follows a six-phase implementation roadmap:
 - [x] Scientific rationale, clinical dyadic foundations, and whitepaper published.
 - [x] Architecture, system invariants, and technical specifications formalized.
 - [x] Prespecified evaluation protocol and safety promotion gates established.
-- [ ] **Phase 0:** Baseline Calibration & Cold-Start Onboarding (passive ambient profiling, initial 20-episode uncalibrated store).
-- [ ] **Phase 1:** Feature Extraction, Ingestion & Encrypted Vault (acoustic, kinematic, unattended LaunchAgent vault, and local FastAPI daemon).
-- [ ] **Phase 2:** Modality-Specific Attention Pooling (hierarchical clip sequence model, episodic memory SQLite + ChromaDB, and medical triage screener).
-- [ ] **Phase 3:** Cross-Platform Flutter Companion Client (offline outbox, local mTLS pairing, and unattended media streaming).
+- [x] **Phase 0:** Baseline Calibration & Cold-Start Onboarding (passive ambient profiling, contracts, initial 20-episode uncalibrated store).
+- [x] **Phase 1:** Feature Extraction, Ingestion & Encrypted Vault (acoustic, kinematic, unattended LaunchAgent vault, and local FastAPI daemon).
+- [x] **Phase 2:** Modality-Specific Attention Pooling (hierarchical clip sequence model, episodic memory SQLite + ChromaDB, and medical triage screener).
+- [x] **Phase 3:** Cross-Platform Flutter Companion Client (offline outbox, local mTLS pairing, and unattended media streaming).
 - [ ] **Phase 4:** Zero-Cloud React Dashboard, Clinical RAG Library, and Clinic-to-Home Knowledge Transfer Engine.
 - [ ] **Phase 5:** Longitudinal Single-Participant N-of-1 Evaluation, Holdout Assertion Pipeline (B1–B4), and Gated Model Promotion.
 
