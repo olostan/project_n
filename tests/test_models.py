@@ -208,3 +208,15 @@ def test_personal_baseline_profiler() -> None:
     assert stats["f0_upper_limit_hz"] >= 400.0
     assert stats["cpp_mean_db"] == 8.0
     assert stats["cpp_lower_limit_db"] <= 8.0
+
+
+def test_frozen_weights_invariant_dispatch() -> None:
+    from tests.verify_frozen_weights import test_frozen_weights_invariant
+
+    test_frozen_weights_invariant()
+
+
+def test_memory_ceiling_invariant_dispatch() -> None:
+    from tests.verify_memory_ceiling import test_memory_ceiling_invariant
+
+    test_memory_ceiling_invariant()
