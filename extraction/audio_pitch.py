@@ -76,7 +76,17 @@ def extract_pitch_features(
             peak_val = float(search_region[peak_idx - min_lag])
 
             if peak_val > 0.35 and rms > 0.005:
-                f0_arr[i] = float(sr / peak_idx)
+                # Parabolic peak interpolation on autocorrelation lags (eliminates quantization floor)
+                if 0 < peak_idx < len(autocorr) - 1:
+                    alpha = float(autocorr[peak_idx - 1])
+                    beta = float(autocorr[peak_idx])
+                    gamma = float(autocorr[peak_idx + 1])
+                    denom = alpha - 2.0 * beta + gamma
+                    delta = 0.5 * (alpha - gamma) / denom if abs(denom) > 1e-8 else 0.0
+                    refined_lag = max(float(min_lag), min(float(max_lag), float(peak_idx) + delta))
+                else:
+                    refined_lag = float(peak_idx)
+                f0_arr[i] = float(sr / refined_lag)
                 voicing_arr[i] = min(peak_val, 1.0)
                 hnr_arr[i] = float(10.0 * np.log10(max(peak_val / (1.0 - peak_val + 1e-6), 0.1)))
             else:
@@ -104,28 +114,45 @@ def extract_pitch_features(
             poly = np.polyfit(freqs[mask_4k], 20.0 * np.log10(spec[mask_4k]), deg=1)
             tilt_arr[i] = float(poly[0])
 
-        # 4. Cepstral Peak Prominence (CPP)
+        # 4. Cepstral Peak Prominence (CPP) via true linear regression baseline
         log_spec = np.log(spec**2 + 1e-12)
         cepstrum = np.real(np.fft.irfft(log_spec))
         q_min, q_max = min_lag, min(max_lag, len(cepstrum) // 2)
-        if q_max > q_min:
+        if q_max > q_min + 5:
             q_region = cepstrum[q_min:q_max]
-            peak = float(np.max(q_region))
-            mean_c = float(np.mean(q_region))
-            cpp_arr[i] = max(0.0, float(20.0 * (peak - mean_c)))
+            quefrencies = np.arange(q_min, q_max, dtype=np.float64)
+            poly_c = np.polyfit(quefrencies, q_region, deg=1)
+            baseline = np.polyval(poly_c, quefrencies)
+            prominence = q_region - baseline
+            cpp_arr[i] = max(0.0, float(20.0 * np.max(prominence)))
 
     # Derivatives
     delta_f0 = np.gradient(f0_arr)
     delta2_f0 = np.gradient(delta_f0)
     delta_rms = np.gradient(rms_arr)
 
-    # Voice perturbation metrics (Jitter & Shimmer approximation across frames)
-    diff_f0 = np.abs(np.diff(f0_arr, prepend=f0_arr[0]))
-    mean_f0 = np.maximum(f0_arr, 50.0)
-    jitter_local = diff_f0 / mean_f0
+    # Voice perturbation metrics strictly over voiced segments (>3 consecutive cycles)
+    jitter_local = np.zeros(target_frames, dtype=np.float32)
+    shimmer_local = np.zeros(target_frames, dtype=np.float32)
 
-    diff_rms = np.abs(np.diff(np.maximum(rms_arr, -80.0), prepend=rms_arr[0]))
-    shimmer_local = diff_rms / 80.0
+    voiced_indices = np.where(voicing_arr > 0.35)[0]
+    if len(voiced_indices) > 3:
+        segments = np.split(voiced_indices, np.where(np.diff(voiced_indices) > 1)[0] + 1)
+        for seg in segments:
+            if len(seg) >= 3:
+                periods = sr / np.maximum(f0_arr[seg], 50.0)
+                mean_p = float(np.mean(periods))
+                if mean_p > 0:
+                    diff_p = np.abs(np.diff(periods))
+                    j_val = float(np.mean(diff_p) / mean_p)
+                    jitter_local[seg] = j_val
+
+                amps = 10.0 ** (rms_arr[seg] / 20.0)
+                mean_a = float(np.mean(amps))
+                if mean_a > 1e-6:
+                    diff_a = np.abs(np.diff(amps))
+                    s_val = float(np.mean(diff_a) / mean_a)
+                    shimmer_local[seg] = s_val
 
     jitter_rap = scipy.signal.medfilt(jitter_local, kernel_size=3)
     shimmer_apq3 = scipy.signal.medfilt(shimmer_local, kernel_size=3)

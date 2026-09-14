@@ -11,8 +11,9 @@ from server.deps import get_analysis_service
 
 def test_four_layer_output_structure_normal() -> None:
     service = get_analysis_service()
-    audio = np.zeros(240000, dtype=np.float32)
-    frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(30)]
+    t = np.linspace(0, 5.0, 240000, endpoint=False)
+    audio = (0.5 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    frames = [np.zeros(258, dtype=np.float32) for _ in range(30)]
 
     out = service.analyze_sensory_clip(
         clip_id="test_schema_norm",
@@ -54,20 +55,21 @@ def test_four_layer_output_structure_normal() -> None:
 def test_four_layer_output_suppression_on_distress() -> None:
     """When distress anomaly triggers, Layer 2 MUST be suppressed per Invariant 7 & 6."""
     service = get_analysis_service()
-    audio = np.zeros(240000, dtype=np.float32)
-    frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(30)]
+    t = np.linspace(0, 5.0, 240000, endpoint=False)
+    high_pitch_audio = (0.7 * np.sin(2 * np.pi * 500.0 * t)).astype(np.float32)
+    frames = [np.zeros(258, dtype=np.float32) for _ in range(30)]
 
-    # Provide baseline where limits trigger distress anomaly
+    # Provide calibrated baseline where upper f0 limit is 400 Hz (500 Hz triggers excursion)
     baseline_stats = {
         "calibrated_episodes_count": 15,
         "calibrated_days_count": 7,
-        "f0_upper_limit_hz": 50.0,  # Below measured or guard triggered
-        "cpp_lower_limit_db": 50.0,  # Floor > measured triggers anomaly
+        "f0_upper_limit_hz": 400.0,
+        "cpp_lower_limit_db": 3.0,
     }
 
     out = service.analyze_sensory_clip(
         clip_id="test_schema_distress",
-        audio_pcm=audio,
+        audio_pcm=high_pitch_audio,
         video_frames=frames,
         baseline_stats=baseline_stats,
     )

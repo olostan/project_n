@@ -40,7 +40,7 @@ def extract_kinematic_latent(
         tracker = PoseTracker()
 
     # 1. Pose landmarks & guarding detection (150, 258)
-    landmarks_seq, acute_guarding = tracker.process_frames(frames)
+    landmarks_seq, acute_guarding, mean_confidence = tracker.process_frames(frames)
 
     # 2. Optical flow sequence (150, 128)
     flow_seq = compute_sequence_optical_flow(frames, target_frames=VIDEO_FRAMES)
@@ -72,6 +72,7 @@ def extract_kinematic_latent(
         "motion_rhythm_hz": round(rhythm_hz, 2),
         "acute_guarding_detected": acute_guarding,
         "mean_flow_velocity": round(mean_velocity, 2),
+        "mean_pose_confidence": round(mean_confidence, 2),
     }
 
     return x_kinematic, metrics

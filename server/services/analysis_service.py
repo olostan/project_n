@@ -13,6 +13,7 @@ import numpy as np
 
 from extraction.audio_pipeline import extract_acoustic_latent
 from extraction.kinematic_pipeline import extract_kinematic_latent
+from extraction.signal_quality import evaluate_signal_quality
 from extraction.windowing import slice_audio_windows, slice_video_windows
 from models.anomaly import AcuteDistressAnomalyDetector
 from models.clip_encoder import (
@@ -113,6 +114,8 @@ class AnalysisService:
         measured_cpps: list[float] = []
         motion_rhythms: list[float] = []
         guarding_flags: list[bool] = []
+        pose_confidences: list[float] = []
+        flow_velocities: list[float] = []
 
         for w_idx in range(windows_count):
             a_win = (
@@ -138,6 +141,8 @@ class AnalysisService:
             kinematic_latents.append(x_k)
             motion_rhythms.append(float(k_metrics.get("motion_rhythm_hz", 0.0)))
             guarding_flags.append(bool(k_metrics.get("acute_guarding_detected", False)))
+            pose_confidences.append(float(k_metrics.get("mean_pose_confidence", 1.0)))
+            flow_velocities.append(float(k_metrics.get("mean_flow_velocity", 0.0)))
 
         self.sse_bus.publish(
             "processing_progress",
@@ -198,19 +203,49 @@ class AnalysisService:
             query_vector=z_clip, confirmed_collection=confirmed_coll
         )
 
-        # 6. Construct 4-Layer Output Separation (docs/SPECS.md §4.1)
+        # 6. Construct 4-Layer Output Separation with Fail-Closed Quality Gates (docs/SPECS.md §4.1, §4.2)
+        mean_pose_conf = float(np.mean(pose_confidences)) if pose_confidences else 1.0
+        mean_flow_vel = float(np.mean(flow_velocities)) if flow_velocities else 0.0
+        quality_report = evaluate_signal_quality(
+            audio_pcm=audio_pcm,
+            mean_pose_confidence=mean_pose_conf,
+            mean_flow_velocity=mean_flow_vel,
+        )
+
         layer1_sensory = {
             "windows_count": windows_count,
             "observed_f0_mean_hz": round(mean_f0, 2),
             "observed_cpp_db": round(mean_cpp, 2),
             "observed_motion_rhythm_hz": round(mean_rhythm, 2),
             "acute_guarding_detected": acute_guarding,
+            "signal_quality": quality_report.to_dict(),
         }
 
         distress_triggered = screener_result.get("distress_anomaly", False)
         retrieved_candidates = match_result.get("candidates") or match_result.get("matches", [])
 
-        if distress_triggered:
+        if quality_report.all_modalities_failed:
+            self.sse_bus.publish(
+                "signal_quality_abstained",
+                {
+                    "task_id": t_id,
+                    "clip_id": clip_id,
+                    "breaches": quality_report.breaches,
+                },
+            )
+            layer2_hypotheses = {
+                "status": "abstained",
+                "explanation": (
+                    "Sensory interpretations suppressed: all input modalities breached fail-closed quality gates. "
+                    + "; ".join(quality_report.breaches)
+                ),
+                "matches": [],
+            }
+            layer3_dyadic = {
+                "suggested_actions": ["open_observation"],
+                "rationale": "Sensory signal quality insufficient for reliable behavioral matching.",
+            }
+        elif distress_triggered:
             layer2_hypotheses = {
                 "status": "suppressed_due_to_anomaly",
                 "explanation": (
