@@ -66,3 +66,11 @@ class SSEBus:
                     yield f":keep-alive {int(time.time())}\n\n"
         finally:
             self.subscribers.discard(queue)
+
+    def get_recent_events(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Returns the most recent events as parsed dictionaries."""
+        recent = self.replay_buffer[-limit:]
+        return [
+            {"id": eid, "event": etype, "data": json.loads(epayload)}
+            for eid, etype, epayload in recent
+        ]

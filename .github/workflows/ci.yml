@@ -52,7 +52,7 @@ jobs:
 
       - name: "Static Typing: Mypy Strict Mode"
         run: |
-          uv run mypy models tests
+          uv run mypy models extraction storage server tests
 
       - name: "Architecture: Tensor Shape & Dimension Contracts"
         run: |
