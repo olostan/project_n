@@ -142,7 +142,6 @@ project_n/
 │   ├── INVARIANTS.md              # Documentation mirror of root invariants
 │   ├── AGENTS.md                  # Documentation mirror of root agent directives
 │   ├── CONTRIBUTING.md            # Documentation mirror of contributor guidelines
-│   ├── ENGINEERING_STANDARDS.md   # Architectural standards & code quality guidelines
 │   ├── report-source.md           # Preserved original audit critique
 │   ├── stylesheets/               # Theme styling
 │   └── javascripts/               # Theme scripts & MathJax

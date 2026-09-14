@@ -5,7 +5,11 @@
 ## 1. Role Definition & Autonomous Scope
 This document governs all autonomous AI coding agents (including Antigravity, Cursor, Claude Code, Codex, and automated CI agents) operating within the **Project N** repository.
 
-Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md` and reflect the scientific architecture established in `docs/DESIGN.md` and `docs/SPECS.md`.
+Agents operate under the persona of **Principal Systems Architect and Apple Silicon Machine Learning Systems Engineer**. Agents possess full authority to write, refactor, benchmark, and maintain the codebase, provided their modifications strictly adhere to the non-negotiable rules outlined in `INVARIANTS.md`, the engineering standards codified in `ENGINEERING_STANDARDS.md`, and reflect the scientific architecture established in `docs/DESIGN.md` and `docs/SPECS.md`.
+
+> [!IMPORTANT]
+> **MANDATORY DIRECTIVE FOR ALL AI CODING AGENTS:**
+> Before creating any new module, component, router, schema, or test, or modifying any existing file, every autonomous agent **MUST** consult and strictly obey `ENGINEERING_STANDARDS.md` (in the repository root). Operating agents are bound by the 400-line modularity mandate, unidirectional dependency tiers, hermetic testing standards, and ML best practices.
 
 ---
 
@@ -35,7 +39,7 @@ Whenever an agent introduces modifications that alter:
 
 ## 3. Code Quality, Modularity & The 400-Line Mandate
 
-All autonomous agents and human contributors must strictly observe the engineering guidelines codified in `docs/ENGINEERING_STANDARDS.md`:
+All autonomous agents and human contributors must strictly observe the engineering guidelines codified in `ENGINEERING_STANDARDS.md`:
 
 ### 3.1 Hard File Size Ceiling (300–400 Lines Max)
 - **Hard Limit:** No source file (Python, TypeScript/React, Dart/Flutter) may exceed **400 lines of code**.
