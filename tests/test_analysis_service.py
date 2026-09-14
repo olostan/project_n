@@ -4,6 +4,8 @@ Verifies end-to-end multimodal extraction, metric projection, anomaly screening,
 and 4-layer output structuring.
 """
 
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -48,10 +50,10 @@ def test_analysis_service_end_to_end_cold_start(analysis_service: AnalysisServic
         baseline_stats=None,  # Cold start / uncalibrated
     )
 
-    # Verify return schema
+    # Verify return schema in uncalibrated cold start
     assert res["episode_id"] == clip_id
-    assert res["encoder_version"] == "v1.0.0"
-    assert len(res["metric_embedding"]) == METRIC_EMBEDDING_D
+    assert res["encoder_version"] == "uncalibrated_v0"
+    assert res["metric_embedding"] is None
 
     # Verify L1 Sensory Observations
     l1 = res["layer1_sensory"]
@@ -112,3 +114,28 @@ def test_analysis_service_acute_distress_triage_precedence(
     l4 = res["layer4_safety"]
     assert l4["distress_anomaly_detected"]
     assert "PHYSICAL COMFORT CHECK SUGGESTED" in l4["screener_recommendation"]
+
+
+def test_analysis_service_with_trained_checkpoint(
+    tmp_path: Path, analysis_service: AnalysisService
+) -> None:
+    # Save dummy checkpoint and load into projection head
+    ckpt_file = tmp_path / "model.safetensors"
+    analysis_service.projection_head.save_checkpoint(str(ckpt_file))
+    ckpt_hash = analysis_service.projection_head.load_checkpoint(str(ckpt_file))
+    assert analysis_service.projection_head.is_trained
+
+    t = np.linspace(0, 5.0, RAW_AUDIO_SAMPLES, endpoint=False)
+    audio = (0.5 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(150)]
+
+    res = analysis_service.analyze_sensory_clip(
+        clip_id="test_clip_trained",
+        audio_pcm=audio,
+        video_frames=frames,
+    )
+
+    assert res["encoder_version"] == f"ckpt_{ckpt_hash[:8]}"
+    assert res["metric_embedding"] is not None
+    assert len(res["metric_embedding"]) == METRIC_EMBEDDING_D
+    assert analysis_service.get_clip_embedding("test_clip_trained") is not None

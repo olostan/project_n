@@ -69,3 +69,39 @@ jobs:
       - name: "Testing: Hermetic Pytest Suite"
         run: |
           uv run pytest -v
+
+  apple-silicon-verification:
+    name: Apple Silicon Metal Execution (macos-14)
+    runs-on: macos-14
+    needs: quality-gate
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Install Dependencies with MLX
+        run: |
+          uv sync --extra dev
+
+      - name: "MLX Hardware Memory Verification"
+        run: |
+          uv run python -c "
+          import mlx.core as mx
+          print('Active Metal Memory (GB):', mx.get_active_memory() / 1e9)
+          print('Peak Metal Memory (GB):', mx.get_peak_memory() / 1e9)
+          "
+
+      - name: "MLX Neural Module Verification"
+        run: |
+          uv run pytest -v tests/test_shapes.py tests/test_analysis_service.py

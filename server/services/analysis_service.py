@@ -59,6 +59,11 @@ class AnalysisService:
         self.prototype_matcher = prototype_matcher or EpisodicPrototypeMatcher(
             tau_abstain=0.35, is_calibrated=False
         )
+        self._clip_embeddings: dict[str, list[float]] = {}
+
+    def get_clip_embedding(self, clip_id: str) -> list[float] | None:
+        """Returns cached 128-dim metric embedding if computed with a trained checkpoint."""
+        return self._clip_embeddings.get(clip_id)
 
     def analyze_sensory_clip(
         self,
@@ -169,9 +174,11 @@ class AnalysisService:
 
         # 4. Acute Distress Anomaly Screening
         mean_f0 = float(np.mean(measured_f0s)) if measured_f0s else 0.0
-        mean_cpp = float(np.mean(measured_cpps)) if measured_cpps else 0.0
+        active_cpps = [c for c in measured_cpps if c > 0.0]
+        mean_cpp = float(np.mean(active_cpps)) if active_cpps else 0.0
         acute_guarding = any(guarding_flags)
-        mean_rhythm = float(np.mean(motion_rhythms)) if motion_rhythms else 0.0
+        active_rhythms = [r for r in motion_rhythms if r > 0.0]
+        mean_rhythm = float(np.mean(active_rhythms)) if active_rhythms else 0.0
 
         screener_result = AcuteDistressAnomalyDetector.evaluate(
             measured_features={
@@ -183,6 +190,9 @@ class AnalysisService:
         )
 
         # 5. Episodic Prototype Matching via Vector Store
+        if not self.projection_head.is_trained:
+            self.prototype_matcher.is_calibrated = False
+
         confirmed_coll = self.vector_store.confirmed_episodes
         match_result = self.prototype_matcher.match(
             query_vector=z_clip, confirmed_collection=confirmed_coll
@@ -198,6 +208,7 @@ class AnalysisService:
         }
 
         distress_triggered = screener_result.get("distress_anomaly", False)
+        retrieved_candidates = match_result.get("candidates") or match_result.get("matches", [])
 
         if distress_triggered:
             layer2_hypotheses = {
@@ -216,7 +227,7 @@ class AnalysisService:
             layer2_hypotheses = {
                 "status": "active" if not match_result.get("abstained") else "abstained",
                 "explanation": match_result.get("reason", "Retrieved historical matches"),
-                "matches": match_result.get("matches", []),
+                "matches": retrieved_candidates,
             }
             suggested = (
                 ["quiet_refuge", "sensory_break"]
@@ -238,14 +249,25 @@ class AnalysisService:
             ),
         }
 
+        # Determine version and metric embedding emission
+        if self.projection_head.is_trained and self.projection_head.checkpoint_hash:
+            encoder_version = f"ckpt_{self.projection_head.checkpoint_hash[:8]}"
+            emb_arr = np.array(z_clip[0], dtype=np.float32)
+            metric_list: list[float] = [float(x) for x in emb_arr]
+            metric_embedding: list[float] | None = metric_list
+            self._clip_embeddings[clip_id] = metric_list
+        else:
+            encoder_version = "uncalibrated_v0"
+            metric_embedding = None
+
         output: dict[str, Any] = {
             "episode_id": clip_id,
-            "encoder_version": "v1.0.0",
+            "encoder_version": encoder_version,
             "layer1_sensory": layer1_sensory,
             "layer2_hypotheses": layer2_hypotheses,
             "layer3_dyadic": layer3_dyadic,
             "layer4_safety": layer4_safety,
-            "metric_embedding": z_clip[0].tolist(),
+            "metric_embedding": metric_embedding,
         }
 
         # 7. Persist Episode to Repository
@@ -253,7 +275,7 @@ class AnalysisService:
             {
                 "id": clip_id,
                 "vault_uri": f"vault://{clip_id}.enc",
-                "encoder_version_id": "v1.0.0",
+                "encoder_version_id": encoder_version,
                 "captured_at": "2026-09-14T00:00:00Z",
                 "duration_ms": windows_count * 5000,
                 "windows_count": windows_count,

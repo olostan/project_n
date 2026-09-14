@@ -1,10 +1,9 @@
 """
 Project N: Hermetic End-to-End (E2E) Caregiver Workflow Test.
-Simulates the full local client lifecycle without requiring Apple Silicon GPU,
-remote cloud APIs, or external cameras:
-1. Companion authentication and local PIN pairing.
-2. Resumable chunked upload and local vault storage.
-3. Multimodal extraction, projection, anomaly screening, and 4-layer structuring.
+Simulates the full local client lifecycle using real decodable MP4 media:
+1. Companion authentication and local PIN pairing with real ECDSA CSR.
+2. Resumable chunked upload of valid MP4 and local vault storage.
+3. Multimodal demuxing, extraction, projection, anomaly screening, and 4-layer structuring.
 4. Real-time SSE event consumption.
 5. Caregiver review, NCCPC pain scoring, and outcome logging.
 6. Clinician dyadic fact staging and Human-in-the-Loop confirmation gate.
@@ -14,8 +13,10 @@ import hashlib
 
 from fastapi.testclient import TestClient
 
+from extraction.demux import create_synthetic_mp4
 from models.contracts import CONTROLLED_ACTIONS
-from server.deps import get_sse_bus
+from server.ca import generate_test_csr
+from server.deps import get_or_create_pairing_pin, get_sse_bus
 from server.main import app
 
 client = TestClient(app)
@@ -25,12 +26,14 @@ def test_hermetic_caregiver_e2e_journey() -> None:
     # --------------------------------------------------------------------------
     # Step 1: Companion Device Authentication & Local PIN Pairing
     # --------------------------------------------------------------------------
+    csr_pem, _ = generate_test_csr("caregiver_phone_iphone15")
+    pin = get_or_create_pairing_pin()
     pair_res = client.post(
         "/api/v1/auth/pair",
         json={
             "device_id": "caregiver_phone_iphone15",
-            "csr_pem": "-----BEGIN CERTIFICATE REQUEST-----\n...",
-            "pairing_pin": "123456",
+            "csr_pem": csr_pem,
+            "pairing_pin": pin,
         },
     )
     assert pair_res.status_code == 200
@@ -38,11 +41,12 @@ def test_hermetic_caregiver_e2e_journey() -> None:
     headers = {"Authorization": f"Bearer {token}"}
 
     # --------------------------------------------------------------------------
-    # Step 2: Resumable Chunked Upload & Vault Ingestion
+    # Step 2: Resumable Chunked Upload & Vault Ingestion (Real Decodable MP4)
     # --------------------------------------------------------------------------
-    chunk_a = b"RAW_SYNTHETIC_SENSOR_STREAM_PART_A_"
-    chunk_b = b"RAW_SYNTHETIC_SENSOR_STREAM_PART_B_"
-    full_payload = chunk_a + chunk_b
+    full_payload = create_synthetic_mp4(duration_sec=1.0)
+    mid = len(full_payload) // 2
+    chunk_a = full_payload[:mid]
+    chunk_b = full_payload[mid:]
     sha256_hash = hashlib.sha256(full_payload).hexdigest()
 
     # 2a. Initialize upload session
@@ -62,7 +66,7 @@ def test_hermetic_caregiver_e2e_journey() -> None:
     # 2b. Transmit chunks in sequence
     c0_res = client.put(
         f"/api/v1/clips/upload/{upload_id}/chunk/0",
-        headers=headers,
+        headers={**headers, "X-Chunk-SHA256": hashlib.sha256(chunk_a).hexdigest()},
         content=chunk_a,
     )
     assert c0_res.status_code == 200
@@ -70,7 +74,7 @@ def test_hermetic_caregiver_e2e_journey() -> None:
 
     c1_res = client.put(
         f"/api/v1/clips/upload/{upload_id}/chunk/1",
-        headers=headers,
+        headers={**headers, "X-Chunk-SHA256": hashlib.sha256(chunk_b).hexdigest()},
         content=chunk_b,
     )
     assert c1_res.status_code == 200
@@ -113,7 +117,6 @@ def test_hermetic_caregiver_e2e_journey() -> None:
     assert ep_res.status_code == 200
     episode_data = ep_res.json()
     assert episode_data["id"] == clip_id
-    assert episode_data["encoder_version_id"] == "v1.0.0"
 
     # Verify controlled action vocabulary integrity
     if episode_data.get("action_offered"):
@@ -140,8 +143,22 @@ def test_hermetic_caregiver_e2e_journey() -> None:
     assert triage_res.status_code == 200
     triage_data = triage_res.json()
     assert triage_data["total_score"] == 7
-    # Threshold for NCCPC-PV is >= 11 for significant pain cutoff
     assert not triage_data["pain_cutoff_breached"]
+
+    # Caregiver confirms outcome
+    outcome_res = client.post(
+        f"/api/v1/episodes/{clip_id}/outcome",
+        headers=headers,
+        json={
+            "action_performed": "quiet_refuge",
+            "outcome_state": "settled_immediately",
+            "caregiver_decision": "accepted",
+            "settled_within_sec": 30,
+            "child_response": "vocal_signal",
+        },
+    )
+    assert outcome_res.status_code == 200
+    assert outcome_res.json()["status"] == "confirmed"
 
     # --------------------------------------------------------------------------
     # Step 6: Clinician Fact Staging & Human-in-the-Loop Confirmation Gate

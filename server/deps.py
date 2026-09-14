@@ -2,11 +2,15 @@
 Project N: FastAPI Dependency Injection Providers.
 """
 
+import os
+import secrets
 import sqlite3
+import time
 
 from fastapi import Header, HTTPException, status
 
 from rag.vector_store import VectorStore
+from server.ca import LocalCertificateAuthority
 from server.services.analysis_service import AnalysisService
 from server.sse_bus import SSEBus
 from storage.db_schema import init_db
@@ -20,7 +24,47 @@ _vault_manager: VaultManager | None = None
 _vector_store: VectorStore | None = None
 _analysis_service: AnalysisService | None = None
 _sse_bus: SSEBus = SSEBus()
-_valid_tokens: set[str] = {"mock_local_paired_token", "dev_token"}
+
+# Token registry: token -> expiration epoch timestamp
+_issued_tokens: dict[str, float] = {}
+
+# Ephemeral pairing PIN
+_active_pairing_pin: str | None = None
+_pairing_pin_expires_at: float = 0.0
+
+
+def get_or_create_pairing_pin(ttl_seconds: int = 300) -> str:
+    """Returns the current valid pairing PIN or generates an ephemeral 6-digit PIN."""
+    global _active_pairing_pin, _pairing_pin_expires_at
+    env_pin = os.getenv("PROJECT_N_PAIRING_PIN")
+    if env_pin:
+        return env_pin
+    now = time.time()
+    if _active_pairing_pin is None or now >= _pairing_pin_expires_at:
+        _active_pairing_pin = f"{secrets.randbelow(1_000_000):06d}"
+        _pairing_pin_expires_at = now + ttl_seconds
+    return _active_pairing_pin
+
+
+def register_token(token: str, expires_at_epoch: float) -> None:
+    """Registers an authenticated paired token with an expiration timestamp."""
+    _issued_tokens[token] = expires_at_epoch
+
+
+def revoke_token(token: str) -> None:
+    """Revokes a paired token."""
+    _issued_tokens.pop(token, None)
+
+
+def is_token_valid(token: str) -> bool:
+    """Validates token presence and expiration."""
+    exp = _issued_tokens.get(token)
+    if exp is None:
+        return False
+    if time.time() >= exp:
+        _issued_tokens.pop(token, None)
+        return False
+    return True
 
 
 def get_db() -> sqlite3.Connection:
@@ -56,6 +100,10 @@ def get_sse_bus() -> SSEBus:
     return _sse_bus
 
 
+def get_ca() -> LocalCertificateAuthority:
+    return LocalCertificateAuthority.get_instance()
+
+
 def get_analysis_service() -> AnalysisService:
     global _analysis_service
     if _analysis_service is None:
@@ -69,17 +117,16 @@ def get_analysis_service() -> AnalysisService:
 
 
 def verify_auth_token(authorization: str | None = Header(default=None)) -> str:
-    """Verifies local paired Bearer token."""
+    """Verifies local paired Bearer token and enforces expiration."""
     if not authorization or not authorization.startswith("Bearer "):
-        # For development / initial pairing, allow dev tokens or raise 401
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing or invalid Bearer authentication token.",
         )
     token = authorization.split("Bearer ")[1].strip()
-    if token not in _valid_tokens:
+    if not is_token_valid(token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unrecognized local paired client token.",
+            detail="Unrecognized or expired local paired client token.",
         )
     return token

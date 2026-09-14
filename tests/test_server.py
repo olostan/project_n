@@ -1,16 +1,37 @@
 """
 Project N: Integration Tests for Tier 4 Server, REST APIs, and SSE Stream.
 Verifies FastAPI endpoints using TestClient: PIN pairing, chunked upload,
-episodes querying, NCCPC pain checklist scoring, facts staging, and health check.
+episodes querying, media streaming from vault, outcome confirmation, NCCPC pain scoring, and facts staging.
 """
 
 import hashlib
+from typing import Any
 
 from fastapi.testclient import TestClient
 
+from extraction.demux import create_synthetic_mp4
+from server.ca import generate_test_csr
+from server.deps import get_episode_repo, get_or_create_pairing_pin, get_vault
 from server.main import app
 
 client = TestClient(app)
+
+
+def _get_authenticated_headers() -> dict[str, str]:
+    """Helper to pair a device and obtain authenticated Bearer headers."""
+    csr_pem, _ = generate_test_csr("test_paired_device")
+    pin = get_or_create_pairing_pin()
+    pair_res = client.post(
+        "/api/v1/auth/pair",
+        json={
+            "device_id": "test_device_01",
+            "csr_pem": csr_pem,
+            "pairing_pin": pin,
+        },
+    )
+    assert pair_res.status_code == 200
+    token = pair_res.json()["token"]
+    return {"Authorization": f"Bearer {token}"}
 
 
 def test_health_check() -> None:
@@ -23,32 +44,44 @@ def test_health_check() -> None:
 
 
 def test_auth_pin_pairing() -> None:
+    csr_pem, _ = generate_test_csr("device_pairing_test")
+    pin = get_or_create_pairing_pin()
+
     # 1. Invalid PIN fails
     fail_res = client.post(
         "/api/v1/auth/pair",
-        json={"device_id": "test_phone_01", "csr_pem": "test_csr", "pairing_pin": "999999"},
+        json={"device_id": "test_phone_01", "csr_pem": csr_pem, "pairing_pin": "00000000"},
     )
     assert fail_res.status_code == 400
 
-    # 2. Valid PIN succeeds and yields token
+    # 2. Invalid CSR fails
+    bad_csr_res = client.post(
+        "/api/v1/auth/pair",
+        json={"device_id": "test_phone_01", "csr_pem": "not_a_csr", "pairing_pin": pin},
+    )
+    assert bad_csr_res.status_code == 400
+
+    # 3. Valid PIN and CSR succeeds and yields token + X.509 cert
     success_res = client.post(
         "/api/v1/auth/pair",
-        json={"device_id": "test_phone_01", "csr_pem": "test_csr", "pairing_pin": "123456"},
+        json={"device_id": "test_phone_01", "csr_pem": csr_pem, "pairing_pin": pin},
     )
     assert success_res.status_code == 200
     data = success_res.json()
     assert "token" in data
     assert data["token"].startswith("paired_")
+    assert "BEGIN CERTIFICATE" in data["client_cert_pem"]
 
 
 def test_chunked_upload_and_finalize() -> None:
-    headers = {"Authorization": "Bearer mock_local_paired_token"}
+    headers = _get_authenticated_headers()
 
-    # Prepare payload: 2 chunks
-    chunk1 = b"PART_1_RAW_VIDEO_CONTENT_"
-    chunk2 = b"PART_2_RAW_VIDEO_CONTENT_"
-    full_payload = chunk1 + chunk2
+    # Prepare real payload: synthetic MP4
+    full_payload = create_synthetic_mp4(duration_sec=1.0)
     payload_hash = hashlib.sha256(full_payload).hexdigest()
+    mid = len(full_payload) // 2
+    chunk1 = full_payload[:mid]
+    chunk2 = full_payload[mid:]
 
     # 1. Init upload
     init_res = client.post(
@@ -67,14 +100,14 @@ def test_chunked_upload_and_finalize() -> None:
     # 2. Upload chunks
     c1_res = client.put(
         f"/api/v1/clips/upload/{upload_id}/chunk/0",
-        headers=headers,
+        headers={**headers, "X-Chunk-SHA256": hashlib.sha256(chunk1).hexdigest()},
         content=chunk1,
     )
     assert c1_res.status_code == 200
 
     c2_res = client.put(
         f"/api/v1/clips/upload/{upload_id}/chunk/1",
-        headers=headers,
+        headers={**headers, "X-Chunk-SHA256": hashlib.sha256(chunk2).hexdigest()},
         content=chunk2,
     )
     assert c2_res.status_code == 200
@@ -93,17 +126,15 @@ def test_chunked_upload_and_finalize() -> None:
 
 
 def test_episodes_and_nccpc_scoring() -> None:
-    headers = {"Authorization": "Bearer mock_local_paired_token"}
-
-    # 1. First insert an episode into repository directly
-    from server.deps import get_episode_repo
-
+    headers = _get_authenticated_headers()
     repo = get_episode_repo()
+    vault = get_vault()
+
     ep_id = "ep_server_test_01"
     repo.insert_episode(
         {
             "id": ep_id,
-            "vault_uri": "vault://clips/test.enc",
+            "vault_uri": f"vault://{ep_id}.enc",
             "encoder_version_id": "v1.0.0",
             "captured_at": "2026-09-14T10:00:00Z",
             "duration_ms": 30000,
@@ -113,28 +144,49 @@ def test_episodes_and_nccpc_scoring() -> None:
         }
     )
 
-    # 2. Query episode via API
+    # Store real media in vault for this episode
+    real_media = create_synthetic_mp4(duration_sec=1.0)
+    vault.store_clip(ep_id, real_media)
+
+    # 1. Query episode via API
     get_res = client.get(f"/api/v1/episodes/{ep_id}", headers=headers)
     assert get_res.status_code == 200
     assert get_res.json()["id"] == ep_id
 
-    # 3. List episodes
+    # 2. List episodes
     list_res = client.get("/api/v1/episodes", headers=headers)
     assert list_res.status_code == 200
     assert list_res.json()["total"] >= 1
 
-    # 4. Stream media
+    # 3. Stream real media from vault
     media_res = client.get(f"/api/v1/episodes/{ep_id}/media", headers=headers)
     assert media_res.status_code == 200
     assert media_res.headers["content-type"] == "video/mp4"
+    assert len(media_res.content) == len(real_media)
+
+    # 4. Caregiver Outcome Confirmation
+    outcome_res = client.post(
+        f"/api/v1/episodes/{ep_id}/outcome",
+        headers=headers,
+        json={
+            "action_performed": "hydration_water",
+            "outcome_state": "settled_immediately",
+            "caregiver_decision": "accepted",
+            "settled_within_sec": 45,
+            "child_response": "vocal_signal",
+            "response_channel": "vocal",
+            "response_independence": "independent",
+        },
+    )
+    assert outcome_res.status_code == 200
+    assert outcome_res.json()["status"] == "confirmed"
 
     # 5. Submit NCCPC pain checklist
-    # Breau et al. (2002): NCCPC-PV cut-off >= 11 indicates pain
-    high_pain_scores = {
+    high_pain_scores: dict[str, Any] = {
         "crying": 3,
         "screaming_yelling": 3,
         "stiff_spastic_rigid_tense": 3,
-        "sharp_breath_gasping": 3,  # sum = 12 >= 11
+        "sharp_breath_gasping": 3,
     }
     nccpc_res = client.post(
         f"/api/v1/episodes/{ep_id}/nccpc",
@@ -154,7 +206,7 @@ def test_episodes_and_nccpc_scoring() -> None:
 
 
 def test_facts_staging_and_confirmation() -> None:
-    headers = {"Authorization": "Bearer mock_local_paired_token"}
+    headers = _get_authenticated_headers()
 
     # 1. Stage a clinician technique
     post_res = client.post(

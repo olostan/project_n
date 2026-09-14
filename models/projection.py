@@ -58,6 +58,35 @@ class MetricProjectionHead(nn.Module):
         self.fc1 = nn.Linear(d_hidden * 3, d_hidden)
         self.fc_metric = nn.Linear(d_hidden, d_metric, bias=False)
 
+        # Checkpoint and training provenance state
+        self.is_trained: bool = False
+        self.checkpoint_hash: str | None = None
+
+    def load_checkpoint(self, checkpoint_path: str) -> str:
+        """Loads weights from file and records SHA-256 hash."""
+        import hashlib
+        from pathlib import Path
+
+        p = Path(checkpoint_path)
+        if not p.exists():
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+        self.load_weights(str(p))
+        self.checkpoint_hash = hashlib.sha256(p.read_bytes()).hexdigest()
+        self.is_trained = True
+        return self.checkpoint_hash
+
+    def save_checkpoint(self, checkpoint_path: str) -> str:
+        """Saves weights to file and returns SHA-256 hash."""
+        import hashlib
+        from pathlib import Path
+
+        p = Path(checkpoint_path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        self.save_weights(str(p))
+        self.checkpoint_hash = hashlib.sha256(p.read_bytes()).hexdigest()
+        self.is_trained = True
+        return self.checkpoint_hash
+
     def __call__(
         self,
         x_audio: mx.array,

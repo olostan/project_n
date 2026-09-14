@@ -3,12 +3,14 @@ Project N: Local Authentication and Companion Pairing Routes.
 """
 
 import secrets
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from server.deps import _valid_tokens
+from server.ca import LocalCertificateAuthority
+from server.deps import get_ca, get_or_create_pairing_pin, register_token
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -27,25 +29,48 @@ class PairingResponse(BaseModel):
     expires_at: str
 
 
+class PairingPinResponse(BaseModel):
+    pairing_pin: str
+    expires_in_sec: int
+
+
+@router.get("/pin", response_model=PairingPinResponse)
+def get_current_pairing_pin() -> dict[str, Any]:
+    """Retrieves current ephemeral pairing PIN for local dashboard/display."""
+    pin = get_or_create_pairing_pin()
+    return {"pairing_pin": pin, "expires_in_sec": 300}
+
+
 @router.post("/pair", response_model=PairingResponse)
-def pair_companion_device(req: PairingRequest) -> dict[str, Any]:
+def pair_companion_device(
+    req: PairingRequest,
+    ca: LocalCertificateAuthority = Depends(get_ca),
+) -> dict[str, Any]:
     """
     PIN pairing endpoint for mobile companions.
-    Authenticates PIN and issues a local client token and mock signed certificate.
+    Authenticates ephemeral PIN and issues a local client token and signed X.509 certificate.
     """
-    # Default pairing PIN for setup
-    if req.pairing_pin != "123456":
+    active_pin = get_or_create_pairing_pin()
+    if req.pairing_pin != active_pin:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid pairing PIN.",
+            detail="Invalid or expired pairing PIN.",
         )
 
-    # Generate paired bearer token
+    try:
+        client_cert = ca.sign_csr(req.csr_pem, validity_days=365)
+    except ValueError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Certificate Signing Request validation failed: {err}",
+        ) from err
+
     token = f"paired_{secrets.token_hex(16)}"
-    _valid_tokens.add(token)
+    expires_dt = datetime.now(UTC) + timedelta(days=365)
+    register_token(token, expires_dt.timestamp())
 
     return {
-        "client_cert_pem": "-----BEGIN CERTIFICATE-----\nMIIC...MOCK_CERT...\n-----END CERTIFICATE-----",
+        "client_cert_pem": client_cert,
         "token": token,
-        "expires_at": "2027-09-14T00:00:00Z",
+        "expires_at": expires_dt.isoformat(),
     }

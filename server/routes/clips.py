@@ -8,6 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 
+from extraction.demux import MediaDecodeError, demux_clip_bytes
 from server.deps import get_analysis_service, get_sse_bus, get_vault, verify_auth_token
 from server.schemas.clips import (
     AnalyzeRequest,
@@ -98,9 +99,9 @@ def finalize_clip_upload(
             detail="SHA-256 integrity checksum mismatch.",
         )
 
-    # Encrypt into local vault with per-clip DEK
+    # Encrypt and store into local vault with per-clip DEK
     clip_id = str(uuid.uuid4())
-    ciphertext, wrapped_dek, nonce = vault.encrypt_clip(bytes(assembled), clip_id=clip_id)
+    vault.store_clip(clip_id, bytes(assembled))
 
     # Publish SSE event
     sse.publish(
@@ -121,11 +122,18 @@ def analyze_clip(
     clip_id: str,
     _req: AnalyzeRequest,
     background_tasks: BackgroundTasks,
+    vault: VaultManager = Depends(get_vault),
     sse: SSEBus = Depends(get_sse_bus),
     analysis: AnalysisService = Depends(get_analysis_service),
     _token: str = Depends(verify_auth_token),
 ) -> dict[str, Any]:
-    """Triggers asynchronous extraction and metric matching task."""
+    """Triggers asynchronous extraction and metric matching task on real decrypted media."""
+    if not vault.has_clip(clip_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Clip {clip_id} not found in vault.",
+        )
+
     task_id = str(uuid.uuid4())
     sse.publish(
         "processing_progress",
@@ -137,19 +145,37 @@ def analyze_clip(
         },
     )
 
-    # Dispatch analysis task asynchronously
+    # Dispatch analysis task asynchronously over real decrypted and demuxed data
     def _run_analysis() -> None:
-        # Default to synthetic baseline window if raw video isn't unpacked
-        import numpy as np
-
-        audio_synth = np.zeros(240000, dtype=np.float32)
-        frames_synth = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(150)]
-        analysis.analyze_sensory_clip(
-            clip_id=clip_id,
-            audio_pcm=audio_synth,
-            video_frames=frames_synth,
-            task_id=task_id,
-        )
+        try:
+            raw_media = vault.retrieve_clip(clip_id)
+            audio_pcm, video_frames = demux_clip_bytes(raw_media)
+            analysis.analyze_sensory_clip(
+                clip_id=clip_id,
+                audio_pcm=audio_pcm,
+                video_frames=video_frames,
+                task_id=task_id,
+            )
+        except MediaDecodeError as err:
+            sse.publish(
+                "processing_failed",
+                {
+                    "task_id": task_id,
+                    "clip_id": clip_id,
+                    "stage": "demux_failed",
+                    "error": str(err),
+                },
+            )
+        except Exception as err:
+            sse.publish(
+                "processing_failed",
+                {
+                    "task_id": task_id,
+                    "clip_id": clip_id,
+                    "stage": "analysis_error",
+                    "error": str(err),
+                },
+            )
 
     background_tasks.add_task(_run_analysis)
 

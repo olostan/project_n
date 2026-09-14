@@ -93,22 +93,40 @@ class EpisodeRepository:
         episode_id: str,
         action_performed: str,
         outcome_state: str,
+        caregiver_decision: str = "accepted",
         settled_within_sec: int | None = None,
         child_response: str = "none",
+        response_channel: str = "none",
+        response_independence: str = "none",
+        performance_status: str = "completed",
     ) -> bool:
         """Updates caregiver observed action and resolution state."""
         sql = """
         UPDATE episodes SET
             action_performed = ?,
             outcome_state = ?,
+            caregiver_decision = ?,
             settled_within_sec = ?,
-            child_response = ?
+            child_response = ?,
+            response_channel = ?,
+            response_independence = ?,
+            performance_status = ?
         WHERE id = ?
         """
         with self.conn:
             cursor = self.conn.execute(
                 sql,
-                (action_performed, outcome_state, settled_within_sec, child_response, episode_id),
+                (
+                    action_performed,
+                    outcome_state,
+                    caregiver_decision,
+                    settled_within_sec,
+                    child_response,
+                    response_channel,
+                    response_independence,
+                    performance_status,
+                    episode_id,
+                ),
             )
             return cursor.rowcount > 0
 

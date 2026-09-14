@@ -44,3 +44,39 @@ class NCCPCScoringResponse(BaseModel):
     subscale_scores: dict[str, int]
     escalation_required: bool
     guidance: str
+
+
+class EpisodeOutcomeRequest(BaseModel):
+    action_performed: str = Field(..., description="Intervention action performed by caregiver")
+    outcome_state: str = Field(
+        ...,
+        pattern="^(settled_immediately|settled_delayed|no_change|escalated)$",
+        description="Observational outcome state",
+    )
+    caregiver_decision: str = Field(
+        default="accepted",
+        pattern="^(accepted|modified|rejected|open_observation)$",
+    )
+    settled_within_sec: int | None = Field(default=None, ge=0)
+    child_response: str = Field(
+        default="none",
+        pattern="^(reach|gesture|vocal_signal|aac_selection|none)$",
+    )
+    response_channel: str = Field(
+        default="none",
+        pattern="^(motor|vocal|aac|none)$",
+    )
+    response_independence: str = Field(
+        default="none",
+        pattern="^(independent|prompted|passive|refusal|none)$",
+    )
+    performance_status: str = Field(
+        default="completed",
+        pattern="^(completed|attempted_refused|aborted|not_attempted)$",
+    )
+
+
+class EpisodeOutcomeResponse(BaseModel):
+    episode_id: str
+    status: str
+    indexed_in_vector_store: bool

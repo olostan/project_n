@@ -47,8 +47,57 @@ class VaultManager:
     ciphertext decryption, and cryptographic erasure.
     """
 
-    def __init__(self, keychain: KeychainProvider | None = None) -> None:
+    def __init__(
+        self,
+        keychain: KeychainProvider | None = None,
+        vault_dir: Path | None = None,
+    ) -> None:
         self.keychain = keychain if keychain is not None else MockKeychainProvider()
+        self.vault_dir = vault_dir
+        self._memory_store: dict[str, tuple[bytes, bytes, bytes]] = {}
+
+    def store_clip(self, clip_id: str, raw_data: bytes) -> None:
+        """Encrypts and persists clip media under envelope encryption."""
+        ciphertext, wrapped_dek, nonce = self.encrypt_clip(raw_data, clip_id=clip_id)
+        if self.vault_dir:
+            self.vault_dir.mkdir(parents=True, exist_ok=True)
+            clip_file = self.vault_dir / f"{clip_id}.enc"
+            with open(clip_file, "wb") as f:
+                f.write(len(wrapped_dek).to_bytes(4, "big") + wrapped_dek + nonce + ciphertext)
+        else:
+            self._memory_store[clip_id] = (ciphertext, wrapped_dek, nonce)
+
+    def retrieve_clip(self, clip_id: str) -> bytes:
+        """Retrieves and decrypts stored clip media."""
+        if self.vault_dir:
+            clip_file = self.vault_dir / f"{clip_id}.enc"
+            if not clip_file.exists():
+                raise FileNotFoundError(f"Encrypted clip {clip_id} not found in vault.")
+            data = clip_file.read_bytes()
+            dek_len = int.from_bytes(data[:4], "big")
+            wrapped_dek = data[4 : 4 + dek_len]
+            nonce = data[4 + dek_len : 4 + dek_len + 12]
+            ciphertext = data[4 + dek_len + 12 :]
+            return self.decrypt_clip(ciphertext, wrapped_dek, nonce, clip_id=clip_id)
+        elif clip_id in self._memory_store:
+            ciphertext, wrapped_dek, nonce = self._memory_store[clip_id]
+            return self.decrypt_clip(ciphertext, wrapped_dek, nonce, clip_id=clip_id)
+        else:
+            raise FileNotFoundError(f"Encrypted clip {clip_id} not found in vault.")
+
+    def has_clip(self, clip_id: str) -> bool:
+        """Checks if encrypted clip exists in vault."""
+        if self.vault_dir:
+            return (self.vault_dir / f"{clip_id}.enc").exists()
+        return clip_id in self._memory_store
+
+    def erase_stored_clip(self, clip_id: str) -> None:
+        """Cryptographically erases a stored clip."""
+        if self.vault_dir:
+            clip_file = self.vault_dir / f"{clip_id}.enc"
+            if clip_file.exists():
+                self.erase_clip(clip_file)
+        self._memory_store.pop(clip_id, None)
 
     def encrypt_clip(
         self,
