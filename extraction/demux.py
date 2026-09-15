@@ -77,7 +77,7 @@ def demux_clip_bytes(
                 raise MediaDecodeError(f"Unexpected audio sampling rate: {sr} != {target_audio_sr}")
             if audio_data.ndim > 1:
                 audio_data = audio_data[:, 0]
-        except (subprocess.SubprocessError, sf.SoundFileError) as e:
+        except (subprocess.SubprocessError, sf.SoundFileError, OSError) as e:
             raise MediaDecodeError(f"Failed to decode audio track: {e}") from e
 
         # 2. Demux video frames at target_video_fps via OpenCV VideoCapture
@@ -110,11 +110,35 @@ def demux_clip_bytes(
 
 def create_synthetic_mp4(duration_sec: float = 5.0, f0_hz: float = 220.0) -> bytes:
     """
-    Generates a valid MP4 test container with video and audio streams.
+    Generates a valid MP4 test container with video and non-stationary audio streams.
     Used exclusively by test suites to verify real demuxing without mocking.
     """
     with tempfile.TemporaryDirectory() as tmpdir:
         out_file = Path(tmpdir) / "test_out.mp4"
+        audio_file = Path(tmpdir) / "synth_audio.wav"
+
+        # Generate realistic non-stationary burst audio with room noise
+        sr = AUDIO_SAMPLE_RATE_HZ
+        n_samples = int(duration_sec * sr)
+        t = np.linspace(0, duration_sec, n_samples, endpoint=False)
+        noise = np.random.normal(0, 0.002, n_samples).astype(np.float32)
+        sig = np.zeros(n_samples, dtype=np.float32)
+
+        b_start = 0.2 * duration_sec
+        b_end = 0.8 * duration_sec
+        mask = (t >= b_start) & (t <= b_end)
+        t_burst = t[mask]
+        if len(t_burst) > 0:
+            burst_dur = b_end - b_start
+            tone = 0.40 * np.sin(2 * np.pi * f0_hz * t_burst) + 0.15 * np.sin(
+                2 * np.pi * 2.0 * f0_hz * t_burst
+            )
+            env = np.sin(np.pi * (t_burst - b_start) / burst_dur) ** 2
+            sig[mask] = (tone * env).astype(np.float32)
+
+        audio_pcm = (sig + noise).astype(np.float32)
+        sf.write(str(audio_file), audio_pcm, sr)
+
         cmd = [
             "ffmpeg",
             "-y",
@@ -124,10 +148,8 @@ def create_synthetic_mp4(duration_sec: float = 5.0, f0_hz: float = 220.0) -> byt
             "lavfi",
             "-i",
             f"testsrc=duration={duration_sec}:size=320x180:rate=30",
-            "-f",
-            "lavfi",
             "-i",
-            f"sine=frequency={f0_hz}:duration={duration_sec}:sample_rate=48000",
+            str(audio_file),
             "-c:v",
             "libx264",
             "-pix_fmt",
@@ -136,7 +158,12 @@ def create_synthetic_mp4(duration_sec: float = 5.0, f0_hz: float = 220.0) -> byt
             "aac",
             str(out_file),
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
-        if res.returncode != 0 or not out_file.exists():
-            raise MediaDecodeError(f"Failed to create test MP4: {res.stderr}")
-        return out_file.read_bytes()
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+            if res.returncode != 0 or not out_file.exists():
+                raise MediaDecodeError(f"Failed to create test MP4: {res.stderr}")
+            return out_file.read_bytes()
+        except OSError as err:
+            raise MediaDecodeError(
+                f"ffmpeg executable not found or execution failed: {err}"
+            ) from err

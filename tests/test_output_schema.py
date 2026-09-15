@@ -4,16 +4,15 @@ Validates that analysis output strictly partitions into Layer 1 (Sensory),
 Layer 2 (Hypotheses), Layer 3 (Dyadic Suggestions), Layer 4 (Safety/Clinical).
 """
 
-import numpy as np
-
 from server.deps import get_analysis_service
+from tests.fixtures.audio import generate_realistic_audio_clip
+from tests.fixtures.video import generate_valid_mock_video_frames
 
 
 def test_four_layer_output_structure_normal() -> None:
     service = get_analysis_service()
-    t = np.linspace(0, 5.0, 240000, endpoint=False)
-    audio = (0.5 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
-    frames = [np.zeros(258, dtype=np.float32) for _ in range(30)]
+    audio = generate_realistic_audio_clip(duration_sec=5.0, f0_hz=220.0)
+    frames = generate_valid_mock_video_frames(num_frames=30)
 
     out = service.analyze_sensory_clip(
         clip_id="test_schema_norm",
@@ -55,9 +54,8 @@ def test_four_layer_output_structure_normal() -> None:
 def test_four_layer_output_suppression_on_distress() -> None:
     """When distress anomaly triggers, Layer 2 MUST be suppressed per Invariant 7 & 6."""
     service = get_analysis_service()
-    t = np.linspace(0, 5.0, 240000, endpoint=False)
-    high_pitch_audio = (0.7 * np.sin(2 * np.pi * 500.0 * t)).astype(np.float32)
-    frames = [np.zeros(258, dtype=np.float32) for _ in range(30)]
+    high_pitch_audio = generate_realistic_audio_clip(duration_sec=5.0, f0_hz=500.0)
+    frames = generate_valid_mock_video_frames(num_frames=30)
 
     # Provide calibrated baseline where upper f0 limit is 400 Hz (500 Hz triggers excursion)
     baseline_stats = {

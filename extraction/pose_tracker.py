@@ -138,12 +138,19 @@ class PoseTracker:
         t_len = min(len(frames), self.target_frames)
         mat = np.zeros((self.target_frames, TOTAL_LANDMARK_COORDS), dtype=np.float32)
         confidences: list[float] = []
-
         for t in range(t_len):
             frame = frames[t]
             if isinstance(frame, np.ndarray) and frame.shape == (TOTAL_LANDMARK_COORDS,):
                 mat[t] = normalize_torso_landmarks(frame)
-                confidences.append(1.0)
+                vis_coords = frame[
+                    3 : POSE_LANDMARKS * POSE_COORDS_PER_LANDMARK : POSE_COORDS_PER_LANDMARK
+                ]
+                frame_conf = (
+                    float(np.mean(vis_coords))
+                    if len(vis_coords) > 0 and np.any(vis_coords > 0)
+                    else 0.0
+                )
+                confidences.append(frame_conf)
             elif isinstance(frame, np.ndarray) and frame.ndim >= 2:
                 # Convert to RGB uint8 for MediaPipe Holistic
                 if frame.dtype != np.uint8:

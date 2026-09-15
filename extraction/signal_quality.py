@@ -24,6 +24,7 @@ class SignalQualityReport:
     audio_valid: bool
     video_valid: bool
     all_modalities_failed: bool
+    is_acceptable: bool
     breaches: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -35,31 +36,46 @@ class SignalQualityReport:
             "audio_valid": self.audio_valid,
             "video_valid": self.video_valid,
             "all_modalities_failed": self.all_modalities_failed,
+            "is_acceptable": self.is_acceptable,
             "breaches": self.breaches,
         }
 
 
-def compute_audio_snr_db(audio_pcm: np.ndarray) -> float:
+def compute_audio_snr_db(
+    audio_pcm: np.ndarray,
+    sample_rate: int = 48000,
+    frame_ms: float = 20.0,
+) -> float:
     """
-    Estimates acoustic Signal-to-Noise Ratio (SNR) in dB using spectral flatness
-    and root-mean-square (RMS) energy relative to silence/noise floor.
+    Estimates acoustic Signal-to-Noise Ratio (SNR) in dB using 20 ms frame power:
+    Noise floor: 10th percentile of frame power across clip (P10).
+    Signal power: 90th percentile of frame power across clip (P90).
+    SNR = P90 - P10 (in dB).
     """
     if len(audio_pcm) == 0:
         return 0.0
 
-    rms = float(np.sqrt(np.mean(audio_pcm**2)))
-    if rms < 0.005:  # Below acoustic detection threshold / silence
+    frame_size = int(sample_rate * (frame_ms / 1000.0))
+    if frame_size <= 0:
         return 0.0
 
-    # Spectral flatness estimation (Wiener entropy)
-    spec = np.abs(np.fft.rfft(audio_pcm)) ** 2
-    log_spec = np.log(spec + 1e-12)
-    geo_mean = float(np.exp(np.mean(log_spec)))
-    arith_mean = float(np.mean(spec))
-    flatness = geo_mean / (arith_mean + 1e-12)
+    num_frames = len(audio_pcm) // frame_size
+    if num_frames == 0:
+        return 0.0
 
-    # Pure noise: flatness ~ 1.0 (SNR < 3 dB). Speech/harmonic signal: flatness < 0.05 (SNR > 13 dB).
-    snr_db = max(0.0, -10.0 * np.log10(max(flatness, 1e-6)))
+    trimmed = audio_pcm[: num_frames * frame_size].reshape(num_frames, frame_size)
+    frame_power = np.mean(trimmed**2, axis=1)
+
+    # Check for complete digital silence
+    if float(np.max(frame_power)) < 1e-9:
+        return 0.0
+
+    # Frame power in dB
+    power_db = 10.0 * np.log10(frame_power + 1e-12)
+    p10 = float(np.percentile(power_db, 10))
+    p90 = float(np.percentile(power_db, 90))
+
+    snr_db = max(0.0, p90 - p10)
     return float(snr_db)
 
 
@@ -73,7 +89,7 @@ def compute_audio_clipping_ratio(audio_pcm: np.ndarray, clip_threshold: float = 
 
 def evaluate_signal_quality(
     audio_pcm: np.ndarray,
-    mean_pose_confidence: float = 1.0,
+    mean_pose_confidence: float = 0.0,
     mean_flow_velocity: float = 0.0,
     snr_threshold_db: float = 12.0,
     clipping_limit: float = 0.05,
@@ -120,6 +136,7 @@ def evaluate_signal_quality(
 
     video_valid = pose_valid and flow_valid
     all_failed = (not audio_valid) and (not video_valid)
+    is_acceptable = len(breaches) == 0
 
     return SignalQualityReport(
         audio_snr_db=snr_db,
@@ -129,5 +146,6 @@ def evaluate_signal_quality(
         audio_valid=audio_valid,
         video_valid=video_valid,
         all_modalities_failed=all_failed,
+        is_acceptable=is_acceptable,
         breaches=breaches,
     )

@@ -6,16 +6,17 @@ and 4-layer output structuring.
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 
-from models.contracts import METRIC_EMBEDDING_D, RAW_AUDIO_SAMPLES
+from models.contracts import METRIC_EMBEDDING_D
 from rag.vector_store import VectorStore
 from server.services.analysis_service import AnalysisService
 from server.sse_bus import SSEBus
 from storage.db_schema import init_db
 from storage.episode_repo import EpisodeRepository
 from storage.vault import MockKeychainProvider, VaultManager
+from tests.fixtures.audio import generate_realistic_audio_clip
+from tests.fixtures.video import generate_valid_mock_video_frames
 
 
 @pytest.fixture
@@ -34,18 +35,17 @@ def analysis_service() -> AnalysisService:
 
 
 def test_analysis_service_end_to_end_cold_start(analysis_service: AnalysisService) -> None:
-    # 1. Synthetic 5.0s audio (240,000 samples)
-    t = np.linspace(0, 5.0, RAW_AUDIO_SAMPLES, endpoint=False)
-    synthetic_audio = (0.5 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
+    # 1. Realistic 5.0s burst audio (240,000 samples)
+    realistic_audio = generate_realistic_audio_clip(duration_sec=5.0, f0_hz=260.0)
 
-    # 2. Synthetic 150 video frames
-    synthetic_frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(150)]
+    # 2. Valid 150 mock video frames
+    valid_frames = generate_valid_mock_video_frames(num_frames=150)
 
     clip_id = "test_clip_001"
     res = analysis_service.analyze_sensory_clip(
         clip_id=clip_id,
-        audio_pcm=synthetic_audio,
-        video_frames=synthetic_frames,
+        audio_pcm=realistic_audio,
+        video_frames=valid_frames,
         antecedent_id="mealtime",
         baseline_stats=None,  # Cold start / uncalibrated
     )
@@ -82,10 +82,9 @@ def test_analysis_service_end_to_end_cold_start(analysis_service: AnalysisServic
 def test_analysis_service_acute_distress_triage_precedence(
     analysis_service: AnalysisService,
 ) -> None:
-    # 1. Synthetic high-pitch distress audio (>450 Hz)
-    t = np.linspace(0, 5.0, RAW_AUDIO_SAMPLES, endpoint=False)
-    high_pitch_audio = (0.7 * np.sin(2 * np.pi * 500.0 * t)).astype(np.float32)
-    synthetic_frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(150)]
+    # 1. Realistic high-pitch distress burst audio (>450 Hz)
+    high_pitch_audio = generate_realistic_audio_clip(duration_sec=5.0, f0_hz=500.0)
+    valid_frames = generate_valid_mock_video_frames(num_frames=150)
 
     # Calibrated baseline where upper f0 limit is 400 Hz
     calibrated_baseline = {
@@ -99,7 +98,7 @@ def test_analysis_service_acute_distress_triage_precedence(
     res = analysis_service.analyze_sensory_clip(
         clip_id=clip_id,
         audio_pcm=high_pitch_audio,
-        video_frames=synthetic_frames,
+        video_frames=valid_frames,
         antecedent_id="loud_environment",
         baseline_stats=calibrated_baseline,
     )
@@ -125,9 +124,8 @@ def test_analysis_service_with_trained_checkpoint(
     ckpt_hash = analysis_service.projection_head.load_checkpoint(str(ckpt_file))
     assert analysis_service.projection_head.is_trained
 
-    t = np.linspace(0, 5.0, RAW_AUDIO_SAMPLES, endpoint=False)
-    audio = (0.5 * np.sin(2 * np.pi * 220.0 * t)).astype(np.float32)
-    frames = [np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(150)]
+    audio = generate_realistic_audio_clip(duration_sec=5.0, f0_hz=260.0)
+    frames = generate_valid_mock_video_frames(num_frames=150)
 
     res = analysis_service.analyze_sensory_clip(
         clip_id="test_clip_trained",

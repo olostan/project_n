@@ -204,7 +204,7 @@ class AnalysisService:
         )
 
         # 6. Construct 4-Layer Output Separation with Fail-Closed Quality Gates (docs/SPECS.md §4.1, §4.2)
-        mean_pose_conf = float(np.mean(pose_confidences)) if pose_confidences else 1.0
+        mean_pose_conf = float(np.mean(pose_confidences)) if pose_confidences else 0.0
         mean_flow_vel = float(np.mean(flow_velocities)) if flow_velocities else 0.0
         quality_report = evaluate_signal_quality(
             audio_pcm=audio_pcm,
@@ -224,7 +224,7 @@ class AnalysisService:
         distress_triggered = screener_result.get("distress_anomaly", False)
         retrieved_candidates = match_result.get("candidates") or match_result.get("matches", [])
 
-        if quality_report.all_modalities_failed:
+        if not quality_report.is_acceptable:
             self.sse_bus.publish(
                 "signal_quality_abstained",
                 {
@@ -236,7 +236,7 @@ class AnalysisService:
             layer2_hypotheses = {
                 "status": "abstained",
                 "explanation": (
-                    "Sensory interpretations suppressed: all input modalities breached fail-closed quality gates. "
+                    "Sensory interpretations suppressed: fail-closed signal quality gate breach: "
                     + "; ".join(quality_report.breaches)
                 ),
                 "matches": [],
@@ -245,6 +245,17 @@ class AnalysisService:
                 "suggested_actions": ["open_observation"],
                 "rationale": "Sensory signal quality insufficient for reliable behavioral matching.",
             }
+            # Precedence Rule (Section C3): Signal quality failure does NOT suppress safety triage,
+            # but safety triage reports screener_status: 'not_assessable_low_signal_quality'
+            screener_result = {
+                "screener_status": "not_assessable_low_signal_quality",
+                "distress_anomaly": False,
+                "recommendation": (
+                    "Sensory signal quality compromised. Automated anomaly screener cannot assess "
+                    "distress. Please conduct direct caregiver observation and physical comfort check."
+                ),
+            }
+            distress_triggered = False
         elif distress_triggered:
             layer2_hypotheses = {
                 "status": "suppressed_due_to_anomaly",
