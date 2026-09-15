@@ -116,22 +116,22 @@ def test_analysis_service_abstains_on_corrupted_sensory_streams() -> None:
     )
 
     # Layer 1 must contain signal quality report
-    l1 = res["layer1_sensory"]
+    l1 = res["L1_measured"]
     assert "signal_quality" in l1
     sq = l1["signal_quality"]
     assert sq["is_acceptable"] is False
     assert len(sq["breaches"]) > 0
 
     # Layer 2 must be abstained
-    l2 = res["layer2_hypotheses"]
+    l2 = res["L2_historical"]
     assert l2["status"] == "abstained"
     assert "breach" in l2["explanation"].lower()
     assert len(l2["matches"]) == 0
 
     # Precedence rule: Safety triage reports not_assessable_low_signal_quality
-    l4 = res["layer4_safety"]
-    assert l4["screener_status"] == "not_assessable_low_signal_quality"
-    assert not l4["distress_anomaly_detected"]
+    safety = res["safety_triage"]
+    assert safety["screener_status"] == "not_assessable_low_signal_quality"
+    assert not safety["distress_anomaly_detected"]
 
     # SSE event published
     events = sse_bus.get_recent_events(limit=5)

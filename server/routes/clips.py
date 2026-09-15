@@ -120,7 +120,7 @@ def finalize_clip_upload(
 @router.post("/{clip_id}/analyze", response_model=AnalyzeResponse)
 def analyze_clip(
     clip_id: str,
-    _req: AnalyzeRequest,
+    req: AnalyzeRequest,
     background_tasks: BackgroundTasks,
     vault: VaultManager = Depends(get_vault),
     sse: SSEBus = Depends(get_sse_bus),
@@ -155,7 +155,13 @@ def analyze_clip(
                 audio_pcm=audio_pcm,
                 video_frames=video_frames,
                 task_id=task_id,
+                antecedent_id=req.antecedent_id,
+                antecedent_notes=req.antecedent_notes,
+                caregiver_hypothesis=req.caregiver_hypothesis,
+                setting=req.setting,
+                observer=req.observer,
             )
+
         except MediaDecodeError as err:
             sse.publish(
                 "processing_failed",

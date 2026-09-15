@@ -90,10 +90,13 @@ def test_offline_sandbox_zero_exfiltration() -> None:
         video_frames=[np.zeros((180, 320, 3), dtype=np.uint8) for _ in range(30)],
     )
 
-    assert "layer1_sensory" in res
-    assert "layer2_hypotheses" in res
-    assert "layer3_dyadic" in res
-    assert "layer4_safety" in res
+    assert "L1_measured" in res
+    assert "L2_historical" in res
+    assert "L3_context" in res
+    assert "L4_evidence" in res
+    assert "safety_triage" in res
+    assert "dyadic_suggestions" in res
+    assert "parent_view_text" in res
 
 
 def test_ast_forbidden_imports_invariant() -> None:

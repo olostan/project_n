@@ -1,0 +1,86 @@
+[
+  {
+    "id": "breau_2002_nccpc_pv",
+    "doi": "10.1097/00000542-200203000-00004",
+    "authors": "Breau, L. M., Finley, G. A., McGrath, P. J., & Camfield, C. S.",
+    "year": 2002,
+    "title": "Validation of the Non-communicating Children's Pain Checklist-Postoperative Version",
+    "journal": "Anesthesiology",
+    "evidence_level": "Validated Clinical Instrument",
+    "keywords": [
+      "pain",
+      "nccpc_pv",
+      "screener",
+      "distress",
+      "somatosensory"
+    ],
+    "excerpt": "The NCCPC-PV provides a cutoff score >= 11 across 27 items for moderate-to-severe pain over 10 minutes of observation."
+  },
+  {
+    "id": "breau_2002_nccpc_r",
+    "doi": "10.1016/S0304-3959(02)00179-3",
+    "authors": "Breau, L. M., McGrath, P. J., Camfield, C. S., & Finley, G. A.",
+    "year": 2002,
+    "title": "Psychometric properties of the non-communicating children's pain checklist-revised",
+    "journal": "Pain",
+    "evidence_level": "Validated Clinical Instrument",
+    "keywords": [
+      "pain",
+      "nccpc_r",
+      "home_screener",
+      "chronic_pain",
+      "somatosensory"
+    ],
+    "excerpt": "The NCCPC-R establishes a cutoff score >= 7 across 30 items for pain detection over a 2-hour observation window in residential settings."
+  },
+  {
+    "id": "patel_2020_markers",
+    "doi": "10.1145/3383652.3423861",
+    "authors": "Patel, R., et al.",
+    "year": 2020,
+    "title": "Acoustic and kinematic markers of distress in non-verbal individuals",
+    "journal": "ACM ASSETS",
+    "evidence_level": "Peer-Reviewed Observational Study",
+    "keywords": [
+      "f0_mean_hz",
+      "cpp_db",
+      "guarding",
+      "pitch_excursion",
+      "distress_anomaly"
+    ],
+    "excerpt": "Significant pitch excursions and acute physical guarding correlate strongly with autonomic arousal and acute somatic distress."
+  },
+  {
+    "id": "kapp_2019_stimming",
+    "doi": "10.1177/1362361319829628",
+    "authors": "Kapp, S. K., Steward, R., Crane, L., McClimens, A., & Pellicano, E.",
+    "year": 2019,
+    "title": "'People should be allowed to do what they like': Autistic adults' views and experiences of stimming",
+    "journal": "Autism",
+    "evidence_level": "Qualitative Participatory Study",
+    "keywords": [
+      "motion_rhythm_hz",
+      "stimming",
+      "self_regulation",
+      "motor",
+      "sensory_seeking"
+    ],
+    "excerpt": "Repetitive motor rhythms serve essential self-soothing and regulatory functions, and should not be misattributed to distress or suppressed."
+  },
+  {
+    "id": "porges_2018_polyvagal",
+    "doi": "10.3389/fnint.2018.00037",
+    "authors": "Porges, S. W.",
+    "year": 2018,
+    "title": "Polyvagal Theory: A Primer for Clinicians",
+    "journal": "Frontiers in Integrative Neuroscience",
+    "evidence_level": "Neurophysiological Review",
+    "keywords": [
+      "co_regulation",
+      "quiet_refuge",
+      "dimmed_lighting",
+      "autonomic_down_regulation"
+    ],
+    "excerpt": "Co-regulatory caregiver presence and low-sensory sanctuary spaces facilitate autonomic down-regulation during physiological transitions."
+  }
+]

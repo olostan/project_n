@@ -21,12 +21,15 @@ from models.clip_encoder import (
     generate_sinusoidal_positional_encoding,
 )
 from models.contracts import (
-    CONTROLLED_ACTIONS,
     METRIC_EMBEDDING_D,
 )
 from models.matcher import EpisodicPrototypeMatcher
 from models.projection import MetricProjectionHead
 from rag.vector_store import VectorStore
+from server.services.card_builder import (
+    derive_dyadic_suggestions,
+    synthesize_parent_view_text,
+)
 from server.sse_bus import SSEBus
 from storage.episode_repo import EpisodeRepository
 from storage.vault import VaultManager
@@ -73,6 +76,10 @@ class AnalysisService:
         video_frames: list[np.ndarray],
         task_id: str | None = None,
         antecedent_id: str = "unknown",
+        antecedent_notes: str | None = None,
+        caregiver_hypothesis: str | None = None,
+        setting: str | None = None,
+        observer: str = "caregiver",
         baseline_stats: dict[str, float] | None = None,
     ) -> dict[str, Any]:
         """
@@ -212,7 +219,7 @@ class AnalysisService:
             mean_flow_velocity=mean_flow_vel,
         )
 
-        layer1_sensory = {
+        L1_measured = {
             "windows_count": windows_count,
             "observed_f0_mean_hz": round(mean_f0, 2),
             "observed_cpp_db": round(mean_cpp, 2),
@@ -227,13 +234,9 @@ class AnalysisService:
         if not quality_report.is_acceptable:
             self.sse_bus.publish(
                 "signal_quality_abstained",
-                {
-                    "task_id": t_id,
-                    "clip_id": clip_id,
-                    "breaches": quality_report.breaches,
-                },
+                {"task_id": t_id, "clip_id": clip_id, "breaches": quality_report.breaches},
             )
-            layer2_hypotheses = {
+            L2_historical = {
                 "status": "abstained",
                 "explanation": (
                     "Sensory interpretations suppressed: fail-closed signal quality gate breach: "
@@ -241,12 +244,6 @@ class AnalysisService:
                 ),
                 "matches": [],
             }
-            layer3_dyadic = {
-                "suggested_actions": ["open_observation"],
-                "rationale": "Sensory signal quality insufficient for reliable behavioral matching.",
-            }
-            # Precedence Rule (Section C3): Signal quality failure does NOT suppress safety triage,
-            # but safety triage reports screener_status: 'not_assessable_low_signal_quality'
             screener_result = {
                 "screener_status": "not_assessable_low_signal_quality",
                 "distress_anomaly": False,
@@ -257,7 +254,7 @@ class AnalysisService:
             }
             distress_triggered = False
         elif distress_triggered:
-            layer2_hypotheses = {
+            L2_historical = {
                 "status": "suppressed_due_to_anomaly",
                 "explanation": (
                     "Sensory and behavioral interpretations are suppressed. "
@@ -265,27 +262,46 @@ class AnalysisService:
                 ),
                 "matches": [],
             }
-            layer3_dyadic = {
-                "suggested_actions": ["hydration_water", "quiet_refuge", "dimmed_lighting"],
-                "rationale": "Medical and physical comfort checks take priority over behavioral interventions.",
-            }
         else:
-            layer2_hypotheses = {
+            L2_historical = {
                 "status": "active" if not match_result.get("abstained") else "abstained",
                 "explanation": match_result.get("reason", "Retrieved historical matches"),
                 "matches": retrieved_candidates,
             }
-            suggested = (
-                ["quiet_refuge", "sensory_break"]
-                if "quiet_refuge" in CONTROLLED_ACTIONS
-                else ["open_observation"]
-            )
-            layer3_dyadic = {
-                "suggested_actions": suggested,
-                "rationale": "Non-distress co-regulatory support routine.",
-            }
 
-        layer4_safety = {
+        # Layer 3: Context & Antecedents (SPECS.md:454, Invariant 6)
+        L3_context = {
+            "antecedent_id": antecedent_id,
+            "caregiver_notes": antecedent_notes,
+            "caregiver_hypothesis": caregiver_hypothesis,
+            "setting": setting,
+            "observer": observer,
+        }
+
+        # Layer 4: Evidence Library retrieved from seeded corpus
+        ev_query = (
+            "distress pitch excursion acute guarding somatic pain"
+            if distress_triggered
+            else "motor stimming self-regulation rhythmic"
+            if mean_rhythm > 0.5
+            else f"co-regulation {antecedent_id}"
+        )
+        evidence_hits = self.vector_store.retrieve_evidence(ev_query, top_k=2)
+        L4_evidence: dict[str, Any] = (
+            {"status": "matched_citations", "citations": evidence_hits}
+            if evidence_hits
+            else {"status": "no_matching_evidence", "citations": []}
+        )
+
+        # Grounded Dyadic Suggestions derived from L2 confirmed resolutions
+        dyadic_suggestions = derive_dyadic_suggestions(
+            retrieved_candidates=retrieved_candidates,
+            distress_triggered=distress_triggered,
+            is_acceptable=quality_report.is_acceptable,
+        )
+
+        # Safety Triage
+        safety_triage = {
             "screener_status": screener_result.get("screener_status"),
             "distress_anomaly_detected": distress_triggered,
             "screener_recommendation": screener_result.get("recommendation"),
@@ -294,6 +310,16 @@ class AnalysisService:
                 "clinical decision-making, or automated prescriptive commands."
             ),
         }
+
+        # Dual-Perspective Parent View Text (Invariant 8)
+        parent_view_text = synthesize_parent_view_text(
+            mean_f0=mean_f0,
+            mean_rhythm=mean_rhythm,
+            antecedent_id=antecedent_id,
+            top_action=dyadic_suggestions["suggested_actions"][0],
+            distress_triggered=distress_triggered,
+            is_acceptable=quality_report.is_acceptable,
+        )
 
         # Determine version and metric embedding emission
         if self.projection_head.is_trained and self.projection_head.checkpoint_hash:
@@ -309,11 +335,16 @@ class AnalysisService:
         output: dict[str, Any] = {
             "episode_id": clip_id,
             "encoder_version": encoder_version,
-            "layer1_sensory": layer1_sensory,
-            "layer2_hypotheses": layer2_hypotheses,
-            "layer3_dyadic": layer3_dyadic,
-            "layer4_safety": layer4_safety,
+            "L1_measured": L1_measured,
+            "L2_historical": L2_historical,
+            "L3_context": L3_context,
+            "L4_evidence": L4_evidence,
+            "safety_triage": safety_triage,
+            "dyadic_suggestions": dyadic_suggestions,
+            "parent_view_text": parent_view_text,
             "metric_embedding": metric_embedding,
+            "abstained": (not quality_report.is_acceptable)
+            or L2_historical["status"] == "abstained",
         }
 
         # 7. Persist Episode to Repository
@@ -328,7 +359,7 @@ class AnalysisService:
                 "observed_f0_mean": mean_f0,
                 "observed_motion_rhythm_hz": mean_rhythm,
                 "antecedent_id": antecedent_id,
-                "action_offered": layer3_dyadic["suggested_actions"][0],
+                "action_offered": dyadic_suggestions["suggested_actions"][0],
             }
         )
 
@@ -339,7 +370,7 @@ class AnalysisService:
                 "clip_id": clip_id,
                 "progress": 1.0,
                 "distress_anomaly": distress_triggered,
-                "layer4_safety": layer4_safety,
+                "safety_triage": safety_triage,
             },
         )
 

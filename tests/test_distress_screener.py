@@ -82,9 +82,9 @@ def test_distress_screener_layer_suppression_and_triage_precedence() -> None:
         },
     )
 
-    # Layer 4 Safety must include mandatory non-diagnostic disclaimer
-    assert "layer4_safety" in out
-    disclaimer = out["layer4_safety"]["clinical_disclaimer"]
+    # Safety Triage must include mandatory non-diagnostic disclaimer
+    assert "safety_triage" in out
+    disclaimer = out["safety_triage"]["clinical_disclaimer"]
     assert "Assistive observational notebook only" in disclaimer
     assert "does not provide medical diagnosis" in disclaimer
 

@@ -56,21 +56,37 @@ def test_analysis_service_end_to_end_cold_start(analysis_service: AnalysisServic
     assert res["metric_embedding"] is None
 
     # Verify L1 Sensory Observations
-    l1 = res["layer1_sensory"]
+    l1 = res["L1_measured"]
     assert l1["windows_count"] == 1
     assert "observed_f0_mean_hz" in l1
     assert "observed_motion_rhythm_hz" in l1
     assert not l1["acute_guarding_detected"]
 
     # Verify L2 Hypotheses (Matcher in cold-start collecting state)
-    l2 = res["layer2_hypotheses"]
+    l2 = res["L2_historical"]
     assert l2["status"] == "abstained"
 
-    # Verify L4 Safety Triage
-    l4 = res["layer4_safety"]
-    assert not l4["distress_anomaly_detected"]
-    assert "screener_recommendation" in l4
-    assert "clinical_disclaimer" in l4
+    # Verify L3 Context
+    l3 = res["L3_context"]
+    assert l3["antecedent_id"] == "mealtime"
+
+    # Verify L4 Evidence
+    assert "L4_evidence" in res
+    assert "citations" in res["L4_evidence"]
+
+    # Verify Safety Triage
+    safety = res["safety_triage"]
+    assert not safety["distress_anomaly_detected"]
+    assert "screener_recommendation" in safety
+    assert "clinical_disclaimer" in safety
+
+    # Verify Dyadic Suggestions
+    assert "dyadic_suggestions" in res
+    assert "open_observation" in res["dyadic_suggestions"]["suggested_actions"]
+
+    # Verify Parent View Text
+    assert "parent_view_text" in res
+    assert len(res["parent_view_text"]) > 10
 
     # Verify Episode record in database
     ep_record = analysis_service.episode_repo.get_episode(clip_id)
@@ -104,15 +120,16 @@ def test_analysis_service_acute_distress_triage_precedence(
     )
 
     # Invariant 8: Medical Triage Precedence
-    l2 = res["layer2_hypotheses"]
+    l2 = res["L2_historical"]
     assert l2["status"] == "suppressed_due_to_anomaly"
 
-    l3 = res["layer3_dyadic"]
-    assert "hydration_water" in l3["suggested_actions"]
+    dyad = res["dyadic_suggestions"]
+    assert "open_observation" in dyad["suggested_actions"]
+    assert "comfort check" in dyad["rationale"].lower()
 
-    l4 = res["layer4_safety"]
-    assert l4["distress_anomaly_detected"]
-    assert "PHYSICAL COMFORT CHECK SUGGESTED" in l4["screener_recommendation"]
+    safety = res["safety_triage"]
+    assert safety["distress_anomaly_detected"]
+    assert "PHYSICAL COMFORT CHECK SUGGESTED" in safety["screener_recommendation"]
 
 
 def test_analysis_service_with_trained_checkpoint(

@@ -40,6 +40,19 @@ class AnalyzeRequest(BaseModel):
     generate_render: bool = Field(
         default=False, description="Whether to invoke Qwen LLM card renderer"
     )
+    antecedent_id: str = Field(
+        default="unknown", description="Observed antecedent situational context"
+    )
+    antecedent_notes: str | None = Field(
+        default=None, description="Caregiver notes regarding environment, transitions, timing"
+    )
+    caregiver_hypothesis: str | None = Field(
+        default=None, description="Caregiver exploratory hypothesis"
+    )
+    setting: str | None = Field(
+        default=None, description="Physical setting (e.g. living room, school)"
+    )
+    observer: str = Field(default="caregiver", description="Observer role")
 
 
 class AnalyzeResponse(BaseModel):
