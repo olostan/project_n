@@ -2,10 +2,13 @@
 Project N: FastAPI Dependency Injection Providers.
 """
 
+import contextlib
 import os
 import secrets
 import sqlite3
+import sys
 import time
+from pathlib import Path
 
 from fastapi import Header, HTTPException, status
 
@@ -28,22 +31,75 @@ _sse_bus: SSEBus = SSEBus()
 # Token registry: token -> expiration epoch timestamp
 _issued_tokens: dict[str, float] = {}
 
-# Ephemeral pairing PIN
+# Ephemeral pairing PIN & Rate Limiting
 _active_pairing_pin: str | None = None
 _pairing_pin_expires_at: float = 0.0
+_failed_pairing_attempts: int = 0
+_MAX_PAIRING_ATTEMPTS: int = 5
 
 
 def get_or_create_pairing_pin(ttl_seconds: int = 300) -> str:
     """Returns the current valid pairing PIN or generates an ephemeral 6-digit PIN."""
     global _active_pairing_pin, _pairing_pin_expires_at
-    env_pin = os.getenv("PROJECT_N_PAIRING_PIN")
-    if env_pin:
-        return env_pin
+    if os.getenv("PROJECT_N_TEST_MODE") == "1":
+        env_pin = os.getenv("PROJECT_N_PAIRING_PIN")
+        if env_pin:
+            return env_pin
+
     now = time.time()
     if _active_pairing_pin is None or now >= _pairing_pin_expires_at:
         _active_pairing_pin = f"{secrets.randbelow(1_000_000):06d}"
         _pairing_pin_expires_at = now + ttl_seconds
+
+        # Write to ~/.project_n/pairing.pin with 0600 permissions
+        try:
+            pn_dir = Path.home() / ".project_n"
+            pn_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with contextlib.suppress(OSError):
+                os.chmod(pn_dir, 0o700)
+            pin_file = pn_dir / "pairing.pin"
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+            fd = os.open(pin_file, flags, 0o600)
+            with open(fd, "w", encoding="utf-8") as f:
+                f.write(_active_pairing_pin)
+            with contextlib.suppress(OSError):
+                os.chmod(pin_file, 0o600)
+        except OSError as err:
+            sys.stderr.write(f"[WARN] Failed to write pairing PIN file: {err}\n")
+
+        # Emit to stderr for local host operator
+        sys.stderr.write(f"[SECURITY] Ephemeral pairing PIN: {_active_pairing_pin}\n")
+        sys.stderr.flush()
+
     return _active_pairing_pin
+
+
+def check_and_record_pairing_attempt(candidate_pin: str) -> bool:
+    """
+    Validates candidate PIN with lockout after 5 failed attempts.
+    Raises HTTPException 429 if locked out.
+    Returns True if match, False if mismatch.
+    """
+    global _failed_pairing_attempts
+    if _failed_pairing_attempts >= _MAX_PAIRING_ATTEMPTS:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed pairing attempts. Pairing locked out.",
+        )
+    active_pin = get_or_create_pairing_pin()
+    if candidate_pin != active_pin:
+        _failed_pairing_attempts += 1
+        return False
+    _failed_pairing_attempts = 0
+    return True
+
+
+def reset_pairing_state() -> None:
+    """Resets pairing PIN and failure counter for testing purposes."""
+    global _failed_pairing_attempts, _active_pairing_pin, _pairing_pin_expires_at
+    _failed_pairing_attempts = 0
+    _active_pairing_pin = None
+    _pairing_pin_expires_at = 0.0
 
 
 def register_token(token: str, expires_at_epoch: float) -> None:

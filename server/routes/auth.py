@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
 from server.ca import LocalCertificateAuthority
-from server.deps import get_ca, get_or_create_pairing_pin, register_token
+from server.deps import check_and_record_pairing_attempt, get_ca, register_token
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -29,18 +29,6 @@ class PairingResponse(BaseModel):
     expires_at: str
 
 
-class PairingPinResponse(BaseModel):
-    pairing_pin: str
-    expires_in_sec: int
-
-
-@router.get("/pin", response_model=PairingPinResponse)
-def get_current_pairing_pin() -> dict[str, Any]:
-    """Retrieves current ephemeral pairing PIN for local dashboard/display."""
-    pin = get_or_create_pairing_pin()
-    return {"pairing_pin": pin, "expires_in_sec": 300}
-
-
 @router.post("/pair", response_model=PairingResponse)
 def pair_companion_device(
     req: PairingRequest,
@@ -50,8 +38,7 @@ def pair_companion_device(
     PIN pairing endpoint for mobile companions.
     Authenticates ephemeral PIN and issues a local client token and signed X.509 certificate.
     """
-    active_pin = get_or_create_pairing_pin()
-    if req.pairing_pin != active_pin:
+    if not check_and_record_pairing_attempt(req.pairing_pin):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired pairing PIN.",

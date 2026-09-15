@@ -82,6 +82,9 @@ replay_buffer/
 logs/
 server/logs/
 *.pid
+.project_n/
+.pairing_pin
+
 
 # --- macOS System Metadata ---
 .DS_Store

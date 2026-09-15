@@ -5,13 +5,20 @@ episodes querying, media streaming from vault, outcome confirmation, NCCPC pain 
 """
 
 import hashlib
+from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from extraction.demux import create_synthetic_mp4
 from server.ca import generate_test_csr
-from server.deps import get_episode_repo, get_or_create_pairing_pin, get_vault
+from server.deps import (
+    get_episode_repo,
+    get_or_create_pairing_pin,
+    get_vault,
+    reset_pairing_state,
+)
 from server.main import app
 
 client = TestClient(app)
@@ -19,6 +26,7 @@ client = TestClient(app)
 
 def _get_authenticated_headers() -> dict[str, str]:
     """Helper to pair a device and obtain authenticated Bearer headers."""
+    reset_pairing_state()
     csr_pem, _ = generate_test_csr("test_paired_device")
     pin = get_or_create_pairing_pin()
     pair_res = client.post(
@@ -43,18 +51,30 @@ def test_health_check() -> None:
     assert "active_metal_memory_gb" in data
 
 
+def test_auth_pin_endpoint_does_not_exist() -> None:
+    """Security Invariant: GET /api/v1/auth/pin must not exist on public HTTP interface."""
+    res = client.get("/api/v1/auth/pin")
+    assert res.status_code == 404
+
+
 def test_auth_pin_pairing() -> None:
+    reset_pairing_state()
     csr_pem, _ = generate_test_csr("device_pairing_test")
     pin = get_or_create_pairing_pin()
 
-    # 1. Invalid PIN fails
+    # Verify pin was written to ~/.project_n/pairing.pin
+    pin_file = Path.home() / ".project_n" / "pairing.pin"
+    assert pin_file.exists()
+    assert pin_file.read_text().strip() == pin
+
+    # 1. Invalid PIN fails (attempt 1)
     fail_res = client.post(
         "/api/v1/auth/pair",
         json={"device_id": "test_phone_01", "csr_pem": csr_pem, "pairing_pin": "00000000"},
     )
     assert fail_res.status_code == 400
 
-    # 2. Invalid CSR fails
+    # 2. Invalid CSR fails (attempt 2)
     bad_csr_res = client.post(
         "/api/v1/auth/pair",
         json={"device_id": "test_phone_01", "csr_pem": "not_a_csr", "pairing_pin": pin},
@@ -71,6 +91,48 @@ def test_auth_pin_pairing() -> None:
     assert "token" in data
     assert data["token"].startswith("paired_")
     assert "BEGIN CERTIFICATE" in data["client_cert_pem"]
+
+
+def test_auth_pin_rate_limiting_lockout() -> None:
+    """Ensure after 5 failed pairing attempts, lockout returns 429."""
+    reset_pairing_state()
+    csr_pem, _ = generate_test_csr("device_lockout_test")
+    get_or_create_pairing_pin()
+
+    # 5 failed attempts
+    for _ in range(5):
+        res = client.post(
+            "/api/v1/auth/pair",
+            json={"device_id": "test_bad", "csr_pem": csr_pem, "pairing_pin": "999999"},
+        )
+        assert res.status_code == 400
+
+    # 6th attempt is locked out with 429
+    locked_res = client.post(
+        "/api/v1/auth/pair",
+        json={"device_id": "test_bad", "csr_pem": csr_pem, "pairing_pin": "999999"},
+    )
+    assert locked_res.status_code == 429
+    assert "locked out" in locked_res.json()["detail"].lower()
+    reset_pairing_state()
+
+
+def test_auth_env_pin_test_mode_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """PROJECT_N_PAIRING_PIN is only respected when PROJECT_N_TEST_MODE == '1'."""
+    reset_pairing_state()
+    monkeypatch.setenv("PROJECT_N_PAIRING_PIN", "123456")
+    monkeypatch.delenv("PROJECT_N_TEST_MODE", raising=False)
+
+    # Without test mode, env pin should be ignored
+    pin1 = get_or_create_pairing_pin()
+    assert pin1 != "123456"
+
+    # With test mode, env pin is honored
+    reset_pairing_state()
+    monkeypatch.setenv("PROJECT_N_TEST_MODE", "1")
+    pin2 = get_or_create_pairing_pin()
+    assert pin2 == "123456"
+    reset_pairing_state()
 
 
 def test_chunked_upload_and_finalize() -> None:
