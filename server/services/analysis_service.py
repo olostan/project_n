@@ -21,16 +21,12 @@ from models.clip_encoder import (
     ClipSequenceAttentionPool,
     generate_sinusoidal_positional_encoding,
 )
-from models.contracts import (
-    METRIC_EMBEDDING_D,
-)
+from models.contracts import METRIC_EMBEDDING_D
 from models.matcher import EpisodicPrototypeMatcher
 from models.projection import MetricProjectionHead
+from models.standardizer import FeatureStandardizer
 from rag.vector_store import VectorStore
-from server.services.card_builder import (
-    derive_dyadic_suggestions,
-    synthesize_parent_view_text,
-)
+from server.services.card_builder import derive_dyadic_suggestions, synthesize_parent_view_text
 from server.sse_bus import SSEBus
 from storage.episode_repo import EpisodeRepository
 from storage.vault import VaultManager
@@ -52,11 +48,15 @@ class AnalysisService:
         projection_head: MetricProjectionHead | None = None,
         clip_encoder: ClipSequenceAttentionPool | None = None,
         prototype_matcher: EpisodicPrototypeMatcher | None = None,
+        audio_standardizer: FeatureStandardizer | None = None,
+        kinematic_standardizer: FeatureStandardizer | None = None,
     ) -> None:
         self.vault = vault
         self.episode_repo = episode_repo
         self.vector_store = vector_store
         self.sse_bus = sse_bus
+        self.audio_standardizer = audio_standardizer
+        self.kinematic_standardizer = kinematic_standardizer
 
         # Initialize or attach neural components
         self.projection_head = projection_head or MetricProjectionHead()
@@ -173,6 +173,10 @@ class AnalysisService:
         # 3. Neural Metric Projection & Clip-Level Aggregation
         x_audio_batch = mx.array(np.stack(acoustic_latents, axis=0))
         x_kinematic_batch = mx.array(np.stack(kinematic_latents, axis=0))
+        if self.audio_standardizer is not None:
+            x_audio_batch = self.audio_standardizer.transform(x_audio_batch)
+        if self.kinematic_standardizer is not None:
+            x_kinematic_batch = self.kinematic_standardizer.transform(x_kinematic_batch)
 
         # Project per-window representations to 128-dim metric embeddings
         z_windows = self.projection_head(x_audio_batch, x_kinematic_batch, x_physio=None)

@@ -92,3 +92,97 @@ def test_train_projection_and_checkpoint_registration(tmp_path: Path) -> None:
     loaded_hash = new_model.load_checkpoint(row["checkpoint_path"])
     assert new_model.is_trained is True
     assert f"ckpt_{loaded_hash[:8]}" == ckpt_id
+
+
+def test_candidate_evaluator_insufficient_data(tmp_path: Path) -> None:
+    from training.evaluate_candidate import evaluate_checkpoint
+
+    db = init_db(":memory:")
+    dummy_ckpt = tmp_path / "dummy.safetensors"
+    model = MetricProjectionHead()
+    model.save_checkpoint(str(dummy_ckpt))
+
+    report = evaluate_checkpoint(checkpoint_path=str(dummy_ckpt), db_conn=db)
+    assert report["evaluation_status"] == "pending"
+    assert "insufficient confirmed episodes" in report["notes"]
+
+
+def test_candidate_evaluator_with_episodes(tmp_path: Path) -> None:
+    from storage.episode_repo import EpisodeRepository
+    from tests.fixtures.synthetic_episodes import seed_synthetic_episodes
+    from training.evaluate_candidate import evaluate_checkpoint
+
+    db = init_db(":memory:")
+    repo = EpisodeRepository(db=db)
+    seed_synthetic_episodes(repo, count=15)
+
+    dummy_ckpt = tmp_path / "candidate_test.safetensors"
+    model = MetricProjectionHead()
+    model.save_checkpoint(str(dummy_ckpt))
+
+    report = evaluate_checkpoint(
+        checkpoint_path=str(dummy_ckpt), db_conn=db, dataset_version="ds_test_v1"
+    )
+    assert report["evaluation_status"] in ("passed", "failed")
+    assert report["retrieval_mrr"] > 0.0
+    assert report["holdout_coverage"] > 0.0
+    assert "checks" in report
+
+    # Verify model_checkpoints table was updated
+    cursor = db.execute(
+        "SELECT * FROM model_checkpoints WHERE checkpoint_path = ?", (str(dummy_ckpt),)
+    )
+    row = cursor.fetchone()
+    assert row is not None
+    assert row["evaluation_status"] == report["evaluation_status"]
+    assert row["retrieval_mrr"] == report["retrieval_mrr"]
+
+
+def test_production_checkpoint_loader_in_deps(tmp_path: Path) -> None:
+    import server.deps as deps
+    from models.standardizer import FeatureStandardizer
+
+    db = init_db(":memory:")
+    deps._db_conn = db
+    deps._analysis_service = None  # Reset singleton
+
+    # Create dummy trained checkpoint
+    ckpt_dir = tmp_path / "prod_ckpt"
+    ckpt_dir.mkdir()
+    ckpt_file = ckpt_dir / "ckpt_prod123.safetensors"
+    model = MetricProjectionHead()
+    model.save_checkpoint(str(ckpt_file))
+
+    # Save standardizers
+    scaler = FeatureStandardizer()
+    scaler.fit(np.ones((2, 10)))
+    scaler.save(ckpt_dir / "standardizer_audio.npz")
+    scaler.save(ckpt_dir / "standardizer_kinematic.npz")
+
+    # Register as passed and production
+    db.execute(
+        """
+        INSERT INTO model_checkpoints (
+            id, checkpoint_path, extractor_version, schema_version, dataset_version,
+            retrieval_mrr, holdout_coverage, evaluation_status, is_production
+        ) VALUES ('ckpt_prod123', ?, 'v1', '1.0', 'ds1', 0.85, 0.80, 'passed', 1)
+        """,
+        (str(ckpt_file),),
+    )
+
+    svc = deps.get_analysis_service()
+    assert svc.projection_head.is_trained is True
+    assert svc.audio_standardizer is not None
+    assert svc.kinematic_standardizer is not None
+
+    # Verify health endpoint returns loaded checkpoint
+    from fastapi.testclient import TestClient
+
+    from server.main import app
+
+    client = TestClient(app)
+    resp = client.get("/api/v1/health")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["checkpoint_id"].startswith("ckpt_")
+    assert data["is_trained"] is True

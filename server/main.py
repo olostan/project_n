@@ -5,14 +5,16 @@ Main application setup, SSE streaming bus, CORS, and modular router mounting.
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 import mlx.core as mx
 from fastapi import Depends, FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from server.deps import get_sse_bus
+from server.deps import get_analysis_service, get_sse_bus
 from server.routes import auth, clips, episodes, facts
+from server.services.analysis_service import AnalysisService
 from server.sse_bus import SSEBus
 
 
@@ -48,15 +50,24 @@ app.include_router(facts.router)
 
 
 @app.get("/api/v1/health")
-def health_check() -> dict[str, str | float]:
-    """System health check returning active Metal memory and engine status."""
+def health_check(
+    analysis: AnalysisService = Depends(get_analysis_service),
+) -> dict[str, Any]:
+    """System health check returning active Metal memory, engine status, and loaded checkpoint."""
     active_gb = mx.get_active_memory() / 1e9
     peak_gb = mx.get_peak_memory() / 1e9
+    ckpt_id = (
+        f"ckpt_{analysis.projection_head.checkpoint_hash[:8]}"
+        if analysis.projection_head.checkpoint_hash
+        else "uncalibrated_v0"
+    )
     return {
         "status": "healthy",
         "engine": "Apple MLX",
         "active_metal_memory_gb": round(active_gb, 3),
         "peak_metal_memory_gb": round(peak_gb, 3),
+        "checkpoint_id": ckpt_id,
+        "is_trained": analysis.projection_head.is_trained,
     }
 
 

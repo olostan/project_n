@@ -12,6 +12,8 @@ from pathlib import Path
 
 from fastapi import Header, HTTPException, status
 
+from models.projection import MetricProjectionHead
+from models.standardizer import FeatureStandardizer
 from rag.vector_store import VectorStore
 from server.ca import LocalCertificateAuthority
 from server.services.analysis_service import AnalysisService
@@ -163,11 +165,33 @@ def get_ca() -> LocalCertificateAuthority:
 def get_analysis_service() -> AnalysisService:
     global _analysis_service
     if _analysis_service is None:
+        conn = get_db()
+        cursor = conn.execute(
+            "SELECT * FROM model_checkpoints WHERE is_production = 1 AND evaluation_status = 'passed' ORDER BY ROWID DESC LIMIT 1"
+        )
+        row = cursor.fetchone()
+        projection_head = MetricProjectionHead()
+        audio_scaler: FeatureStandardizer | None = None
+        kin_scaler: FeatureStandardizer | None = None
+
+        if row:
+            ckpt_path = Path(row["checkpoint_path"])
+            if ckpt_path.exists():
+                projection_head.load_checkpoint(str(ckpt_path))
+                parent = ckpt_path.parent
+                if (parent / "standardizer_audio.npz").exists():
+                    audio_scaler = FeatureStandardizer.load(parent / "standardizer_audio.npz")
+                if (parent / "standardizer_kinematic.npz").exists():
+                    kin_scaler = FeatureStandardizer.load(parent / "standardizer_kinematic.npz")
+
         _analysis_service = AnalysisService(
             vault=get_vault(),
             episode_repo=get_episode_repo(),
             vector_store=get_vector_store(),
             sse_bus=get_sse_bus(),
+            projection_head=projection_head,
+            audio_standardizer=audio_scaler,
+            kinematic_standardizer=kin_scaler,
         )
     return _analysis_service
 

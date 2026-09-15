@@ -116,11 +116,14 @@ def save_and_register_checkpoint(
     db_conn: sqlite3.Connection,
     dataset_version: str,
     validation_manifest_hash: str,
-    retrieval_mrr: float = 0.85,
-    holdout_coverage: float = 0.92,
+    retrieval_mrr: float = 0.0,
+    holdout_coverage: float = 0.0,
+    ece_score: float | None = None,
+    evaluation_status: str = "pending",
     tau_abstain: float = 0.35,
     extractor_version: str = "git_v1.0.0",
     schema_version: str = "1.0.0",
+    notes: str = "Pending evaluation by evaluate_candidate.py",
 ) -> str:
     """Saves checkpoint weights and registers entry in model_checkpoints table."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -139,6 +142,7 @@ def save_and_register_checkpoint(
         evaluation_status, notes
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
+    full_notes = f"{notes} (tau_abstain={tau_abstain})" if "tau_abstain" not in notes else notes
     with db_conn:
         db_conn.execute(
             sql,
@@ -151,9 +155,9 @@ def save_and_register_checkpoint(
                 validation_manifest_hash,
                 retrieval_mrr,
                 holdout_coverage,
-                0.05,  # ece_score
-                "passed",
-                f"tau_abstain={tau_abstain}",
+                ece_score,
+                evaluation_status,
+                full_notes,
             ),
         )
 
@@ -163,18 +167,90 @@ def save_and_register_checkpoint(
 def build_synthetic_triplets(
     batch_size: int = 4, seq_len: int = 5
 ) -> list[tuple[mx.array, mx.array, mx.array, mx.array, mx.array, mx.array]]:
-    """Builds synthetic feature triplets for testing and demonstration."""
+    """Builds synthetic feature triplets for testing and verification."""
+    from tests.fixtures.synthetic_episodes import generate_mock_feature_triplets
+
+    return generate_mock_feature_triplets(
+        batch_size=batch_size, t_a=seq_len, t_k=seq_len, num_batches=3
+    )
+
+
+def mine_triplets_from_episodes(
+    episodes: list[dict[str, Any]],
+    batch_size: int = 4,
+    seq_len: int = 5,
+) -> list[tuple[mx.array, mx.array, mx.array, mx.array, mx.array, mx.array]]:
+    """
+    Mines (anchor, positive, negative) triplet batches from real confirmed episodes.
+    Positive pair: matching antecedent and matching outcome state.
+    Negative pair: different antecedent or conflicting outcome state.
+    """
+    valid_eps = [ep for ep in episodes if ep.get("outcome_state") is not None]
+    if len(valid_eps) < 10:
+        return []
+
     batches = []
-    for _ in range(3):
-        a_a = mx.random.normal((batch_size, seq_len, ACOUSTIC_LATENT_D))
-        a_k = mx.random.normal((batch_size, seq_len, KINEMATIC_LATENT_D))
-        # Positive has slight perturbation
-        p_a = a_a + mx.random.normal(a_a.shape) * 0.05
-        p_k = a_k + mx.random.normal(a_k.shape) * 0.05
-        # Negative is distinct
-        n_a = mx.random.normal(a_a.shape)
-        n_k = mx.random.normal(a_k.shape)
-        batches.append((a_a, a_k, p_a, p_k, n_a, n_k))
+    # Build batches by grouping positive and negative pairs
+    for i in range(0, len(valid_eps) - 2, batch_size):
+        a_a_list, a_k_list = [], []
+        p_a_list, p_k_list = [], []
+        n_a_list, n_k_list = [], []
+
+        for j in range(i, min(i + batch_size, len(valid_eps))):
+            anchor = valid_eps[j]
+            # Find positive candidate: same antecedent, same outcome
+            positives = [
+                ep
+                for k, ep in enumerate(valid_eps)
+                if k != j
+                and ep.get("antecedent_id") == anchor.get("antecedent_id")
+                and ep.get("outcome_state") == anchor.get("outcome_state")
+            ]
+            # Find negative candidate: different antecedent or escalated vs settled
+            negatives = [
+                ep
+                for k, ep in enumerate(valid_eps)
+                if k != j
+                and (
+                    ep.get("antecedent_id") != anchor.get("antecedent_id")
+                    or ep.get("outcome_state") != anchor.get("outcome_state")
+                )
+            ]
+
+            if not positives or not negatives:
+                continue
+
+            # Deterministic feature generation from confirmed observation stats
+            def _make_feat(ep: dict[str, Any]) -> tuple[mx.array, mx.array]:
+                f0 = float(ep.get("observed_f0_mean") or 260.0)
+                rhythm = float(ep.get("observed_motion_rhythm_hz") or 1.0)
+                audio_f = mx.ones((seq_len, ACOUSTIC_LATENT_D)) * (f0 / 500.0)
+                kin_f = mx.ones((seq_len, KINEMATIC_LATENT_D)) * (rhythm / 3.0)
+                return audio_f, kin_f
+
+            a_a, a_k = _make_feat(anchor)
+            p_a, p_k = _make_feat(positives[0])
+            n_a, n_k = _make_feat(negatives[0])
+
+            a_a_list.append(a_a)
+            a_k_list.append(a_k)
+            p_a_list.append(p_a)
+            p_k_list.append(p_k)
+            n_a_list.append(n_a)
+            n_k_list.append(n_k)
+
+        if a_a_list:
+            batches.append(
+                (
+                    mx.stack(a_a_list, axis=0),
+                    mx.stack(a_k_list, axis=0),
+                    mx.stack(p_a_list, axis=0),
+                    mx.stack(p_k_list, axis=0),
+                    mx.stack(n_a_list, axis=0),
+                    mx.stack(n_k_list, axis=0),
+                )
+            )
+
     return batches
 
 
@@ -196,26 +272,84 @@ def main() -> None:
         mx.set_default_device(mx.gpu)
 
     db_conn = init_db(args.db_path)
-    splitter = TemporalSplitter([])
-    _, _, manifest_hash = splitter.extract_safety_holdout()
+    from storage.episode_repo import EpisodeRepository
+
+    repo = EpisodeRepository(db=db_conn)
+    confirmed = [ep for ep in repo.list_episodes(limit=500) if ep.get("outcome_state")]
+
+    if len(confirmed) < 10:
+        print(
+            f"Insufficient confirmed episodes with recorded outcomes in database (found {len(confirmed)} < 10). "
+            "At least 10 confirmed episodes required for metric projection fine-tuning."
+        )
+        return
+
+    splitter = TemporalSplitter(confirmed)
+    regular_eps, safety_eps, manifest_hash = splitter.extract_safety_holdout()
+
+    batches = mine_triplets_from_episodes(regular_eps, batch_size=args.batch_size)
+    if not batches:
+        print("Could not mine sufficient valid triplet pairs from regular training split.")
+        return
+
+    # Fit FeatureStandardizer on training split features only
+    from models.standardizer import FeatureStandardizer
+
+    all_audio = mx.concatenate([b[0] for b in batches], axis=0)
+    all_kin = mx.concatenate([b[1] for b in batches], axis=0)
+    audio_scaler = FeatureStandardizer().fit(all_audio)
+    kin_scaler = FeatureStandardizer().fit(all_kin)
+
+    # Standardize batches
+    std_batches = []
+    for a_a, a_k, p_a, p_k, n_a, n_k in batches:
+        std_batches.append(
+            (
+                audio_scaler.transform(a_a),
+                kin_scaler.transform(a_k),
+                audio_scaler.transform(p_a),
+                kin_scaler.transform(p_k),
+                audio_scaler.transform(n_a),
+                kin_scaler.transform(n_k),
+            )
+        )
 
     model = MetricProjectionHead()
-    batches = build_synthetic_triplets(batch_size=args.batch_size)
-
     start_time = time.time()
-    losses = train_projection_head(model, batches, epochs=args.epochs)
+    losses = train_projection_head(model, std_batches, epochs=args.epochs)
     duration = time.time() - start_time
 
+    out_p = Path(args.output_dir)
     ckpt_id = save_and_register_checkpoint(
         model=model,
-        output_dir=Path(args.output_dir),
+        output_dir=out_p,
         db_conn=db_conn,
-        dataset_version="ds_synthetic_v0",
+        dataset_version="ds_v1.0",
         validation_manifest_hash=manifest_hash,
+        evaluation_status="pending",
+        notes="Trained on confirmed episodes; pending evaluate_candidate.py validation.",
     )
+
+    # Save standardizers alongside checkpoint
+    audio_scaler.save(out_p / "standardizer_audio.npz")
+    kin_scaler.save(out_p / "standardizer_kinematic.npz")
+
     print(
-        f"Training completed in {duration:.2f}s. Checkpoint {ckpt_id} registered. Final loss: {losses[-1] if losses else 0.0:.4f}"
+        f"Training completed in {duration:.2f}s. Checkpoint {ckpt_id} saved as pending. "
+        f"Final loss: {losses[-1] if losses else 0.0:.4f}"
     )
+
+    # Automatically evaluate candidate checkpoint against holdout episodes
+    from training.evaluate_candidate import evaluate_checkpoint
+
+    final_ckpt_path = out_p / f"{ckpt_id}.safetensors"
+    if final_ckpt_path.exists():
+        eval_report = evaluate_checkpoint(
+            checkpoint_path=str(final_ckpt_path),
+            db_conn=db_conn,
+            dataset_version="ds_v1.0",
+        )
+        print(f"Candidate evaluation status: {eval_report['evaluation_status']}")
 
 
 if __name__ == "__main__":

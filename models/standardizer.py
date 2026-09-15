@@ -6,6 +6,7 @@ Computes and applies per-feature z-score standardization across sensory dimensio
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import mlx.core as mx
 
@@ -21,7 +22,7 @@ class FeatureStandardizer:
         self.mean: mx.array | None = None
         self.std: mx.array | None = None
 
-    def fit(self, x: mx.array) -> FeatureStandardizer:
+    def fit(self, x: mx.array | Any) -> FeatureStandardizer:
         """
         Computes mean and standard deviation over all axes except the last (feature) dimension.
 
@@ -31,6 +32,8 @@ class FeatureStandardizer:
         Returns:
             Self instance with fitted statistics.
         """
+        if not isinstance(x, mx.array):
+            x = mx.array(x)
         if x.ndim == 1:
             x = x.reshape(1, -1)
         x_flat = x.reshape(-1, x.shape[-1])
@@ -42,7 +45,7 @@ class FeatureStandardizer:
         self.std = std
         return self
 
-    def transform(self, x: mx.array) -> mx.array:
+    def transform(self, x: mx.array | Any) -> mx.array:
         """
         Transforms input array using fitted mean and standard deviation.
 
@@ -54,6 +57,8 @@ class FeatureStandardizer:
         """
         if self.mean is None or self.std is None:
             raise ValueError("FeatureStandardizer must be fitted before transforming.")
+        if not isinstance(x, mx.array):
+            x = mx.array(x)
         return (x - self.mean) / self.std
 
     def fit_transform(self, x: mx.array) -> mx.array:
