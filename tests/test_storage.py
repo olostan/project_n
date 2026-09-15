@@ -96,6 +96,39 @@ def test_sqlite_episodes_crud_and_check_constraints() -> None:
         repo.insert_episode(invalid_ep)
 
 
+def test_metric_embedding_persistence(tmp_path: Path) -> None:
+    db_file = tmp_path / "test_persistence.db"
+    repo1 = EpisodeRepository(db=db_file)
+
+    test_embedding = [round(i * 0.0078125, 6) for i in range(128)]
+    ep_data = {
+        "id": "ep_emb_001",
+        "vault_uri": "vault://clips/ep_emb_001.enc",
+        "encoder_version_id": "v1.0.0",
+        "captured_at": "2026-09-14T12:00:00Z",
+        "duration_ms": 10000,
+        "windows_count": 2,
+        "antecedent_id": "mealtime",
+        "action_offered": "quiet_refuge",
+        "metric_embedding": test_embedding,
+    }
+    repo1.insert_episode(ep_data)
+
+    ep_fetched = repo1.get_episode("ep_emb_001")
+    assert ep_fetched is not None
+    assert ep_fetched["metric_embedding"] == test_embedding
+
+    # Simulate process restart / new connection
+    repo2 = EpisodeRepository(db=db_file)
+    ep_reloaded = repo2.get_episode("ep_emb_001")
+    assert ep_reloaded is not None
+    assert ep_reloaded["metric_embedding"] == test_embedding
+
+    listed = repo2.list_episodes()
+    assert len(listed) == 1
+    assert listed[0]["metric_embedding"] == test_embedding
+
+
 def test_facts_confirmation_gate() -> None:
     conn = init_db(":memory:")
     repo = FactsRepository(db=conn)

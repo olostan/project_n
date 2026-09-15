@@ -3,6 +3,7 @@ Project N: Relational Database Schema & DDL.
 Maintains typed SQLite schema with CHECK constraints across all controlled vocabularies.
 """
 
+import contextlib
 import sqlite3
 from pathlib import Path
 
@@ -86,6 +87,7 @@ CREATE TABLE IF NOT EXISTS episodes (
     nccpc_instrument TEXT CHECK(nccpc_instrument IN ('nccpc_pv', 'nccpc_r', 'none')),
     nccpc_score INTEGER,
     pain_cutoff_breached INTEGER DEFAULT -1 CHECK(pain_cutoff_breached IN (-1, 0, 1)),
+    metric_embedding TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -160,4 +162,6 @@ def init_db(db_path: str | Path = ":memory:") -> sqlite3.Connection:
         conn.execute(CREATE_EPISODES_TABLE)
         conn.execute(CREATE_MODEL_CHECKPOINTS_TABLE)
         conn.execute(CREATE_FACTS_TABLE)
+        with contextlib.suppress(sqlite3.OperationalError):
+            conn.execute("ALTER TABLE episodes ADD COLUMN metric_embedding TEXT;")
     return conn

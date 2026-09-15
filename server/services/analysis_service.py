@@ -6,6 +6,7 @@ output structuring.
 """
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 import mlx.core as mx
@@ -66,8 +67,15 @@ class AnalysisService:
         self._clip_embeddings: dict[str, list[float]] = {}
 
     def get_clip_embedding(self, clip_id: str) -> list[float] | None:
-        """Returns cached 128-dim metric embedding if computed with a trained checkpoint."""
-        return self._clip_embeddings.get(clip_id)
+        """Returns cached or persisted 128-dim metric embedding."""
+        if clip_id in self._clip_embeddings:
+            return self._clip_embeddings[clip_id]
+        ep = self.episode_repo.get_episode(clip_id)
+        if ep and ep.get("metric_embedding"):
+            emb = ep["metric_embedding"]
+            if isinstance(emb, list):
+                return emb
+        return None
 
     def analyze_sensory_clip(
         self,
@@ -81,6 +89,7 @@ class AnalysisService:
         setting: str | None = None,
         observer: str = "caregiver",
         baseline_stats: dict[str, float] | None = None,
+        captured_at: str | None = None,
     ) -> dict[str, Any]:
         """
         Executes end-to-end analysis on raw audio and video frames.
@@ -347,19 +356,20 @@ class AnalysisService:
             or L2_historical["status"] == "abstained",
         }
 
-        # 7. Persist Episode to Repository
+        cap_time = captured_at or datetime.now(UTC).isoformat()
         self.episode_repo.insert_episode(
             {
                 "id": clip_id,
                 "vault_uri": f"vault://{clip_id}.enc",
                 "encoder_version_id": encoder_version,
-                "captured_at": "2026-09-14T00:00:00Z",
+                "captured_at": cap_time,
                 "duration_ms": windows_count * 5000,
                 "windows_count": windows_count,
                 "observed_f0_mean": mean_f0,
                 "observed_motion_rhythm_hz": mean_rhythm,
                 "antecedent_id": antecedent_id,
                 "action_offered": dyadic_suggestions["suggested_actions"][0],
+                "metric_embedding": metric_embedding,
             }
         )
 

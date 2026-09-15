@@ -160,6 +160,7 @@ def analyze_clip(
                 caregiver_hypothesis=req.caregiver_hypothesis,
                 setting=req.setting,
                 observer=req.observer,
+                captured_at=req.captured_at,
             )
 
         except MediaDecodeError as err:

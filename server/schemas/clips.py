@@ -53,6 +53,7 @@ class AnalyzeRequest(BaseModel):
         default=None, description="Physical setting (e.g. living room, school)"
     )
     observer: str = Field(default="caregiver", description="Observer role")
+    captured_at: str | None = Field(default=None, description="ISO-8601 recording timestamp")
 
 
 class AnalyzeResponse(BaseModel):

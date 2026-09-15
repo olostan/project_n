@@ -4,6 +4,7 @@ Verifies AttentionPool, MetricProjectionHead, ClipSequenceAttentionPool,
 AcuteDistressAnomalyDetector, EpisodicPrototypeMatcher, and PersonalBaselineProfiler.
 """
 
+from pathlib import Path
 from typing import Any, cast
 
 import mlx.core as mx
@@ -208,6 +209,46 @@ def test_personal_baseline_profiler() -> None:
     assert stats["f0_upper_limit_hz"] >= 400.0
     assert stats["cpp_mean_db"] == 8.0
     assert stats["cpp_lower_limit_db"] <= 8.0
+
+
+def test_feature_standardizer(tmp_path: Path) -> None:
+    from models.standardizer import FeatureStandardizer
+
+    # 1. Unfitted transform/save raises ValueError
+    std_scaler = FeatureStandardizer()
+    dummy = mx.ones((2, 10))
+    with pytest.raises(ValueError, match="must be fitted"):
+        std_scaler.transform(dummy)
+    with pytest.raises(ValueError, match="Cannot save unfitted"):
+        std_scaler.save(tmp_path / "scaler.npz")
+
+    # 2. Fit 3D tensor (B, T, D)
+    B, T, D = 4, 20, 16
+    raw_data = mx.random.normal((B, T, D)) * 5.0 + 10.0
+    std_scaler.fit(raw_data)
+    assert std_scaler.mean is not None and std_scaler.mean.shape == (D,)
+    assert std_scaler.std is not None and std_scaler.std.shape == (D,)
+
+    # 3. Transform and verify zero mean, unit variance
+    z = std_scaler.transform(raw_data)
+    assert z.shape == (B, T, D)
+    z_flat = z.reshape(-1, D)
+    mean_z = mx.mean(z_flat, axis=0)
+    var_z = mx.var(z_flat, axis=0)
+    for m in cast(list[float], mean_z.tolist()):
+        assert pytest.approx(m, abs=1e-4) == 0.0
+    for v in cast(list[float], var_z.tolist()):
+        assert pytest.approx(v, rel=1e-3) == 1.0
+
+    # 4. Save and load parity
+    scaler_file = tmp_path / "scaler.npz"
+    std_scaler.save(scaler_file)
+    assert scaler_file.exists()
+
+    loaded = FeatureStandardizer.load(scaler_file)
+    z_loaded = loaded.transform(raw_data)
+    diff = mx.max(mx.abs(z - z_loaded))
+    assert float(diff) == 0.0
 
 
 def test_frozen_weights_invariant_dispatch() -> None:

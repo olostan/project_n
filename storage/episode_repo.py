@@ -3,6 +3,8 @@ Project N: Episode Repository.
 Data access layer for saving, retrieving, and updating verified episodes.
 """
 
+import contextlib
+import json
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -19,6 +21,16 @@ class EpisodeRepository:
         else:
             self.conn = init_db(db)
 
+    def _parse_row(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        """Helper to convert sqlite3.Row to dict and unpack JSON fields."""
+        if not row:
+            return None
+        d = dict(row)
+        if d.get("metric_embedding"):
+            with contextlib.suppress(Exception):
+                d["metric_embedding"] = json.loads(d["metric_embedding"])
+        return d
+
     def insert_episode(self, ep: dict[str, Any]) -> str:
         """Inserts an episode record into SQLite."""
         sql = """
@@ -29,7 +41,7 @@ class EpisodeRepository:
             action_offered, action_custom_label, action_performed, performance_status,
             action_notes, caregiver_decision, outcome_state, settled_within_sec,
             child_response, response_channel, response_independence, prompt_level,
-            observer, nccpc_instrument, nccpc_score, pain_cutoff_breached
+            observer, nccpc_instrument, nccpc_score, pain_cutoff_breached, metric_embedding
         ) VALUES (
             :id, :vault_uri, :encoder_version_id, :captured_at, :duration_ms, :windows_count,
             :observed_f0_mean, :observed_motion_rhythm_hz, :eda_tonic_level,
@@ -37,7 +49,7 @@ class EpisodeRepository:
             :action_offered, :action_custom_label, :action_performed, :performance_status,
             :action_notes, :caregiver_decision, :outcome_state, :settled_within_sec,
             :child_response, :response_channel, :response_independence, :prompt_level,
-            :observer, :nccpc_instrument, :nccpc_score, :pain_cutoff_breached
+            :observer, :nccpc_instrument, :nccpc_score, :pain_cutoff_breached, :metric_embedding
         );
         """
         defaults = {
@@ -61,8 +73,13 @@ class EpisodeRepository:
             "nccpc_instrument": "none",
             "nccpc_score": None,
             "pain_cutoff_breached": -1,
+            "metric_embedding": None,
         }
         params = {**defaults, **ep}
+        if params["metric_embedding"] is not None and not isinstance(
+            params["metric_embedding"], str
+        ):
+            params["metric_embedding"] = json.dumps(params["metric_embedding"])
         with self.conn:
             self.conn.execute(sql, params)
         return str(params["id"])
@@ -71,7 +88,7 @@ class EpisodeRepository:
         """Retrieves a single episode by ID."""
         cursor = self.conn.execute("SELECT * FROM episodes WHERE id = ?", (episode_id,))
         row = cursor.fetchone()
-        return dict(row) if row else None
+        return self._parse_row(row)
 
     def list_episodes(
         self,
@@ -86,7 +103,7 @@ class EpisodeRepository:
         else:
             query = "SELECT * FROM episodes ORDER BY captured_at DESC LIMIT ? OFFSET ?"
             cursor = self.conn.execute(query, (limit, offset))
-        return [dict(row) for row in cursor.fetchall()]
+        return [parsed for row in cursor.fetchall() if (parsed := self._parse_row(row)) is not None]
 
     def update_outcome(
         self,
