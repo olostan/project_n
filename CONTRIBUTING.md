@@ -67,38 +67,47 @@ All code contributions must adhere to our automated quality gates:
 git clone https://github.com/olostan/project_n.git
 cd project_n
 
+# Install system dependencies (ffmpeg)
+# macOS:
+brew install ffmpeg
+# Ubuntu / Debian:
+sudo apt-get update && sudo apt-get install -y ffmpeg
+
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies and setup pre-commit hooks
 uv sync --extra dev
-uv run pre-commit install
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 ```
 
 ### Running Test Suite
 Before submitting a pull request, ensure all local verification checks pass:
 
 ```bash
-# 1. Run architecture shape and contract assertions
+# 1. Run full test suite with 85% coverage gate
+uv run pytest -v --cov=extraction --cov=models --cov=rag --cov=server --cov=storage --cov=training --cov-fail-under=85
+
+# 2. Run architecture shape and contract assertions
 uv run python tests/test_shapes.py
 
-# 2. Verify all relative documentation markdown links
+# 3. Verify all relative documentation markdown links
 uv run python tests/check_markdown_links.py
 
-# 3. Verify academic citation DOIs against Crossref/DataCite
+# 4. Verify academic citation DOIs against Crossref/DataCite
 uv run python tests/verify_citations.py
 
-# 4. Run Ruff linter and code formatter
+# 5. Run Ruff linter and code formatter
 uv run ruff check .
 uv run ruff format --check .
 
-# 5. Run Mypy strict type checker
-uv run mypy models tests
+# 6. Run Mypy strict type checker across all modules
+uv run mypy models extraction storage server training tests
 
-# 6. Run MkDocs strict build
+# 7. Run MkDocs strict build
 uv run mkdocs build --strict
 
-# 7. Run full pre-commit suite
+# 8. Run full pre-commit suite
 uv run pre-commit run --all-files
 ```
 

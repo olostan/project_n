@@ -27,14 +27,14 @@ repos:
     hooks:
       - id: mypy
         name: "Code Quality: Strict Mypy Static Type Checking"
-        entry: uv run mypy models extraction storage server tests
+        entry: uv run mypy models extraction storage server training tests
         language: system
         pass_filenames: false
         always_run: true
 
       - id: invariant-forbidden-imports
         name: "Invariant 10: Forbidden Cloud & PyTorch Imports Scan"
-        entry: uv run python tests/verify_imports.py
+        entry: uv run python tests/test_imports.py
         language: system
         types: [python]
         pass_filenames: false

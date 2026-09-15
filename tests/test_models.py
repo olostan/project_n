@@ -249,15 +249,3 @@ def test_feature_standardizer(tmp_path: Path) -> None:
     z_loaded = loaded.transform(raw_data)
     diff = mx.max(mx.abs(z - z_loaded))
     assert float(diff) == 0.0
-
-
-def test_frozen_weights_invariant_dispatch() -> None:
-    from tests.verify_frozen_weights import test_frozen_weights_invariant
-
-    test_frozen_weights_invariant()
-
-
-def test_memory_ceiling_invariant_dispatch() -> None:
-    from tests.verify_memory_ceiling import test_memory_ceiling_invariant
-
-    test_memory_ceiling_invariant()

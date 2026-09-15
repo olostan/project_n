@@ -127,12 +127,12 @@ The following parameters are empirical design defaults subject to systematic abl
 | Invariant ID | Target Subsystem | Automated Verification Command | Action on Failure |
 | :--- | :--- | :--- | :--- |
 | **INV-1** | Network Sandbox | `pytest tests/test_offline_sandbox.py` | Immediate process abort; reject PR |
-| **INV-2** | Memory Ceiling | `python tests/verify_memory_ceiling.py --max_gb 36.0` | Abort execution; release Metal cache |
-| **INV-3** | Weight Freezing | `python tests/verify_frozen_weights.py` | Refuse candidate promotion |
+| **INV-2** | Memory Ceiling | `pytest tests/test_memory_ceiling.py` | Abort execution; release Metal cache |
+| **INV-3** | Weight Freezing | `pytest tests/test_frozen_weights.py` | Refuse candidate promotion |
 | **INV-4** | Sensory Bypass | `pytest tests/test_sensory_pipeline.py` | Reject phonemic/text bottlenecks |
 | **INV-5** | Model Promotion | `python -m training.evaluate_candidate --strict` | Block deployment if safety regresses |
 | **INV-6** | Output Traceability | `pytest tests/test_output_schema.py` | Reject unformatted or diagnostic text |
 | **INV-7** | Medical Safety & Distress Screener | `pytest tests/test_distress_screener.py` | Enforce medical comfort check prompt on anomalies |
 | **INV-8** | Caregiver Insight & Child Agency | `pytest tests/test_insight_delivery.py` | Validate dual-perspective rendering & child agency |
-| **INV-9** | Version Lineage | `python -m rag.verify_lineage` | Prevent querying across encoder versions |
-| **INV-10**| MLX Purity | `grep -rn "import torch" extraction/ models/ training/` | Fail lint check; forbid commit |
+| **INV-9** | Version Lineage | `pytest tests/test_lineage.py` | Prevent querying across encoder versions |
+| **INV-10**| MLX Purity | `pytest tests/test_imports.py` | Fail lint check; forbid commit |

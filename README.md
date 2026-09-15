@@ -63,6 +63,7 @@ All scientific whitepapers, clinical protocols, architectural designs, and engin
 - **Hardware:** Apple Silicon Mac (M-series with 32 GB+ Unified Memory; 48 GB recommended).
 - **Operating System:** macOS 15.0 (Sequoia) or newer.
 - **Python Environment:** Python 3.11+ with the [`uv`](https://github.com/astral-sh/uv) package manager.
+- **System Tooling:** `ffmpeg` (`brew install ffmpeg` on macOS, `sudo apt-get install -y ffmpeg` on Ubuntu).
 
 ### 1. Clone the Repository
 
@@ -94,11 +95,17 @@ To test building the documentation in strict mode (ensuring zero broken links or
 uv run mkdocs build --strict
 ```
 
-### 4. Linters, Type Checking & Pre-Commit Quality Gates
+### 4. Run Pytest Suite with 85% Branch Coverage Gate
+
+```bash
+uv run pytest -v --cov=extraction --cov=models --cov=rag --cov=server --cov=storage --cov=training --cov-fail-under=85
+```
+
+### 5. Linters, Type Checking & Pre-Commit Quality Gates
 
 Project N enforces strict quality and safety gates on every commit (`pre-commit`) and push (`pre-push`):
 - **Code & Style:** `ruff` (linter + formatter) with strict rule sets.
-- **Static Types:** `mypy` in full `--strict` mode.
+- **Static Types:** `mypy` in full `--strict` mode across all Python modules.
 - **Safety Invariant 10:** Zero external cloud AI SDKs (`openai`, `anthropic`, `vertexai`, `google.generativeai`) and zero PyTorch imports in runtime modules.
 - **Docs & Links:** Relative markdown link verification (`tests/check_markdown_links.py`) and `mkdocs build --strict`.
 - **Academic Citations:** Crossref and DataCite DOI verification prior to pushing.

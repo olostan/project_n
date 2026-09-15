@@ -36,7 +36,7 @@ The first two are more serious than anything in Round 1, because Round 1's fabri
 | **P0-4** | No retrieval write path | [`episodes.py:90-150`](server/routes/episodes.py) adds `POST /{id}/outcome` (+ `/confirm` alias) writing full outcome fields and indexing to ChromaDB — **only when `get_clip_embedding` returns non-`None`**, i.e. only under a trained checkpoint. Correctly fail-closed. `matches`/`candidates` mismatch resolved at [`analysis_service.py:226`](server/services/analysis_service.py). |
 | **P0-6** | `/media` returned a byte literal | [`episodes.py`](server/routes/episodes.py) now performs real vault retrieval with a 404 on missing ciphertext. |
 | **P2-2** | `declined` vs `rejected` | [`contracts.py:143`](models/contracts.py) reconciled to `"rejected"`; [`test_shapes.py:260-291`](tests/test_shapes.py) now **parses the live `CHECK` constraints via regex and asserts parity** — exactly the fix requested. |
-| **P1-31** | Substring grep for forbidden imports | [`tests/verify_imports.py`](tests/verify_imports.py) is a real AST visitor covering `torch`, `torchvision`, `torchaudio`, and the cloud SDKs. Wired into CI and pre-commit. |
+| **P1-31** | Substring grep for forbidden imports | [`tests/test_imports.py`](tests/test_imports.py) is a real AST visitor covering `torch`, `torchvision`, `torchaudio`, and the cloud SDKs. Wired into CI and pre-commit. |
 | **P1-27** *(partial)* | Degenerate `shoulder_dist` | Guarded. The remaining magic constants in this finding are still unaddressed (see §4). |
 
 ### Partially closed

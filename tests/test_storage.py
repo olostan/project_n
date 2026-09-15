@@ -189,9 +189,3 @@ def test_chroma_vector_store() -> None:
     # Query with non-matching version should yield 0 results (lineage invariant)
     res_stale = store.query_episodes(test_vec, top_k=1, encoder_version_id="v2.0.0")
     assert len(res_stale["ids"]) == 0
-
-
-def test_lineage_verification_dispatch() -> None:
-    from tests.verify_lineage import verify_lineage_invariants
-
-    verify_lineage_invariants()

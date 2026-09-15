@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   quality-gate:
-    name: Code Quality & Hermetic Verification
+    name: Code Quality & Hermetic Verification (Linux)
     runs-on: ubuntu-latest
 
     steps:
@@ -30,13 +30,18 @@ jobs:
           enable-cache: true
           version: "latest"
 
+      - name: Install System Dependencies (ffmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Install Dependencies
         run: |
           uv sync --extra dev
 
       - name: "Invariant 10: Forbidden Cloud & PyTorch Imports Scan"
         run: |
-          uv run python tests/verify_imports.py
+          uv run python tests/test_imports.py
 
       - name: "Code Quality: Ruff Lint Check"
         run: |
@@ -50,14 +55,6 @@ jobs:
         run: |
           uv run python tests/check_file_sizes.py
 
-      - name: "Static Typing: Mypy Strict Mode"
-        run: |
-          uv run mypy models extraction storage server tests
-
-      - name: "Architecture: Tensor Shape & Dimension Contracts"
-        run: |
-          uv run python tests/test_shapes.py
-
       - name: "Documentation: Verify Markdown Relative Links"
         run: |
           uv run python tests/check_markdown_links.py
@@ -66,12 +63,8 @@ jobs:
         run: |
           uv run mkdocs build --strict
 
-      - name: "Testing: Hermetic Pytest Suite"
-        run: |
-          uv run pytest -v
-
   apple-silicon-verification:
-    name: Apple Silicon Metal Execution (macos-14)
+    name: Apple Silicon Metal Execution & Full Test Suite (macos-14)
     runs-on: macos-14
     needs: quality-gate
 
@@ -90,9 +83,17 @@ jobs:
           enable-cache: true
           version: "latest"
 
+      - name: Install System Dependencies (ffmpeg)
+        run: |
+          brew install ffmpeg
+
       - name: Install Dependencies with MLX
         run: |
           uv sync --extra dev
+
+      - name: "Static Typing: Mypy Strict Mode"
+        run: |
+          uv run mypy models extraction storage server training tests
 
       - name: "MLX Hardware Memory Verification"
         run: |
@@ -102,6 +103,6 @@ jobs:
           print('Peak Metal Memory (GB):', mx.get_peak_memory() / 1e9)
           "
 
-      - name: "MLX Neural Module Verification"
+      - name: "Testing: Full Hermetic Pytest Suite with Coverage Gate"
         run: |
-          uv run pytest -v tests/test_shapes.py tests/test_analysis_service.py
+          uv run pytest -v --cov=extraction --cov=models --cov=rag --cov=server --cov=storage --cov=training --cov-fail-under=85
