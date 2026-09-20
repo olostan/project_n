@@ -2,12 +2,14 @@
  * Project N: Live Telemetry & Ingestion Pipeline Page.
  */
 
-import React from "react";
-import { Activity, Clock, Cpu, Radio } from "lucide-react";
+import React, { useState } from "react";
+import { Activity, Clock, Cpu, Radio, Upload } from "lucide-react";
 import { SSEStreamState } from "../hooks/useSSEStream";
 import { UnifiedTelemetry } from "../hooks/useSystemTelemetry";
 import { PipelineTaskTracker } from "../components/telemetry/PipelineTaskTracker";
 import { NonDiagnosticBanner } from "../components/common/NonDiagnosticBanner";
+import { UploadClipModal } from "../components/diary/UploadClipModal";
+import { Button } from "../components/common/Button";
 
 interface LiveTelemetryPageProps {
   telemetry: UnifiedTelemetry;
@@ -18,8 +20,16 @@ export const LiveTelemetryPage: React.FC<LiveTelemetryPageProps> = ({
   telemetry,
   sseState,
 }) => {
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto p-4 sm:p-6 text-slate-100">
+      <UploadClipModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onUploadSuccess={() => setIsUploadOpen(false)}
+      />
+
       {/* Top Welcome & System Status Card */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-lg flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -35,7 +45,17 @@ export const LiveTelemetryPage: React.FC<LiveTelemetryPageProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsUploadOpen(true)}
+              className="gap-1.5 text-xs"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload Video</span>
+            </Button>
+
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs font-medium">
               <Radio className="w-3.5 h-3.5 animate-pulse" />
               <span>{sseState.connected ? "Stream Active" : "Disconnected"}</span>

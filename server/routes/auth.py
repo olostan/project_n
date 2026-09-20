@@ -6,13 +6,44 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from server.ca import LocalCertificateAuthority
 from server.deps import check_and_record_pairing_attempt, get_ca, register_token
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+class LocalTokenResponse(BaseModel):
+    token: str
+    expires_at: str
+
+
+@router.post("/local-token", response_model=LocalTokenResponse)
+def get_local_session_token(request: Request) -> dict[str, Any]:
+    """
+    Issues an authenticated session token for the local desktop SPA.
+    Restricted strictly to loopback interface (127.0.0.1, ::1, testclient).
+    """
+    client_host = request.client.host if request.client else "unknown"
+    allowed_loopbacks = {"127.0.0.1", "::1", "localhost", "testclient"}
+    if client_host not in allowed_loopbacks:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Forbidden: Local loopback interface only. "
+                "Companion devices must pair via /api/v1/auth/pair."
+            ),
+        )
+
+    token = f"local_{secrets.token_hex(16)}"
+    expires_dt = datetime.now(UTC) + timedelta(days=365)
+    register_token(token, expires_dt.timestamp())
+    return {
+        "token": token,
+        "expires_at": expires_dt.isoformat(),
+    }
 
 
 class PairingRequest(BaseModel):

@@ -33,6 +33,36 @@ export function setStoredAuthToken(token: string): void {
   }
 }
 
+let tokenPromise: Promise<string | null> | null = null;
+
+export async function ensureLocalToken(): Promise<string | null> {
+  const existing = getStoredAuthToken();
+  if (existing) return existing;
+
+  if (tokenPromise) return tokenPromise;
+
+  tokenPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/local-token`, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { token: string };
+        setStoredAuthToken(data.token);
+        return data.token;
+      }
+    } catch {
+      // Offline or network error fallback
+    } finally {
+      tokenPromise = null;
+    }
+    return null;
+  })();
+
+  return tokenPromise;
+}
+
 export async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -44,7 +74,10 @@ export async function request<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const token = getStoredAuthToken();
+  let token = getStoredAuthToken();
+  if (!token && !endpoint.includes("/auth/")) {
+    token = await ensureLocalToken();
+  }
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }

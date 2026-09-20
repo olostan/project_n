@@ -418,6 +418,7 @@ All endpoints (except initial user-present pairing) require an authenticated loc
 | HTTP Verb | Path | Request Payload / Headers | Response Payload | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/v1/auth/pair` | `{ "device_id": str, "csr_pem": str, "pairing_pin": str }` | `{ "client_cert_pem": str, "token": str, "expires_at": str }` | User-present PIN pairing: client submits Keystore/Secure Enclave CSR; server signs 1-year client cert. |
+| `POST` | `/api/v1/auth/local-token` | None | `{ "token": str, "expires_at": str }` | Issues local session token for desktop SPA over loopback interface (`127.0.0.1`, `::1`). |
 | `POST` | `/api/v1/clips/upload/init` | `{ "file_name": str, "file_size": int, "sha256": str, "total_chunks": int }`<br/>Header: `Authorization: Bearer` | `{ "upload_id": str, "chunk_size": int }` | Initializes authenticated resumable chunked upload. |
 | `PUT` | `/api/v1/clips/upload/{id}/chunk/{idx}` | Binary chunk payload<br/>Header: `Authorization: Bearer`, `X-Chunk-SHA256` | `{ "chunk_index": int, "received": bool }` | Streams sequential authenticated chunk to upload buffer. |
 | `POST` | `/api/v1/clips/upload/{id}/finalize` | `{ "metadata_json": dict }`<br/>Header: `Authorization: Bearer` | `{ "clip_id": str, "sha256": str, "status": "stored" }` | Validates assembled hash, encrypts into vault with per-clip DEK. |

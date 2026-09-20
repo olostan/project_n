@@ -303,3 +303,28 @@ def test_facts_staging_and_confirmation() -> None:
     # 4. Now it should appear in confirmed list
     list_after = client.get("/api/v1/facts?confirmed_only=true", headers=headers)
     assert any(f["id"] == fact_id for f in list_after.json()["facts"])
+
+
+def test_local_session_token_issuance() -> None:
+    """Verifies that loopback clients can obtain a local session token without CSR."""
+    res = client.post("/api/v1/auth/local-token")
+    assert res.status_code == 200
+    data = res.json()
+    assert "token" in data
+    assert data["token"].startswith("local_")
+    assert "expires_at" in data
+
+    # Verify that the issued token is accepted by protected endpoints
+    headers = {"Authorization": f"Bearer {data['token']}"}
+    init_res = client.post(
+        "/api/v1/clips/upload/init",
+        headers=headers,
+        json={
+            "file_name": "local_test.mp4",
+            "file_size": 1000,
+            "sha256": "0" * 64,
+            "total_chunks": 1,
+        },
+    )
+    assert init_res.status_code == 200
+    assert "upload_id" in init_res.json()

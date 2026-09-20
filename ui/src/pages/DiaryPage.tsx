@@ -2,10 +2,11 @@
  * Project N: Historical Episode Diary Page.
  */
 
-import React from "react";
-import { Film, HeartPulse } from "lucide-react";
+import React, { useState } from "react";
+import { Film, HeartPulse, Upload } from "lucide-react";
 import { EpisodeCard } from "../components/diary/EpisodeCard";
 import { EpisodeFilters } from "../components/diary/EpisodeFilters";
+import { UploadClipModal } from "../components/diary/UploadClipModal";
 import { Button } from "../components/common/Button";
 import { ControlledAntecedent, Episode } from "../types/episodes";
 
@@ -34,6 +35,7 @@ export const DiaryPage: React.FC<DiaryPageProps> = ({
   onNavigateToInspector,
   onNavigateToTriage,
 }) => {
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const selectedEpisode = episodes.find((e) => e.id === selectedEpisodeId) || episodes[0];
 
   return (
@@ -46,7 +48,25 @@ export const DiaryPage: React.FC<DiaryPageProps> = ({
             Historical log of verified episodes and recorded co-regulatory outcomes for Child N.
           </p>
         </div>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setIsUploadOpen(true)}
+          className="gap-1.5"
+        >
+          <Upload className="w-4 h-4" />
+          <span>Upload Video Clip</span>
+        </Button>
       </div>
+
+      <UploadClipModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onUploadSuccess={(clipId) => {
+          onRefresh();
+          onSelectEpisodeId(clipId);
+        }}
+      />
 
       {/* Filter Controls */}
       <EpisodeFilters

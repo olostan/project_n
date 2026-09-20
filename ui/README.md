@@ -55,7 +55,7 @@ ui/
 │   │   ├── common/              # Buttons, Badges, Modals, NonDiagnosticBanner
 │   │   ├── layout/              # TopHeaderBar, SidebarNav
 │   │   ├── telemetry/           # VRAMGauge, ThermalIndicator, PipelineTaskTracker
-│   │   ├── diary/               # EpisodeCard, EpisodeFilters, OutcomeBadge
+│   │   ├── diary/               # EpisodeCard, EpisodeFilters, OutcomeBadge, UploadClipModal
 │   │   ├── inspector/           # VideoPlayer, SkeletalCanvasOverlay, AudioPitchTrack,
 │   │   │                        # FourLayerCard, ParentViewContent, TherapistViewContent,
 │   │   │                        # OutcomeLoggerModal
