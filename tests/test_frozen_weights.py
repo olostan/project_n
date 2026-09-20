@@ -36,9 +36,9 @@ def verify_freezing_mechanism() -> None:
     backbone.freeze()
 
     trainable_all_frozen = tree_flatten(backbone.trainable_parameters())
-    assert (
-        len(trainable_all_frozen) == 0
-    ), f"INVARIANT 3 BREACH: Frozen model still exposes trainable parameters: {trainable_all_frozen}"
+    assert len(trainable_all_frozen) == 0, (
+        f"INVARIANT 3 BREACH: Frozen model still exposes trainable parameters: {trainable_all_frozen}"
+    )
 
     backbone.lora_a.unfreeze()
     backbone.lora_b.unfreeze()

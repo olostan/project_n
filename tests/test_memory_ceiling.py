@@ -13,9 +13,9 @@ def verify_mlx_memory_ceiling(max_gb: float = HARD_CEILING_GB) -> None:
     peak_bytes = mx.get_peak_memory()
     peak_gb = peak_bytes / 1e9
 
-    assert (
-        peak_gb <= max_gb
-    ), f"INVARIANT 2 BREACH: Peak Metal memory {peak_gb:.2f} GB exceeds limit {max_gb:.1f} GB"
+    assert peak_gb <= max_gb, (
+        f"INVARIANT 2 BREACH: Peak Metal memory {peak_gb:.2f} GB exceeds limit {max_gb:.1f} GB"
+    )
 
 
 def test_memory_ceiling_invariant() -> None:
