@@ -429,6 +429,7 @@ All endpoints (except initial user-present pairing) require an authenticated loc
 | `POST` | `/api/v1/facts` | `{ "category": str, "fact_title": str, "description": str, "source_type": str, "clinician_role": str, "clinician_id": str }`<br/>Header: `Authorization: Bearer` | `{ "fact_id": str, "status": "created", "confirmed_by_caregiver": false }` | Stages extracted clinical technique into Confirmation Gate. |
 | `POST` | `/api/v1/facts/{id}/confirm` | `{ "confirmed": bool, "custom_notes": Optional[str] }`<br/>Header: `Authorization: Bearer` | `{ "fact_id": str, "confirmed_by_caregiver": bool }` | Human-in-the-Loop confirmation card for therapist technique. |
 | `GET` | `/api/v1/events/stream` | Header: `Accept: text/event-stream`<br/>Header: `Authorization: Bearer` | Continuous Server-Sent Events (SSE) stream | Real-time progress, telemetry, and training logs. |
+| `GET` | `/api/v1/models/checkpoints` | None<br/>Header: `Authorization: Bearer` | `{ "checkpoints": List[ModelCheckpoint], "total": int }` | Lists registered candidate and production checkpoints with evaluation metrics. |
 | `POST` | `/api/v1/models/promote` | `{ "candidate_id": str }`<br/>Header: `X-Admin-Auth: token` | `{ "status": "promoted", "timestamp": str }` | One-click candidate model promotion (admin/Touch ID gated). |
 | `POST` | `/api/v1/models/rollback` | `{}`<br/>Header: `X-Admin-Auth: token` | `{ "status": "rolled_back", "active_id": str }` | Rollback to prior stable checkpoint (admin/Touch ID gated). |
 
@@ -515,23 +516,48 @@ graph TD
     style ResponseRow fill:#fefce8,stroke:#ca8a04,stroke-width:2px
 ```
 
-### 6.2 Key Dashboard Screens
-1. **Live Multimodal Inspector & Dual-Perspective Insight Card:**
-   - HTML5 Video Player synchronized via `<canvas>` overlay showing MediaPipe skeletal joints and Farnebäck motion vectors frame-by-frame.
-   - Synchronized audio waveform with interactive pitch trace ($F_0$ curve) and CQT spectrogram heatmaps.
+### 6.2 Key Dashboard Screens & Components (`ui/src/`)
+
+1. **Live Stream & Ingestion Telemetry (`pages/LiveTelemetryPage.tsx`):**
+   - Metal unified VRAM gauge (`components/telemetry/VRAMGauge.tsx`) tracking real-time active and peak Metal allocations against the 36.0 GB ceiling.
+   - Thermal state indicator (`components/telemetry/ThermalIndicator.tsx`) displaying Apple Silicon thermal state (`Nominal`, `Fair`, `Warm`, `Throttled`) and model calibration ID.
+   - Background pipeline task progress tracker (`components/telemetry/PipelineTaskTracker.tsx`) visualizing real-time SSE extraction stages (`demuxing`, `kinematic_flow_extraction`, `audio_spectral_extraction`, `temporal_pooling`, `metric_projection`, `completed`).
+   - Real-time Server-Sent Events stream log (`hooks/useSSEStream.ts`).
+
+2. **Historical Episode Diary (`pages/DiaryPage.tsx`):**
+   - Filterable timeline browser (`components/diary/EpisodeFilters.tsx`) supporting antecedent filters (`mealtime`, `post_school_transition`, `loud_environment`, etc.), date sorting, and outcome filtering.
+   - Episode preview cards (`components/diary/EpisodeCard.tsx`) displaying duration, bioacoustic summary ($F_0$ mean, motion rhythm), outcome badges, and acute pain breach alerts.
+   - Direct navigation to Video Inspector and NCCPC Triage screens.
+
+3. **Multimodal Video Inspector & Four-Layer Insight Card (`pages/InspectorPage.tsx`):**
+   - HTML5 Video Player (`components/inspector/VideoPlayer.tsx`) with 30 fps (33.3 ms) frame stepping, scrubber, rate control, and vault stream integration (`GET /api/v1/episodes/{id}/media`).
+   - Synchronized MediaPipe skeletal canvas overlay (`components/inspector/SkeletalCanvasOverlay.tsx`) rendering 33 pose landmarks, hand keypoints, and Farnebäck motion velocity vectors frame-by-frame.
+   - Synchronized audio waveform with interactive pitch trace ($F_0$ contour in Hz; `components/inspector/AudioPitchTrack.tsx`) allowing bidirectional scrubbing.
+   - **Four-Layer Card (`components/inspector/FourLayerCard.tsx`):** Strictly partitions L1 (Measured), L2 (History), L3 (Context), and L4 (Evidence), with first-class abstention banners.
    - **Perspective Switcher Toggle (`[ 🟢 Parent View (Default) ] | [ 🔬 Therapist View ]`):**
-     - **Parent View:** Plain-English translation of acoustic/kinematic patterns into everyday sensory insights (*e.g., "Child N's vocal pitch and wrist movement are elevated, similar to past fatigue episodes"*), gentle exploratory hypotheses (*"What Child N might be experiencing..."*), concrete low-risk things to try based on past co-regulatory successes (*"Give his favorite red toy", "Dim lights and give 3 minutes quiet break"*, *"Offer water"*), and an explicit non-diagnostic parental notice.
-     - **Therapist View:** Full bioacoustic figures ($F_0$, CPP, CQT harmonics), kinematic tracking (MediaPipe joints, Farnebäck displacement), SCERTS and Ayres Sensory Integration mapping, and exact peer-reviewed literature citations.
-2. **Interactive 2D Lexicon Cluster Map:**
-   - WebGL-accelerated 2D scatter plot (UMAP projection of 128-dim metric vectors) displaying Child N's behavioral clusters (e.g., clusters for deep pressure, hydration, sensory breaks).
-   - Clicking any cluster dot opens the underlying video clip and recorded caregiver outcome.
-3. **Candidate Model Promotion Gate:**
-   - Visual displays of forward-chaining temporal validation curves, selective risk coverage, calibration reliability diagrams, and safety assertion logs.
-   - One-click button to promote candidate weights to active production.
-4. **Caregiver Pain Observation & NCCPC Triage Flow (Screen / Modal):**
-   - Step-by-step digital implementation of the pediatrician-approved checklist (NCCPC-PV 27 items or NCCPC-R 30 items) with single-touch 0–3 and `NA` buttons.
-   - Automatic live sum calculation and threshold indicator ($\ge 11$ for PV, $\ge 7$ for R).
-   - Immediate triage guidance: when threshold is breached, the UI locks out behavioral interpretations and displays the family pediatrician medical escalation protocol with one-touch emergency/clinic contacts.
+     - **Parent View (`components/inspector/ParentViewContent.tsx`):** Warm, everyday English translation of acoustic/kinematic patterns, gentle exploratory possibilities (*"What Child N might be experiencing..."*), concrete co-regulatory calming cues (*"Offer water"*, *"Deep pressure"*, *"3-minute quiet break"*), and non-diagnostic advisory notice.
+     - **Therapist View (`components/inspector/TherapistViewContent.tsx`):** Full bioacoustic figures ($F_0$, CPP, CQT harmonics), kinematic tracking, SCERTS framework mapping, Ayres Sensory Integration domain, and peer-reviewed citations with DOI links.
+   - **Dyadic Outcome Recording Modal (`components/inspector/OutcomeLoggerModal.tsx`):** Form for recording caregiver decisions, intervention outcomes, settling times, and child agency responses (reach, gesture, vocal signal, independent AAC selection) to trigger ChromaDB vector indexing.
+
+4. **Caregiver Pain Observation & NCCPC Triage Flow (`pages/PainTriagePage.tsx`):**
+   - Digital checklist (`components/triage/NCCPCSubscaleSection.tsx`) for **NCCPC-PV** (27 items, 6 subscales) and **NCCPC-R** (30 items, 7 subscales) with single-touch `0`, `1`, `2`, `3`, and `NA` buttons.
+   - Live running score indicator (`components/triage/ScoreIndicator.tsx`) displaying total score, subscale breakdowns, and cut-off detection ($\ge 11$ for PV, $\ge 7$ for R).
+   - Medical safety escalation banner (`components/triage/MedicalEscalationBanner.tsx`): immediately locks out behavioral interpretations and renders the pediatrician-approved physical comfort protocol when cut-offs are breached.
+
+5. **2D Behavioral Lexicon Visualizer (`pages/LexiconPage.tsx`):**
+   - Interactive 2D scatter plot (`components/lexicon/UMAPCanvas.tsx`) projecting 128-dimensional metric clusters in 2D space.
+   - Color legend (`components/lexicon/LexiconLegend.tsx`) color-coding points by co-regulatory action resolution.
+   - Interactive hover tooltips (`components/lexicon/ClusterTooltip.tsx`) and click-to-inspect linking directly to the Multimodal Inspector.
+
+6. **Clinical RAG & Facts Library (`pages/FactsLibraryPage.tsx`):**
+   - Management of child profile facts, comfort objects, sensory triggers, and clinician-suggested OT/SLP techniques.
+   - Fail-closed caregiver confirmation gate (`components/facts/FactItemCard.tsx`): unconfirmed techniques require explicit caregiver review and confirmation (`POST /api/v1/facts/{id}/confirm`).
+   - Modal for staging new clinician techniques (`components/facts/CreateFactModal.tsx`).
+
+7. **Candidate Model Promotion Gate (`pages/PromotionGatePage.tsx`):**
+   - Checkpoint registry browser (`components/promotion/CheckpointRow.tsx`) showing retrieval MRR ($\ge 0.65$), holdout coverage (60–85%), ECE, and zero acute distress misses.
+   - Calibration reliability diagram (`components/promotion/CalibrationCurve.tsx`) across $M=5$ confidence bins ($\text{ECE} \le 0.12$).
+   - Explicit caregiver promotion sign-off modal (`components/promotion/PromotionConfirmModal.tsx`) and one-click rollback flow via `/api/v1/models/promote` and `/api/v1/models/rollback`.
 
 ---
 
@@ -1390,7 +1416,7 @@ graph TD
     end
 
     subgraph P4 ["Phase 4: Caregiver Dashboard & Clinic-to-Home Knowledge Transfer"]
-        P4_1["4.1 server/dashboard/: Zero-cloud React + Tailwind SPA distribution"]
+        P4_1["4.1 ui/: Zero-cloud React + Tailwind SPA distribution"]
         P4_2["4.2 rag/evidence_store.py: Curated clinical PDF parser & personal_dyadic_knowledge store"]
         P4_3["4.3 models/renderer.py: Schema-constrained Qwen2.5-14B four-layer formatter"]
         P4_1 --> P4_2 --> P4_3

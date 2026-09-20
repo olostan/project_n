@@ -5,15 +5,17 @@ Main application setup, SSE streaming bus, CORS, and modular router mounting.
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 import mlx.core as mx
-from fastapi import Depends, FastAPI, Header
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from server.deps import get_analysis_service, get_sse_bus
-from server.routes import auth, clips, episodes, facts
+from server.routes import auth, clips, episodes, facts, models
 from server.services.analysis_service import AnalysisService
 from server.sse_bus import SSEBus
 
@@ -47,6 +49,7 @@ app.include_router(auth.router)
 app.include_router(clips.router)
 app.include_router(episodes.router)
 app.include_router(facts.router)
+app.include_router(models.router)
 
 
 @app.get("/api/v1/health")
@@ -87,3 +90,21 @@ async def event_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# Mount local Zero-Cloud React SPA Dashboard if built (Invariant 1)
+ui_dist_dir = Path(__file__).resolve().parent.parent / "ui" / "dist"
+if (ui_dist_dir / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(ui_dist_dir / "assets")), name="assets")
+
+if ui_dist_dir.exists():
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str) -> FileResponse:
+        """Serves static files or falls back to index.html for client-side routing."""
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found.")
+        candidate = ui_dist_dir / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(ui_dist_dir / "index.html")

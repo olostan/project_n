@@ -127,3 +127,13 @@ app/android/app/build/
 # --- MkDocs & Static Site Build Artifacts ---
 site/
 .cache/
+
+# --- Web UI (React / Node / Vite) ---
+node_modules/
+ui/node_modules/
+dist/
+ui/dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

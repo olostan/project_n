@@ -361,13 +361,51 @@ The mobile companion app runs on Flutter, supporting both Android and iOS:
 - **Store-and-Forward Background Flushing:** When the phone returns home and detects the Mac helper over local Wi-Fi, the background sync manager flushes queued clips over mutual TLS (mTLS) with SHA-256 chunk verification.
 
 ### 6.3 Local Caregiver Dashboard (React + Tailwind SPA)
-The local Mac interface is a modern React SPA served directly by the FastAPI backend at `http://127.0.0.1:8080`:
+The local Mac interface (`ui/`) is a modern React 18 + Tailwind CSS single-page application served directly by the FastAPI backend at `http://127.0.0.1:8080`. Operating under Invariant 1, the dashboard is a **100% self-contained offline bundle** with zero runtime cloud connections, zero telemetry, and zero remote CDNs (typography uses locally bundled `@fontsource/inter` and `@fontsource/jetbrains-mono`).
 
-- **Live System Telemetry:** Real-time gauge of active vs. peak Metal unified memory, thermal state, and MLX engine status.
-- **Timeline & Episode Browser:** Filterable historical diary of verified episodes.
-- **Multimodal Video Inspector:** Synchronized video player with `<canvas>` skeletal overlay, interactive audio pitch ($F_0$) waveform, and the four-layer output card.
-- **2D UMAP Lexicon Visualizer:** Interactive WebGL cluster map showing the geometry of Child N's behavioral repertoire.
-- **Candidate Model Promotion Gate:** Visual holdout calibration curves and one-click model promotion/rollback.
+The frontend architecture follows a component-driven, unidirectional flow structured across 7 dedicated views:
+
+1. **Live System Telemetry (`pages/LiveTelemetryPage.tsx`):**
+   - Metal unified VRAM gauge (`components/telemetry/VRAMGauge.tsx`) tracking real-time active and peak allocations against the 36.0 GB ceiling.
+   - Thermal state monitor (`components/telemetry/ThermalIndicator.tsx`) displaying Apple Silicon thermal state and active checkpoint calibration ID.
+   - Real-time pipeline task tracker (`components/telemetry/PipelineTaskTracker.tsx`) visualizing SSE event streaming across extraction and metric projection stages (`hooks/useSSEStream.ts`).
+
+2. **Historical Episode Diary (`pages/DiaryPage.tsx`):**
+   - Filterable timeline browser (`components/diary/EpisodeFilters.tsx`) supporting antecedent tags (`mealtime`, `post_school_transition`, `loud_environment`), outcome statuses, and acute distress indicators.
+   - Episode cards (`components/diary/EpisodeCard.tsx`) displaying duration, bioacoustic summary ($F_0$ mean, motion rhythm), and direct navigation to detailed inspection or triage.
+
+3. **Multimodal Video Inspector & Four-Layer Insight Card (`pages/InspectorPage.tsx`):**
+   - Synchronized 30 fps video player (`components/inspector/VideoPlayer.tsx`) with frame stepping, scrubber, playback rate controls, and secure vault media streaming (`GET /api/v1/episodes/{id}/media`).
+   - Dynamic `<canvas>` skeletal overlay (`components/inspector/SkeletalCanvasOverlay.tsx`) rendering 33 pose landmarks, hand keypoints, and optical flow velocity vectors.
+   - Bidirectional interactive pitch track (`components/inspector/AudioPitchTrack.tsx`) rendering fundamental frequency ($F_0$) contours.
+   - **Strict Four-Layer Separation (`components/inspector/FourLayerCard.tsx`):** Clearly partitions L1 (Measured Features), L2 (Historical Analogues), L3 (Contextual Antecedents), and L4 (Calibrated Hypotheses), enforcing clear non-diagnostic framing and explicit abstention notices.
+   - **Dual-Perspective View Switcher (`[ 🟢 Parent View (Default) ] | [ 🔬 Therapist View ]`):**
+     - *Parent View (`ParentViewContent.tsx`):* Warm, accessible English translation, gentle exploratory possibilities, and actionable co-regulatory calming cues (*"Offer water"*, *"Deep pressure"*, *"3-minute quiet break"*).
+     - *Therapist View (`TherapistViewContent.tsx`):* Granular bioacoustic metrics ($F_0$, CPP, spectral tilt), kinematic tracking figures, SCERTS/Ayres SI domain mapping, and linked peer-reviewed literature citations.
+   - **Dyadic Outcome Logger (`components/inspector/OutcomeLoggerModal.tsx`):** Form for recording caregiver calming actions, outcome effectiveness, settling time, and child agency cues (gestures, reach, independent AAC choice).
+
+4. **Caregiver Pain Observation & NCCPC Triage Flow (`pages/PainTriagePage.tsx`):**
+   - Digital assessment flow (`components/triage/NCCPCSubscaleSection.tsx`) implementing **NCCPC-PV** (27 items across 6 subscales) and **NCCPC-R** (30 items across 7 subscales) with 0–3 scoring and NA options.
+   - Live running score indicator (`components/triage/ScoreIndicator.tsx`) computing subscale totals and detecting clinical cut-offs ($\ge 11$ for PV, $\ge 7$ for R).
+   - Medical safety escalation banner (`components/triage/MedicalEscalationBanner.tsx`): automatically locks out behavioral and emotional interpretations when pain cut-offs are breached, prompting immediate medical evaluation and displaying the pediatrician-approved physical comfort protocol.
+
+5. **2D Behavioral Lexicon Visualizer (`pages/LexiconPage.tsx`):**
+   - Interactive 2D scatter plot (`components/lexicon/UMAPCanvas.tsx`) projecting 128-dimensional metric clusters in 2D space.
+   - Color-coded cluster legend (`components/lexicon/LexiconLegend.tsx`) mapping behavioral states to co-regulatory action resolutions.
+   - Interactive cluster hover tooltips (`components/lexicon/ClusterTooltip.tsx`) with direct links to the video inspector for grounded review.
+
+6. **Clinical RAG & Facts Library (`pages/FactsLibraryPage.tsx`):**
+   - Repository of verified child profile facts, sensory triggers, comfort objects, and clinician-suggested OT/SLP techniques.
+   - Fail-closed caregiver confirmation gate (`components/facts/FactItemCard.tsx`): newly ingested clinical notes remain pending until the caregiver explicitly verifies them (`POST /api/v1/facts/{id}/confirm`).
+   - Modal for staging new clinician techniques (`components/facts/CreateFactModal.tsx`).
+
+7. **Candidate Model Promotion Gate (`pages/PromotionGatePage.tsx`):**
+   - Checkpoint inspection table (`components/promotion/CheckpointRow.tsx`) auditing validation MRR ($\ge 0.65$), holdout coverage (60–85%), ECE ($\le 0.12$), and safety regression (zero missed acute distress events).
+   - Calibration reliability diagram (`components/promotion/CalibrationCurve.tsx`) across $M=5$ confidence bins.
+   - Caregiver sign-off modal (`components/promotion/PromotionConfirmModal.tsx`) and one-click rollback mechanism.
+
+**Production Daemon Serving:**
+The production SPA bundle (`ui/dist/`) is served directly by the FastAPI daemon (`server/main.py`), mounting static build artifacts at `/assets` and providing an index fallback route for client-side navigation (`/{full_path:path}`), while strictly preserving `/api/*` route resolution.
 
 ---
 
